@@ -23,7 +23,6 @@ const config = {
   importOrderParserPlugins: ['typescript', 'jsx', 'decorators-legacy'],
   importOrderTypeScriptVersion: '5.0.0',
 
-  /* Style: matches the desktop template's .prettierrc */
   printWidth: 100,
   semi: false,
   singleQuote: true,
