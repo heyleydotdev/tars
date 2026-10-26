@@ -1,5 +1,5 @@
-import TitleBar from './components/title-bar'
+import DashboardShell from './components/dashboard-shell'
 
 export default function App() {
-  return <TitleBar />
+  return <DashboardShell />
 }

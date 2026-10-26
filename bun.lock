@@ -34,6 +34,7 @@
         "electron-builder": "26.18.0",
         "electron-vite": "6.0.0",
         "eslint": "catalog:",
+        "lucide-react": "catalog:",
         "prettier": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",

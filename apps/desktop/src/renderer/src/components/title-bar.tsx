@@ -56,7 +56,7 @@ export default function TitleBar() {
   }, [controls])
 
   return (
-    <header className="bg-background fixed inset-x-0 top-0 z-10 flex h-9 items-center select-none [-webkit-app-region:drag]">
+    <header className="bg-background flex h-9 shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
       <span className="font-heading text-muted-foreground pl-3 text-[11px] font-semibold tracking-[0.18em]">
         TARS
       </span>

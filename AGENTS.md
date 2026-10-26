@@ -45,6 +45,7 @@
 
 - File and directory names are lowercase kebab-case; tool-dictated names excepted.
 - Inline one-off parameter and prop types in the signature; no type alias unless reused.
+- Use `React.PropsWithChildren` for components that accept children.
 - Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.
 - Import icons directly from `lucide-react`; no icon barrels, so tree-shaking survives.
 - Packages ship TypeScript source (`@tars/tsconfig/source-package.json`); no build step.
