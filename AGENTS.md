@@ -10,6 +10,16 @@
 - Do not assume Turborepo behavior from memory. Resolve the installed package with `node -p "require.resolve('turbo/package.json')"` and read its `docs/README.md` plus the relevant pages before changing `turbo.json` or commands.
 - The bundled docs match the installed version and work offline; heed deprecation notices.
 
+## Electron
+
+- The npm package ships no docs. Use https://www.electronjs.org/docs/latest/ and verify APIs against `electron.d.ts` from the resolved package.
+- electron-vite config and built-in defaults: https://electron-vite.org/guide/.
+- The desktop window is frameless (`frame: false`); window controls use `window:*` IPC exposed as `window.api.windowControls`.
+- Tray app: closing the window hides it, `before-quit` flips `isQuitting`, and the tray menu owns Quit.
+- Windows identity: `productName: Tars` + `app.setName('Tars')`; dev still runs `electron.exe`, so Task Manager shows Electron until packaged.
+- Dark-only: `nativeTheme.themeSource = 'dark'` in main, `class="dark"` on `<html>`, and `color-scheme: dark`.
+- Keep `contextIsolation` on, expose only the preload bridge, and keep the renderer CSP in `apps/desktop/src/renderer/index.html`.
+
 ## Commands
 
 | Task                 | Command                                         |
@@ -34,6 +44,7 @@
 ## Key Conventions
 
 - File and directory names are lowercase kebab-case; tool-dictated names excepted.
+- Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.
 - Import icons directly from `lucide-react`; no icon barrels, so tree-shaking survives.
 - Packages ship TypeScript source (`@tars/tsconfig/source-package.json`); no build step.
 - Workspaces depend on shared tooling via `workspace:*` and set `"prettier": "@tars/prettier"`.

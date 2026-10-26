@@ -1,6 +1,6 @@
 @import '@tars/ui/globals.css';
 
-@source '../../../../../../packages/ui/src';
+@source '../../../../../packages/ui/src';
 
 body {
   overflow: hidden;
