@@ -41,8 +41,11 @@ This block is written and re-added by `turbo` before repository-scoped commands 
 ## Key Conventions
 
 - File and directory names are lowercase kebab-case, except names a tool dictates (`README.md`, `AGENTS.md`, `bun.lock`, `tsconfig.*.json`).
+- Default exports are inline: `export default function Name() {}` at the declaration, never a separate `export default Name` at the bottom.
+- Components rely on inferred return types; do not annotate them with `React.JSX.Element`.
 - Tooling packages are private and scoped `@tars/*`; they are consumed via `workspace:*`.
 - `clean` belongs to the workspace that owns the artifacts: the root script is `turbo run clean`, and a package that emits files defines its own `"clean": "git clean -xdf dist .cache"`.
 - `apps/desktop` is Electron + React via electron-vite: main and preload bundle to CommonJS in `out/`, the renderer is a Vite/React page. Its ESLint project list must include `tsconfig.node.json`, `tsconfig.preload.json` (DOM libs for preload), and `tsconfig.web.json`.
 - Electron 45 has no dependency postinstall, so `apps/desktop` declares `"postinstall": "install-electron"`; `bun install` downloads the binary there. A missing `apps/desktop/node_modules/electron/dist` means that script did not run.
+- `packages/ui` ships source (`@tars/ui/*`) and Tailwind 4. Apps import `@tars/ui/globals.css` and must add `@source` for `packages/ui/src` in their CSS entry, otherwise Tailwind drops the package's classes.
 - Type-aware ESLint rules require `parserOptions.project` and `tsconfigRootDir` in every workspace config.

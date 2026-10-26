@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@tars/tsconfig/browser.json",
+  "compilerOptions": {
+    /* browser.json includes vite/client, which belongs to an app. */
+    "types": [],
+    "paths": {
+      "@tars/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

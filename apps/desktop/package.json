@@ -22,9 +22,11 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@tars/ui": "workspace:*",
     "electron-updater": "^6.8.11"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "catalog:",
     "@tars/eslint": "workspace:*",
     "@tars/prettier": "workspace:*",
     "@tars/tsconfig": "workspace:*",
@@ -39,6 +41,7 @@
     "prettier": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"
   },
