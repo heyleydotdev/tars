@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
+
+import { cn } from '@tars/ui/lib/utils'
 
 function MaximizeIcon({ maximized }: { maximized: boolean }) {
   if (maximized) {
@@ -14,6 +17,31 @@ function MaximizeIcon({ maximized }: { maximized: boolean }) {
     <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
       <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
     </svg>
+  )
+}
+
+function WindowControlButton(props: {
+  label: string
+  onClick: () => void
+  destructive?: boolean
+  children: ReactNode
+}) {
+  const { label, onClick, destructive, children } = props
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        'text-muted-foreground focus-visible:outline-ring grid h-full w-11 place-items-center focus-visible:outline-1 focus-visible:-outline-offset-1',
+        destructive
+          ? 'hover:bg-red-600 hover:text-white'
+          : 'hover:bg-accent hover:text-accent-foreground'
+      )}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -33,34 +61,22 @@ export default function TitleBar() {
         TARS
       </span>
       <div className="ml-auto flex h-full [-webkit-app-region:no-drag]">
-        <button
-          type="button"
-          aria-label="Minimize"
-          onClick={controls.minimize}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-ring grid h-full w-11 place-items-center focus-visible:outline-1 focus-visible:-outline-offset-1"
-        >
+        <WindowControlButton label="Minimize" onClick={controls.minimize}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M0 5.5h10" stroke="currentColor" />
           </svg>
-        </button>
-        <button
-          type="button"
-          aria-label={maximized ? 'Restore' : 'Maximize'}
+        </WindowControlButton>
+        <WindowControlButton
+          label={maximized ? 'Restore' : 'Maximize'}
           onClick={controls.toggleMaximize}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-ring grid h-full w-11 place-items-center focus-visible:outline-1 focus-visible:-outline-offset-1"
         >
           <MaximizeIcon maximized={maximized} />
-        </button>
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={controls.close}
-          className="text-muted-foreground focus-visible:outline-ring grid h-full w-11 place-items-center hover:bg-red-600 hover:text-white focus-visible:outline-1 focus-visible:-outline-offset-1"
-        >
+        </WindowControlButton>
+        <WindowControlButton label="Close" onClick={controls.close} destructive>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M0.5 0.5l9 9M9.5 0.5l-9 9" stroke="currentColor" />
           </svg>
-        </button>
+        </WindowControlButton>
       </div>
     </header>
   )

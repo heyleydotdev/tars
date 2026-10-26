@@ -3,15 +3,15 @@ import { Menu, Tray } from 'electron'
 import icon from '../../resources/icon.png?asset'
 import { APP_NAME } from './constants'
 
-type TrayActions = {
+let tray: Tray | null = null
+
+export function createTray(actions: {
   onShow: () => void
   onToggle: () => void
   onQuit: () => void
-}
+}): void {
+  const { onShow, onToggle, onQuit } = actions
 
-let tray: Tray | null = null
-
-export function createTray({ onShow, onToggle, onQuit }: TrayActions): void {
   tray = new Tray(icon)
   tray.setToolTip(APP_NAME)
   tray.setContextMenu(
