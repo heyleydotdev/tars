@@ -1,51 +1,41 @@
-<!-- BEGIN:turborepo-agent-rules -->
-
-# This is NOT the Turborepo you know
-
-Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
-
-Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
-
-This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": true` in the root `turbo.json` or `turbo.jsonc` to opt in; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
-<!-- END:turborepo-agent-rules -->
-
 # Agent Instructions
 
 ## Package Manager
 
-**bun 1.4.4** (`bun.lock`). Never npm, yarn, or pnpm. Shared versions live in the root `workspaces.catalog`; reference them as `"catalog:"`.
+- Use **bun 1.4.4**; never npm, yarn, or pnpm.
+- Versions live in root `workspaces.catalog`; reference them as `"catalog:"`.
+
+## Turborepo
+
+- Do not assume Turborepo behavior from memory. Resolve the installed package with `node -p "require.resolve('turbo/package.json')"` and read its `docs/README.md` plus the relevant pages before changing `turbo.json` or commands.
+- The bundled docs match the installed version and work offline; heed deprecation notices.
 
 ## Commands
 
-| Task                 | Command                                                 |
-| -------------------- | ------------------------------------------------------- |
-| Everything           | `bun run build && bun run typecheck && bun run lint`    |
-| One workspace        | `bunx turbo <task> --filter=@tars/<name>`               |
-| One test file        | `cd apps/<name> && bunx vitest run test/<file>.spec.ts` |
-| Format one workspace | `bunx turbo format --filter=@tars/<name>`               |
+| Task                 | Command                                         |
+| -------------------- | ----------------------------------------------- |
+| Install              | `bun install`                                   |
+| One task             | `bunx turbo <task> --filter=@tars/<name>`       |
+| Desktop dev          | `bunx turbo dev --filter=@tars/desktop`         |
+| Add shadcn component | `cd packages/ui && bunx shadcn add <component>` |
 
 ## Verify Before Reporting
 
-`bun run format` → `bun run typecheck` → `bun run lint`. Add `--force` when the change is in a shared package: Turbo hashes a task on that workspace's own files, **not** on a transitive dependency's source, so editing `tooling/*` or `packages/*` can replay a stale green result.
+`bun run format` → `bun run typecheck` → `bun run lint`. Add `--force` when editing `packages/*` or `tooling/*`; Turbo hashes a task on the workspace's own files, not its dependencies' source.
 
 ## Traps
 
-- **`includeIgnoreFile` needs `gitignoreResolution: true`.** `@tars/eslint` lives in `tooling/eslint/`, so the default resolves root `.gitignore` patterns against that directory, matches nothing, and looks like it works.
-- **`bun fmt` needs the explicit ignore paths.** With a Prettier config it only reads the `.gitignore` in the current directory, so workspace scripts pass `--ignore-path ../../.gitignore` (and a local `.prettierignore` where generated files exist). Without them, generated files get formatted.
-- **Every workspace needs `"prettier": "@tars/prettier"` and `prettier` in its own `devDependencies`** so editor integrations resolve the shared config.
-- **Root files are formatted by `//#format:root`.** A new root file type means a new glob in `turbo.json`, `format:root`, and `format:write:root`.
-- **`typecheck` is `bun check`.** Bun bundles TypeScript 7.0.2; `typescript` in the catalog stays on 5.9.3 for the editor and ESLint. Both must accept the tree.
-- **ESLint and project references.** Each app's `eslint.config.js` must list every referenced tsconfig in `parserOptions.project`.
-- **No package compiles by default.** Packages ship TypeScript source (`source-package.json`).
+- `typecheck` is `bun check` (Bun's TypeScript 7); catalog `typescript` 5.9.3 is only for editors and ESLint.
+- `bun fmt` reads only the current directory's `.gitignore`; workspace scripts pass `--ignore-path ../../.gitignore`.
+- Electron 45 has no dependency postinstall; `apps/desktop` runs `install-electron` in its own `postinstall`.
+- `packages/ui` needs `vite.config.ts` so the shadcn CLI detects a Vite project.
+- Apps importing `@tars/ui/globals.css` must add `@source` for `packages/ui/src`, or Tailwind drops the package's classes.
 
 ## Key Conventions
 
-- File and directory names are lowercase kebab-case, except names a tool dictates (`README.md`, `AGENTS.md`, `bun.lock`, `tsconfig.*.json`).
-- Default exports are inline: `export default function Name() {}` at the declaration, never a separate `export default Name` at the bottom.
-- Components rely on inferred return types; do not annotate them with `React.JSX.Element`.
-- Tooling packages are private and scoped `@tars/*`; they are consumed via `workspace:*`.
-- `clean` belongs to the workspace that owns the artifacts: the root script is `turbo run clean`, and a package that emits files defines its own `"clean": "git clean -xdf dist .cache"`.
-- `apps/desktop` is Electron + React via electron-vite: main and preload bundle to CommonJS in `out/`, the renderer is a Vite/React page. Its ESLint project list must include `tsconfig.node.json`, `tsconfig.preload.json` (DOM libs for preload), and `tsconfig.web.json`.
-- Electron 45 has no dependency postinstall, so `apps/desktop` declares `"postinstall": "install-electron"`; `bun install` downloads the binary there. A missing `apps/desktop/node_modules/electron/dist` means that script did not run.
-- `packages/ui` ships source (`@tars/ui/*`) and Tailwind 4. Apps import `@tars/ui/globals.css` and must add `@source` for `packages/ui/src` in their CSS entry, otherwise Tailwind drops the package's classes.
-- Type-aware ESLint rules require `parserOptions.project` and `tsconfigRootDir` in every workspace config.
+- File and directory names are lowercase kebab-case; tool-dictated names excepted.
+- Import icons directly from `lucide-react`; no icon barrels, so tree-shaking survives.
+- Packages ship TypeScript source (`@tars/tsconfig/source-package.json`); no build step.
+- Workspaces depend on shared tooling via `workspace:*` and set `"prettier": "@tars/prettier"`.
+- Each app's `eslint.config.js` lists every tsconfig in `parserOptions.project`; `apps/desktop` includes node, preload, and web.
+- `clean` is per workspace (`git clean -xdf out .cache`); the root script runs `turbo run clean`.
