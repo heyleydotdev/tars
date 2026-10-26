@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/turbo/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": ["ELECTRON_RENDERER_URL"],
+      "outputs": [
+        "dist/**",
+        "out/**",
+        ".next/**",
+        "!.next/cache/**",
+        ".cache/**",
+        ".output/**",
+        ".cloudflare/output/**"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "dev": {
+      "cache": false,
+      "env": ["ELECTRON_RENDERER_URL"],
+      "persistent": true
+    },
+    "clean": {
+      "cache": false
+    },
+    "format": {},
+    "format:write": {
+      "cache": false
+    },
+    "//#format:root": {
+      "inputs": ["*.md", "*.json", ".vscode/*.json"]
+    },
+    "//#format:write:root": {
+      "cache": false,
+      "inputs": ["*.md", "*.json", ".vscode/*.json"]
+    }
+  }
+}

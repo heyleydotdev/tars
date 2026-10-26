@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* Language & Target */
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    /* Modules */
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+
+    /* Interop & Compatibility */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    /* Strictness */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "checkJs": true,
+
+    /* Build & Incremental */
+    "incremental": true,
+    "tsBuildInfoFile": "${configDir}/.cache/tsbuildinfo.json",
+    "disableSourceOfProjectReferenceRedirect": true,
+    "noEmit": true
+  }
+}

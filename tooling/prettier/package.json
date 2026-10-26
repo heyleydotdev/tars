@@ -1,0 +1,19 @@
+{
+  "name": "@tars/prettier",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.cjs",
+  "files": [
+    "index.cjs"
+  ],
+  "scripts": {
+    "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore",
+    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore"
+  },
+  "dependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.0.0",
+    "prettier": "catalog:",
+    "prettier-plugin-tailwindcss": "^0.8.1"
+  },
+  "prettier": "./index.cjs"
+}

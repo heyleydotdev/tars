@@ -1,0 +1,7 @@
+# Force LF in the working tree on every platform.
+#
+# With core.autocrlf=true a checkout rewrites every file as CRLF, which
+# prettier's default endOfLine: "lf" then rejects, so `git checkout` leaves the
+# tree failing `format` and `git status` reporting modifications with no diff.
+# The blobs are already LF, so this only fixes how files are written out.
+* text=auto eol=lf

@@ -1,0 +1,46 @@
+{
+  "name": "@tars/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TARS desktop app",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "postinstall": "install-electron && electron-builder install-app-deps",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "bun run typecheck && electron-vite build",
+    "clean": "git clean -xdf out .cache",
+    "typecheck": "bun check -b --no-script",
+    "lint": "eslint .",
+    "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore",
+    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore",
+    "build:unpack": "bun run build && electron-builder --dir",
+    "build:win": "bun run build && electron-builder --win",
+    "build:mac": "bun run build && electron-builder --mac",
+    "build:linux": "bun run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0",
+    "electron-updater": "^6.8.11"
+  },
+  "devDependencies": {
+    "@tars/eslint": "workspace:*",
+    "@tars/prettier": "workspace:*",
+    "@tars/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "electron": "catalog:",
+    "electron-builder": "catalog:",
+    "electron-vite": "catalog:",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "prettier": "@tars/prettier"
+}

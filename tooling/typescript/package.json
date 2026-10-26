@@ -1,0 +1,17 @@
+{
+  "name": "@tars/tsconfig",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "*.json"
+  ],
+  "scripts": {
+    "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore",
+    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore"
+  },
+  "devDependencies": {
+    "@tars/prettier": "workspace:*",
+    "prettier": "catalog:"
+  },
+  "prettier": "@tars/prettier"
+}
