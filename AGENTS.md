@@ -18,7 +18,18 @@
 - Tray app: closing the window hides it, `before-quit` flips `isQuitting`, and the tray menu owns Quit.
 - Windows identity: `productName: Tars` + `app.setName('Tars')`; dev still runs `electron.exe`, so Task Manager shows Electron until packaged.
 - Dark-only: `nativeTheme.themeSource = 'dark'` in main, `class="dark"` on `<html>`, and `color-scheme: dark`.
+- The desktop app is ESM (`"type": "module"`): main builds to `out/main/index.js`, preload to `out/preload/index.mjs`; reference the preload by `.mjs` and keep it unsandboxed with context isolation on.
 - Keep `contextIsolation` on, expose only the preload bridge, and keep the renderer CSP in `apps/desktop/src/renderer/index.html`.
+
+## Cloudflare Workers
+
+- Workers APIs and limits change often. Retrieve current docs before KV, R2, D1, Durable Objects, Queues, Vectorize, AI, or Agents work: https://developers.cloudflare.com/workers/ (docs MCP: https://docs.mcp.cloudflare.com/mcp).
+- Quotas live under `/platform/limits/`; product references under `/kv/`, `/r2/`, `/d1/`, `/durable-objects/`, `/queues/`, `/vectorize/`, `/workers-ai/`, `/agents/`.
+- Local dev `bunx wrangler dev`, deploy `bunx wrangler deploy`; run `bunx turbo typegen --filter=@tars/server` after `wrangler.jsonc` changes and commit `worker-configuration.d.ts`.
+- While `wrangler dev` runs, the Local Explorer API inspects local state: `/cdn-cgi/local/explorer/api/local/workers`, `.../storage/kv/namespaces`, `.../d1/database`, `.../r2/buckets`, plus `POST .../local/observability/query` for read-only SQL over `spans` and `logs`.
+- Node.js compatibility: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+- Error 1102 (CPU/memory) → `/workers/platform/limits/`; all errors → https://developers.cloudflare.com/workers/observability/errors/
+- Durable Objects: https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/ · Workflows: https://developers.cloudflare.com/workflows/build/rules-of-workflows/
 
 ## Commands
 
@@ -27,6 +38,8 @@
 | Install              | `bun install`                                   |
 | One task             | `bunx turbo <task> --filter=@tars/<name>`       |
 | Desktop dev          | `bunx turbo dev --filter=@tars/desktop`         |
+| Server dev           | `bunx turbo dev --filter=@tars/server`          |
+| Tests                | `bun run test`                                  |
 | Add shadcn component | `cd packages/ui && bunx shadcn add <component>` |
 
 ## Verify Before Reporting

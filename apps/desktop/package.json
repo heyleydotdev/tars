@@ -2,6 +2,7 @@
   "name": "@tars/desktop",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Tars desktop app",
   "productName": "Tars",
   "main": "./out/main/index.js",

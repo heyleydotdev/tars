@@ -1,0 +1,33 @@
+{
+  "name": "@tars/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "git clean -xdf .wrangler .cache",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typegen": "wrangler types",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "bun check -b --no-script",
+    "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore",
+    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.1.12",
+    "@cloudflare/workers-types": "5.20261027.1",
+    "@tars/eslint": "workspace:*",
+    "@tars/prettier": "workspace:*",
+    "@tars/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "4.153.0"
+  },
+  "prettier": "@tars/prettier"
+}

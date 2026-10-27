@@ -21,6 +21,7 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "test": {},
     "dev": {
       "cache": false,
       "env": ["ELECTRON_RENDERER_URL"],
