@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     "./client": "./src/client.ts",
+    "./electron": "./src/electron.ts",
+    "./preload": "./src/preload.ts",
     "./server": "./src/server.ts",
     "./package.json": "./package.json"
   },
@@ -16,8 +18,10 @@
     "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore"
   },
   "dependencies": {
+    "@better-auth/electron": "1.7.14",
     "@tars/db": "workspace:*",
-    "better-auth": "1.7.14"
+    "better-auth": "1.7.14",
+    "conf": "^15.0.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
