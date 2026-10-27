@@ -39,7 +39,6 @@
 | One task             | `bunx turbo <task> --filter=@tars/<name>`       |
 | Desktop dev          | `bunx turbo dev --filter=@tars/desktop`         |
 | Server dev           | `bunx turbo dev --filter=@tars/server`          |
-| Tests                | `bun run test`                                  |
 | Add shadcn component | `cd packages/ui && bunx shadcn add <component>` |
 
 ## Verify Before Reporting

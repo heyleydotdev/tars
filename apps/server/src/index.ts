@@ -1,9 +1,13 @@
-export default {
-  fetch(request) {
-    const { pathname } = new URL(request.url)
+import { rpcHandler } from '@tars/api/server'
 
-    if (pathname === '/health') {
-      return Response.json({ ok: true })
+export default {
+  async fetch(request) {
+    const { matched, response } = await rpcHandler.handle(request, {
+      prefix: '/api/rpc'
+    })
+
+    if (matched) {
+      return response
     }
 
     return new Response('Not Found', { status: 404 })
