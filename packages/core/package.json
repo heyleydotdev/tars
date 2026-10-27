@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./schemas/*": "./src/schemas/*.ts",
+    "./utils/*": "./src/utils/*.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
