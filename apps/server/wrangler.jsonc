@@ -7,9 +7,17 @@
   "name": "server",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-16",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tars-db",
+      "database_id": "da9781b9-1f19-4694-a3b8-0957a52e5621"
+    }
+  ],
   "dev": {
     "host": "0.0.0.0",
     "port": 3001

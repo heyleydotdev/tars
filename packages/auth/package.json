@@ -1,0 +1,30 @@
+{
+  "name": "@tars/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts",
+    "./server": "./src/server.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "bun check --no-script",
+    "lint": "eslint .",
+    "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore",
+    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore"
+  },
+  "dependencies": {
+    "better-auth": "1.7.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@tars/eslint": "workspace:*",
+    "@tars/prettier": "workspace:*",
+    "@tars/tsconfig": "workspace:*",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:"
+  },
+  "prettier": "@tars/prettier"
+}

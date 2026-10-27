@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "clean": "git clean -xdf .wrangler .cache",
-    "dev": "wrangler dev",
-    "start": "wrangler dev",
+    "dev": "wrangler dev --env-file ../../.env",
+    "start": "wrangler dev --env-file ../../.env",
     "deploy": "wrangler deploy",
     "typegen": "wrangler types",
     "lint": "eslint .",
@@ -27,6 +27,7 @@
   },
   "prettier": "@tars/prettier",
   "dependencies": {
-    "@tars/api": "workspace:*"
+    "@tars/api": "workspace:*",
+    "@tars/auth": "workspace:*"
   }
 }
