@@ -3,24 +3,24 @@
 ## Package Manager
 
 - Use **bun 1.4.4**; never npm, yarn, or pnpm.
-- Versions live in root `workspaces.catalog`; reference them as `"catalog:"`.
+- Versions shared by 2+ workspaces live in root `workspaces.catalog` and are referenced as `"catalog:"`; anything else is pinned in the owning workspace.
 
 ## Turborepo
 
-- Do not assume Turborepo behavior from memory. Resolve the installed package with `node -p "require.resolve('turbo/package.json')"` and read its `docs/README.md` plus the relevant pages before changing `turbo.json` or commands.
+- Do not assume Turborepo behavior from memory. Resolve the installed package with `node -p "require.resolve('turbo/package.json')"` and read its bundled docs before changing `turbo.json` or commands.
 - The bundled docs match the installed version and work offline; heed deprecation notices.
 
 ## Electron
 
-- The npm package ships no docs. Use https://www.electronjs.org/docs/latest/ and verify APIs against `electron.d.ts` from the resolved package.
-- electron-vite config and built-in defaults: https://electron-vite.org/guide/.
-- The desktop window is frameless (`frame: false`); window controls use `window:*` IPC exposed as `window.api.windowControls`.
-- Tray app: closing the window hides it, `before-quit` flips `isQuitting`, and the tray menu owns Quit.
-- Windows identity: `productName: Tars` + `app.setName('Tars')`; dev still runs `electron.exe`, so Task Manager shows Electron until packaged.
+- Docs: https://www.electronjs.org/docs/latest/ (verify APIs against `electron.d.ts`), https://electron-vite.org/guide/, https://better-auth.com/docs/integrations/electron.
+- The window is frameless (`frame: false`); window controls use `window:*` IPC exposed as `window.api.windowControls`.
+- Tray app: closing hides the window, `before-quit` calls `markQuitting`, and the tray menu owns Quit.
 - Dark-only: `nativeTheme.themeSource = 'dark'` in main, `class="dark"` on `<html>`, and `color-scheme: dark`.
-- The desktop app is ESM (`"type": "module"`): main builds to `out/main/index.js`, preload to `out/preload/index.mjs`; reference the preload by `.mjs` and keep it unsandboxed with context isolation on.
-- Auth sessions live in the main process (`main/auth-client.ts`, `@better-auth/electron` with on-disk cookie storage); the renderer only calls `window.api.auth` IPC bridges and never sees cookies or tokens.
-- Keep `contextIsolation` on, expose only the preload bridge, and keep the renderer CSP in `apps/desktop/src/renderer/index.html`.
+- ESM app: main builds to `out/main/index.js`, preload to `out/preload/index.mjs`; reference the `.mjs` preload, keep `sandbox: false` with `contextIsolation` on.
+- Auth runs in main (`src/lib/auth-client.ts`, `@better-auth/electron` + on-disk `storage()`): call `setupMain()` before ready; the renderer calls top-level bridges (`getSession`, `signIn`, `signUp`, `confirmSignOut`) and never sees cookies. The full session (user + session) crosses IPC; logout asks via native `dialog.showMessageBox`.
+- Deep links use the `com.tars.desktop` scheme (electron-builder `protocols` + worker trusted origins); `setupRenderer()` in preload exposes the plugin bridges (`signOut`, `onUserUpdated`, `onAuthenticated`).
+- Root `.env` feeds main/renderer through `envDir`; `VITE_BETTER_AUTH_URL` is baked at build time, so set it before packaging.
+- Keep the renderer CSP in `apps/desktop/src/renderer/index.html`.
 
 ## Cloudflare Workers
 
@@ -42,6 +42,9 @@
 | One task             | `bunx turbo <task> --filter=@tars/<name>`       |
 | Desktop dev          | `bunx turbo dev --filter=@tars/desktop`         |
 | Server dev           | `bunx turbo dev --filter=@tars/server`          |
+| Generate schema      | `bun run generate`                              |
+| Apply local D1       | `cd apps/server && bun run migrate:local`       |
+| Package desktop      | `cd apps/desktop && bun run build:win`          |
 | Add shadcn component | `cd packages/ui && bunx shadcn add <component>` |
 
 ## Verify Before Reporting
@@ -52,10 +55,12 @@
 
 - `typecheck` is `bun check` (Bun's TypeScript 7); catalog `typescript` 5.9.3 is only for editors and ESLint.
 - `bun fmt` reads only the current directory's `.gitignore`; workspace scripts pass `--ignore-path ../../.gitignore`.
+- Do not edit generated files: `packages/db/src/auth-schema.ts` (regenerate with `bun run generate`) or `worker-configuration.d.ts` (regenerate with `bun run typegen` in `apps/server`).
+- `electron-vite dev` only rebuilds/restarts on main/preload changes with `--watch` (set in the dev script); restart once after changing config.
+- Vite caches linked workspace package metadata: after changing a workspace package's `exports`, restart `electron-vite dev` and clear `apps/desktop/node_modules/.vite`.
 - Electron 45 has no dependency postinstall; `apps/desktop` runs `install-electron` in its own `postinstall`.
 - `packages/ui` needs `vite.config.ts` so the shadcn CLI detects a Vite project.
 - Apps importing `@tars/ui/globals.css` must add `@source` for `packages/ui/src`, or Tailwind drops the package's classes.
-- Vite caches linked workspace package metadata: after changing a workspace package's `exports`, restart `electron-vite dev` and clear `apps/desktop/node_modules/.vite`.
 
 ## Key Conventions
 
@@ -63,13 +68,14 @@
 - Renderer pages live in `apps/desktop/src/renderer/src/pages/`; no `-page` suffix.
 - Renderer routes live in `src/renderer/src/routes.tsx` (`createHashRouter`); Electron serves `file://`, so React Router framework/SPA history routing is unavailable.
 - Global state lives in `src/renderer/src/stores/*` (Zustand); select multiple fields with `useShallow`.
-- Auth store (`stores/auth.ts`) restores the session via `window.api.auth`; `RequireAuth`/`GuestOnly` layout routes guard pages.
-- `auth:login` is demo-only (accepts any non-empty credentials); replace with a real auth service before shipping.
+- `stores/auth.ts` holds only the session; auth actions live in `src/renderer/src/lib/auth.ts`. Protected pages call `useUser()`, which reads the session from the `RequireAuth` outlet context — no null checks in pages.
+- Preload exposes top-level bridges (`getSession`, `signIn`, `signUp`, `confirmSignOut`); `window.api` is window controls only.
+- Shared zod schemas and string utils live in `@tars/core` (`schemas/*`, `utils/*`); IPC payloads use its `LoginInput`/`RegisterInput` types instead of re-validating in main.
 - Inline one-off parameter and prop types in the signature; no type alias unless reused.
 - Use `React.PropsWithChildren` for components that accept children.
 - Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.
 - Import icons directly from `lucide-react`; no icon barrels, so tree-shaking survives.
 - Packages ship TypeScript source (`@tars/tsconfig/source-package.json`); no build step.
 - Workspaces depend on shared tooling via `workspace:*` and set `"prettier": "@tars/prettier"`.
-- Each app's `eslint.config.js` lists every tsconfig in `parserOptions.project`; `apps/desktop` includes node, preload, and web.
-- `clean` is per workspace (`git clean -xdf out .cache`); the root script runs `turbo run clean`.
+- ESLint configs (`eslint.config.js` or `.mjs`) list every tsconfig in `parserOptions.project`; `apps/desktop` includes node, preload, and web.
+- `clean` scripts exist on desktop (`out .cache`) and server (`.wrangler .cache`); the root script runs `turbo run clean`.
