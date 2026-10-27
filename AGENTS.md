@@ -44,6 +44,7 @@
 ## Key Conventions
 
 - File and directory names are lowercase kebab-case; tool-dictated names excepted.
+- Renderer pages live in `apps/desktop/src/renderer/src/pages/`; no `-page` suffix.
 - Inline one-off parameter and prop types in the signature; no type alias unless reused.
 - Use `React.PropsWithChildren` for components that accept children.
 - Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.

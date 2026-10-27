@@ -56,10 +56,7 @@ export default function TitleBar() {
   }, [controls])
 
   return (
-    <header className="bg-background flex h-9 shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
-      <span className="font-heading text-muted-foreground pl-3 text-[11px] font-semibold tracking-[0.18em]">
-        TARS
-      </span>
+    <header className="bg-sidebar border-sidebar-border flex h-9 shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
       <div className="ml-auto flex h-full [-webkit-app-region:no-drag]">
         <WindowControlButton label="Minimize" onClick={controls.minimize}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">

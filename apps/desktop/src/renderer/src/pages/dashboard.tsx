@@ -1,14 +1,7 @@
+import { useState } from 'react'
 import { ActivityIcon, LayoutDashboardIcon, SettingsIcon } from 'lucide-react'
 
 import { Avatar, AvatarFallback } from '@tars/ui/components/avatar'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from '@tars/ui/components/breadcrumb'
-import { Separator } from '@tars/ui/components/separator'
 import {
   Sidebar,
   SidebarContent,
@@ -23,35 +16,34 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger
+  SidebarTrigger,
+  useSidebar
 } from '@tars/ui/components/sidebar'
 import { TooltipProvider } from '@tars/ui/components/tooltip'
 
-import TitleBar from './title-bar'
+import TitleBar from '../components/title-bar'
+
+const SIDEBAR_STORAGE_KEY = 'tars.sidebar.open'
 
 const navigation = [
-  { title: 'Dashboard', icon: LayoutDashboardIcon, isActive: true },
-  { title: 'Activity', icon: ActivityIcon, isActive: false },
-  { title: 'Settings', icon: SettingsIcon, isActive: false }
+  { title: 'Dashboard', icon: LayoutDashboardIcon },
+  { title: 'Activity', icon: ActivityIcon },
+  { title: 'Settings', icon: SettingsIcon }
 ]
 
-function AppSidebar() {
+function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: string) => void }) {
+  const { isMobile, setOpenMobile } = useSidebar()
+
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg">
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg text-xs font-semibold">
-                TA
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">TARS</span>
-                <span className="text-muted-foreground truncate text-xs">Desktop</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="border-sidebar-border flex h-9 flex-row items-center gap-2 border-b px-2 py-0 md:[-webkit-app-region:drag]">
+        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md text-[10px] font-semibold group-data-[collapsible=icon]:hidden">
+          TA
+        </div>
+        <span className="truncate text-sm font-medium group-data-[collapsible=icon]:hidden">
+          TARS
+        </span>
+        <SidebarTrigger className="ml-auto [-webkit-app-region:no-drag]" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -63,7 +55,14 @@ function AppSidebar() {
 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton isActive={item.isActive} tooltip={item.title}>
+                    <SidebarMenuButton
+                      isActive={active === item.title}
+                      tooltip={item.title}
+                      onClick={() => {
+                        onSelect(item.title)
+                        if (isMobile) setOpenMobile(false)
+                      }}
+                    >
                       <Icon />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
@@ -74,7 +73,7 @@ function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" tooltip="TARS">
@@ -94,25 +93,28 @@ function AppSidebar() {
   )
 }
 
-export default function DashboardShell({ children }: React.PropsWithChildren) {
+export default function Dashboard({ children }: React.PropsWithChildren) {
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => localStorage.getItem(SIDEBAR_STORAGE_KEY) !== 'false'
+  )
+  const [active, setActive] = useState('Dashboard')
+
   return (
     <TooltipProvider>
-      <SidebarProvider className="h-svh overflow-hidden">
-        <AppSidebar />
+      <SidebarProvider
+        open={sidebarOpen}
+        onOpenChange={(open) => {
+          setSidebarOpen(open)
+          localStorage.setItem(SIDEBAR_STORAGE_KEY, String(open))
+        }}
+        className="h-svh overflow-hidden"
+      >
+        <AppSidebar active={active} onSelect={setActive} />
         <SidebarInset className="h-full min-h-0">
           <TitleBar />
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+          <header className="bg-sidebar border-sidebar-border flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
             <SidebarTrigger />
-            <Separator orientation="vertical" className="h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">Workspace</BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+            <span className="text-sm font-medium">{active}</span>
           </header>
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">{children}</div>
         </SidebarInset>
