@@ -19,13 +19,14 @@
 - Windows identity: `productName: Tars` + `app.setName('Tars')`; dev still runs `electron.exe`, so Task Manager shows Electron until packaged.
 - Dark-only: `nativeTheme.themeSource = 'dark'` in main, `class="dark"` on `<html>`, and `color-scheme: dark`.
 - The desktop app is ESM (`"type": "module"`): main builds to `out/main/index.js`, preload to `out/preload/index.mjs`; reference the preload by `.mjs` and keep it unsandboxed with context isolation on.
+- Auth sessions live in the main process (`main/auth-client.ts`, `@better-auth/electron` with on-disk cookie storage); the renderer only calls `window.api.auth` IPC bridges and never sees cookies or tokens.
 - Keep `contextIsolation` on, expose only the preload bridge, and keep the renderer CSP in `apps/desktop/src/renderer/index.html`.
 
 ## Cloudflare Workers
 
 - Workers APIs and limits change often. Retrieve current docs before KV, R2, D1, Durable Objects, Queues, Vectorize, AI, or Agents work: https://developers.cloudflare.com/workers/ (docs MCP: https://docs.mcp.cloudflare.com/mcp).
 - Quotas live under `/platform/limits/`; product references under `/kv/`, `/r2/`, `/d1/`, `/durable-objects/`, `/queues/`, `/vectorize/`, `/workers-ai/`, `/agents/`.
-- Local dev `bunx wrangler dev --env-file ../../.env`, deploy `bunx wrangler deploy`; run `bun run typegen` in `apps/server` after `wrangler.jsonc` changes and commit `worker-configuration.d.ts`.
+- Local dev `bunx wrangler dev --env-file ../../.env`, deploy `bun run deploy` in `apps/server` (applies remote D1 migrations first); run `bun run typegen` after `wrangler.jsonc` changes and commit `worker-configuration.d.ts`.
 - Required secrets are declared in `wrangler.jsonc` `secrets.required` — the source of truth for `Env` types; values come from the root `.env` locally and `wrangler secret put` when deployed.
 - The Worker mounts better-auth at `/api/auth` and oRPC at `/api/rpc`; schema is drizzle-managed: run `bun run generate` from the root (auth writes `packages/db/src/auth-schema.ts`, then drizzle-kit emits migrations), applied to D1 with apps/server's `migrate:local` / `migrate:remote`.
 - While `wrangler dev` runs, the Local Explorer API inspects local state: `/cdn-cgi/local/explorer/api/local/workers`, `.../storage/kv/namespaces`, `.../d1/database`, `.../r2/buckets`, plus `POST .../local/observability/query` for read-only SQL over `spans` and `logs`.
