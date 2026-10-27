@@ -2,6 +2,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, nativeTheme } from 'electron'
 
 import { APP_ID, APP_NAME } from './constants'
+import { registerAuth } from './ipc/auth'
 import { registerWindowControls } from './ipc/window-controls'
 import { createTray, destroyTray } from './tray'
 import { createWindow, markQuitting, showWindow, toggleWindow } from './window'
@@ -17,6 +18,7 @@ app.whenReady().then(() => {
   })
 
   registerWindowControls()
+  registerAuth()
   createTray({ onShow: showWindow, onToggle: toggleWindow, onQuit: () => app.quit() })
   createWindow()
 

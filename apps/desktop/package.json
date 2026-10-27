@@ -43,9 +43,11 @@
     "prettier": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-router": "8.5.0",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "zustand": "5.0.16"
   },
   "prettier": "@tars/prettier"
 }

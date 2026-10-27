@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ActivityIcon, LayoutDashboardIcon, SettingsIcon } from 'lucide-react'
+import { ActivityIcon, LayoutDashboardIcon, LogOutIcon, SettingsIcon } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 
 import { Avatar, AvatarFallback } from '@tars/ui/components/avatar'
 import {
@@ -22,8 +23,8 @@ import {
 import { TooltipProvider } from '@tars/ui/components/tooltip'
 
 import TitleBar from '../components/title-bar'
-
-const SIDEBAR_STORAGE_KEY = 'tars.sidebar.open'
+import { useAuthStore } from '../stores/auth'
+import { useSidebarStore } from '../stores/sidebar'
 
 const navigation = [
   { title: 'Dashboard', icon: LayoutDashboardIcon },
@@ -33,6 +34,7 @@ const navigation = [
 
 function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: string) => void }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const logout = useAuthStore((state) => state.logout)
 
   return (
     <Sidebar collapsible="icon">
@@ -86,6 +88,12 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Log out" onClick={() => void logout()}>
+              <LogOutIcon />
+              <span>Log out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
@@ -94,21 +102,14 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
 }
 
 export default function Dashboard({ children }: React.PropsWithChildren) {
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => localStorage.getItem(SIDEBAR_STORAGE_KEY) !== 'false'
+  const { open, setOpen } = useSidebarStore(
+    useShallow((state) => ({ open: state.open, setOpen: state.setOpen }))
   )
   const [active, setActive] = useState('Dashboard')
 
   return (
     <TooltipProvider>
-      <SidebarProvider
-        open={sidebarOpen}
-        onOpenChange={(open) => {
-          setSidebarOpen(open)
-          localStorage.setItem(SIDEBAR_STORAGE_KEY, String(open))
-        }}
-        className="h-svh overflow-hidden"
-      >
+      <SidebarProvider open={open} onOpenChange={setOpen} className="h-svh overflow-hidden">
         <AppSidebar active={active} onSelect={setActive} />
         <SidebarInset className="h-full min-h-0">
           <TitleBar />

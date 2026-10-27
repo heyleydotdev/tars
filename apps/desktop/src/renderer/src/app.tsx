@@ -1,20 +1,15 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
+import { RouterProvider } from 'react-router'
 
-import TitleBar from './components/title-bar'
-import Auth from './pages/auth'
-import Dashboard from './pages/dashboard'
+import { router } from './routes'
+import { useAuthStore } from './stores/auth'
 
 export default function App() {
-  const [authenticated, setAuthenticated] = useState(false)
+  const restore = useAuthStore((state) => state.restore)
 
-  if (authenticated) {
-    return <Dashboard />
-  }
+  useEffect(() => {
+    void restore()
+  }, [restore])
 
-  return (
-    <div className="bg-background flex h-svh flex-col overflow-hidden">
-      <TitleBar />
-      <Auth onAuthenticated={() => setAuthenticated(true)} />
-    </div>
-  )
+  return <RouterProvider router={router} />
 }

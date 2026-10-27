@@ -45,6 +45,10 @@
 
 - File and directory names are lowercase kebab-case; tool-dictated names excepted.
 - Renderer pages live in `apps/desktop/src/renderer/src/pages/`; no `-page` suffix.
+- Renderer routes live in `src/renderer/src/routes.tsx` (`createHashRouter`); Electron serves `file://`, so React Router framework/SPA history routing is unavailable.
+- Global state lives in `src/renderer/src/stores/*` (Zustand); select multiple fields with `useShallow`.
+- Auth store (`stores/auth.ts`) restores the session via `window.api.auth`; `RequireAuth`/`GuestOnly` layout routes guard pages.
+- `auth:login` is demo-only (accepts any non-empty credentials); replace with a real auth service before shipping.
 - Inline one-off parameter and prop types in the signature; no type alias unless reused.
 - Use `React.PropsWithChildren` for components that accept children.
 - Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.

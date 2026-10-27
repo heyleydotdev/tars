@@ -20,7 +20,15 @@ const windowControls: WindowControlsApi = {
   }
 }
 
-const api = { windowControls }
+const auth = {
+  getSession: (): Promise<{ id: string; email: string } | null> =>
+    ipcRenderer.invoke('auth:get-session'),
+  login: (email: string, password: string): Promise<{ id: string; email: string }> =>
+    ipcRenderer.invoke('auth:login', { email, password }),
+  logout: (): Promise<void> => ipcRenderer.invoke('auth:logout')
+}
+
+const api = { auth, windowControls }
 
 if (process.contextIsolated) {
   try {
