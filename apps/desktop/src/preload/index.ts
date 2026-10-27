@@ -30,7 +30,8 @@ const auth = {
   getSession: (): Promise<Session | null> => ipcRenderer.invoke('auth:get-session'),
   signIn: (email: string, password: string): Promise<AuthResult> =>
     ipcRenderer.invoke('auth:sign-in', { email, password }),
-  signUp: (input: RegisterInput): Promise<AuthResult> => ipcRenderer.invoke('auth:sign-up', input)
+  signUp: (input: RegisterInput): Promise<AuthResult> => ipcRenderer.invoke('auth:sign-up', input),
+  confirmSignOut: (): Promise<boolean> => ipcRenderer.invoke('auth:confirm-sign-out')
 }
 
 const api = { windowControls }
@@ -42,6 +43,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('getSession', auth.getSession)
     contextBridge.exposeInMainWorld('signIn', auth.signIn)
     contextBridge.exposeInMainWorld('signUp', auth.signUp)
+    contextBridge.exposeInMainWorld('confirmSignOut', auth.confirmSignOut)
   } catch (error) {
     console.error(error)
   }
@@ -51,4 +53,5 @@ if (process.contextIsolated) {
   window.getSession = auth.getSession
   window.signIn = auth.signIn
   window.signUp = auth.signUp
+  window.confirmSignOut = auth.confirmSignOut
 }

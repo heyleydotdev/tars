@@ -29,5 +29,6 @@ declare global {
     getSession: () => Promise<Session | null>
     signIn: (email: string, password: string) => Promise<AuthResult>
     signUp: (input: RegisterInput) => Promise<AuthResult>
+    confirmSignOut: () => Promise<boolean>
   }
 }

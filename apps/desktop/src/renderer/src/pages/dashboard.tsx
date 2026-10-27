@@ -2,7 +2,17 @@ import { useState } from 'react'
 import { ActivityIcon, LayoutDashboardIcon, LogOutIcon, SettingsIcon } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { initials } from '@tars/core/utils/string'
 import { Avatar, AvatarFallback } from '@tars/ui/components/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@tars/ui/components/dropdown-menu'
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +34,7 @@ import { TooltipProvider } from '@tars/ui/components/tooltip'
 
 import TitleBar from '../components/title-bar'
 import { signOut } from '../lib/auth'
+import { useUser } from '../stores/auth'
 import { useSidebarStore } from '../stores/sidebar'
 
 const navigation = [
@@ -32,8 +43,23 @@ const navigation = [
   { title: 'Settings', icon: SettingsIcon }
 ]
 
+function UserIdentity({ name, email }: { name: string; email: string }) {
+  return (
+    <>
+      <Avatar className="size-8">
+        <AvatarFallback>{initials(name)}</AvatarFallback>
+      </Avatar>
+      <div className="grid flex-1 text-left text-sm leading-tight">
+        <span className="truncate font-medium">{name}</span>
+        <span className="text-muted-foreground truncate text-xs">{email}</span>
+      </div>
+    </>
+  )
+}
+
 function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: string) => void }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const user = useUser()
 
   return (
     <Sidebar collapsible="icon">
@@ -77,21 +103,25 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
       <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip="TARS">
-              <Avatar className="size-8">
-                <AvatarFallback>TA</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">TARS</span>
-                <span className="text-muted-foreground truncate text-xs">Local workspace</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Log out" onClick={() => void signOut()}>
-              <LogOutIcon />
-              <span>Log out</span>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
+                <UserIdentity name={user.name} email={user.email} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="min-w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5">
+                      <UserIdentity name={user.name} email={user.email} />
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => void signOut()}>
+                  <LogOutIcon />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

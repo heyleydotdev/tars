@@ -23,7 +23,7 @@ export function RequireAuth() {
     return <Navigate to={`/login?redirectTo=${encodeURIComponent(redirectTo)}`} replace />
   }
 
-  return <Outlet />
+  return <Outlet context={session} />
 }
 
 export function GuestOnly() {

@@ -31,6 +31,10 @@ export async function signUp(input: RegisterInput): Promise<void> {
 }
 
 export async function signOut(): Promise<void> {
+  if (!(await window.confirmSignOut())) {
+    return
+  }
+
   await window.signOut()
   useAuthStore.setState({ session: null })
 }
