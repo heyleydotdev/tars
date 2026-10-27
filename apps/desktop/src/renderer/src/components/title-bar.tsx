@@ -58,18 +58,18 @@ export default function TitleBar() {
   return (
     <header className="bg-sidebar border-sidebar-border flex h-9 shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
       <div className="ml-auto flex h-full [-webkit-app-region:no-drag]">
-        <WindowControlButton label="Minimize" onClick={controls.minimize}>
+        <WindowControlButton label="Minimize" onClick={() => controls.minimize()}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M0 5.5h10" stroke="currentColor" />
           </svg>
         </WindowControlButton>
         <WindowControlButton
           label={maximized ? 'Restore' : 'Maximize'}
-          onClick={controls.toggleMaximize}
+          onClick={() => controls.toggleMaximize()}
         >
           <MaximizeIcon maximized={maximized} />
         </WindowControlButton>
-        <WindowControlButton label="Close" onClick={controls.close} destructive>
+        <WindowControlButton label="Close" onClick={() => controls.close()} destructive>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M0.5 0.5l9 9M9.5 0.5l-9 9" stroke="currentColor" />
           </svg>
