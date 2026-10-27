@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "server",
+  "name": "tars-server",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-16",
   "compatibility_flags": ["nodejs_compat"],
@@ -24,6 +24,9 @@
     "port": 3001
   },
   "upload_source_maps": true,
+  "vars": {
+    "BETTER_AUTH_TRUSTED_ORIGINS": "http://localhost:3000,com.tars.desktop:/"
+  },
   "secrets": {
     "required": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL"]
   }
