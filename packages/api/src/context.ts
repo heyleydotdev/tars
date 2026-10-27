@@ -1,21 +1,24 @@
 import { ORPCError, os } from '@orpc/server'
 
-import type { Session } from '@tars/auth/server'
+import type { Auth } from '@tars/auth/server'
+import type { Database } from '@tars/db/client'
 
 export type RpcServerContext = {
-  getSession: () => Promise<Session | null>
+  db: Database
+  auth: Auth
+  headers: Headers
 }
 
 export const base = os.$context<RpcServerContext>()
 
-export const requireSession = base.middleware(async ({ context, next }) => {
-  const session = await context.getSession()
+export const protectedProcedure = base.use(
+  base.middleware(async ({ context, next }) => {
+    const session = await context.auth.api.getSession({ headers: context.headers })
 
-  if (!session) {
-    throw new ORPCError('UNAUTHORIZED')
-  }
+    if (!session) {
+      throw new ORPCError('UNAUTHORIZED')
+    }
 
-  return next({ context: { session } })
-})
-
-export const protectedProcedure = base.use(requireSession)
+    return next({ context: { session } })
+  })
+)
