@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ActivityIcon, LayoutDashboardIcon, LogOutIcon, SettingsIcon } from 'lucide-react'
+import { BotIcon, LogOutIcon, SearchIcon } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { initials } from '@tars/core/utils/string'
@@ -19,7 +19,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -36,12 +35,6 @@ import TitleBar from '../components/title-bar'
 import { signOut } from '../lib/auth'
 import { useUser } from '../stores/auth'
 import { useSidebarStore } from '../stores/sidebar'
-
-const navigation = [
-  { title: 'Dashboard', icon: LayoutDashboardIcon },
-  { title: 'Activity', icon: ActivityIcon },
-  { title: 'Settings', icon: SettingsIcon }
-]
 
 function UserIdentity({ name, email }: { name: string; email: string }) {
   return (
@@ -74,28 +67,33 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => {
-                const Icon = item.icon
-
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={active === item.title}
-                      tooltip={item.title}
-                      onClick={() => {
-                        onSelect(item.title)
-                        if (isMobile) setOpenMobile(false)
-                      }}
-                    >
-                      <Icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
+              <SidebarMenuItem>
+                <SidebarMenuButton className="text-muted-foreground" variant="outline">
+                  <SearchIcon />
+                  <span>Search</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === 'Agent'}
+                  tooltip="Agent"
+                  onClick={() => {
+                    onSelect('Agent')
+                    if (isMobile) setOpenMobile(false)
+                  }}
+                >
+                  <BotIcon />
+                  <span>Agent</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -134,7 +132,7 @@ export default function Dashboard({ children }: React.PropsWithChildren) {
   const { open, setOpen } = useSidebarStore(
     useShallow((state) => ({ open: state.open, setOpen: state.setOpen }))
   )
-  const [active, setActive] = useState('Dashboard')
+  const [active, setActive] = useState('Agent')
 
   return (
     <TooltipProvider>
