@@ -55,6 +55,7 @@
         "@tars/api": "workspace:*",
         "@tars/auth": "workspace:*",
         "@tars/db": "workspace:*",
+        "hono": "4.13.14",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "5.20261027.1",
