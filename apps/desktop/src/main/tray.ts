@@ -1,7 +1,7 @@
 import { Menu, Tray } from 'electron'
 
 import icon from '../../resources/icon.png?asset'
-import { APP_NAME } from './constants'
+import { APP_NAME } from '../lib/constants'
 
 let tray: Tray | null = null
 

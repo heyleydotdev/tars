@@ -1,5 +1,4 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
-import { useShallow } from 'zustand/react/shallow'
 
 import { Spinner } from '@tars/ui/components/spinner'
 
@@ -15,13 +14,11 @@ function LoadingScreen() {
 }
 
 export function RequireAuth() {
-  const { user, loading } = useAuthStore(
-    useShallow((state) => ({ user: state.user, loading: state.loading }))
-  )
+  const session = useAuthStore((state) => state.session)
   const location = useLocation()
 
-  if (loading) return <LoadingScreen />
-  if (!user) {
+  if (session === undefined) return <LoadingScreen />
+  if (!session) {
     const redirectTo = `${location.pathname}${location.search}`
     return <Navigate to={`/login?redirectTo=${encodeURIComponent(redirectTo)}`} replace />
   }
@@ -30,13 +27,11 @@ export function RequireAuth() {
 }
 
 export function GuestOnly() {
-  const { user, loading } = useAuthStore(
-    useShallow((state) => ({ user: state.user, loading: state.loading }))
-  )
+  const session = useAuthStore((state) => state.session)
   const [searchParams] = useSearchParams()
 
-  if (loading) return <LoadingScreen />
-  if (user) return <Navigate to={safeRedirect(searchParams.get('redirectTo'))} replace />
+  if (session === undefined) return <LoadingScreen />
+  if (session) return <Navigate to={safeRedirect(searchParams.get('redirectTo'))} replace />
 
   return <Outlet />
 }

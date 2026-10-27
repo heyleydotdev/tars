@@ -1,53 +1,33 @@
-import { randomUUID } from 'node:crypto'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { app, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
 
-type Session = {
-  id: string
-  email: string
+import type { Session } from '@tars/auth/server'
+import type { LoginInput, RegisterInput } from '@tars/core/schemas/auth'
+
+import { authClient } from '../../lib/auth-client'
+
+type AuthResult = { session: Session | null; error: string | null }
+
+async function currentSession(): Promise<Session | null> {
+  const { data } = await authClient.getSession()
+  return data
 }
 
-function sessionFile(): string {
-  return join(app.getPath('userData'), 'session.json')
-}
-
-function readSession(): Session | null {
-  try {
-    const session = JSON.parse(readFileSync(sessionFile(), 'utf8')) as Session
-
-    return typeof session.id === 'string' && typeof session.email === 'string' ? session : null
-  } catch {
-    return null
-  }
-}
-
-function writeSession(session: Session): void {
-  const file = sessionFile()
-
-  mkdirSync(dirname(file), { recursive: true })
-  writeFileSync(file, JSON.stringify(session))
-}
-
-// Demo session only: replace this with a real auth service before shipping.
 export function registerAuth(): void {
-  ipcMain.handle('auth:get-session', () => readSession())
+  ipcMain.handle('auth:get-session', currentSession)
 
-  ipcMain.handle('auth:login', (_event, input: unknown) => {
-    const { email, password } = (input ?? {}) as { email?: unknown; password?: unknown }
+  ipcMain.handle('auth:sign-in', async (_event, input: LoginInput): Promise<AuthResult> => {
+    const { error } = await authClient.signIn.email(input)
 
-    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
-      throw new Error('Email and password are required.')
-    }
-
-    const session = { id: randomUUID(), email: email.trim() }
-
-    writeSession(session)
-
-    return session
+    return error
+      ? { session: null, error: error.message ?? 'Something went wrong.' }
+      : { session: await currentSession(), error: null }
   })
 
-  ipcMain.handle('auth:logout', () => {
-    rmSync(sessionFile(), { force: true })
+  ipcMain.handle('auth:sign-up', async (_event, input: RegisterInput): Promise<AuthResult> => {
+    const { error } = await authClient.signUp.email(input)
+
+    return error
+      ? { session: null, error: error.message ?? 'Something went wrong.' }
+      : { session: await currentSession(), error: null }
   })
 }

@@ -1,5 +1,9 @@
 appId: com.tars.desktop
 productName: Tars
+protocols:
+  - name: Tars
+    schemes:
+      - com.tars.desktop
 directories:
   buildResources: build
 files:

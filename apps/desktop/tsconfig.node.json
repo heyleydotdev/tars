@@ -4,5 +4,11 @@
   "compilerOptions": {
     "types": ["electron-vite/node", "node"]
   },
-  "include": ["electron.vite.config.ts", "src/main/**/*"]
+  "include": [
+    "electron.vite.config.ts",
+    "src/lib/**/*",
+    "src/main/**/*",
+    "src/env.d.ts",
+    "src/lib/constants.ts"
+  ]
 }

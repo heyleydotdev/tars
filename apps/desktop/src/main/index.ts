@@ -1,13 +1,16 @@
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, nativeTheme } from 'electron'
 
-import { APP_ID, APP_NAME } from './constants'
+import { authClient } from '../lib/auth-client'
+import { APP_ID, APP_NAME } from '../lib/constants'
 import { registerAuth } from './ipc/auth'
 import { registerWindowControls } from './ipc/window-controls'
 import { createTray, destroyTray } from './tray'
 import { createWindow, markQuitting, showWindow, toggleWindow } from './window'
 
 app.setName(APP_NAME)
+
+authClient.setupMain()
 
 app.whenReady().then(() => {
   nativeTheme.themeSource = 'dark'

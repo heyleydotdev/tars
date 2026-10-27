@@ -3,7 +3,7 @@ import { is } from '@electron-toolkit/utils'
 import { BrowserWindow, screen, shell } from 'electron'
 
 import icon from '../../resources/icon.png?asset'
-import { WINDOW_BACKGROUND } from './constants'
+import { WINDOW_BACKGROUND } from '../lib/constants'
 
 let quitting = false
 

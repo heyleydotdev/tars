@@ -1,15 +1,15 @@
 import { useEffect } from 'react'
 import { RouterProvider } from 'react-router'
 
+import { restoreSession, watchSession } from './lib/auth'
 import { router } from './routes'
-import { useAuthStore } from './stores/auth'
 
 export default function App() {
-  const restore = useAuthStore((state) => state.restore)
-
   useEffect(() => {
-    void restore()
-  }, [restore])
+    void restoreSession()
+
+    return watchSession()
+  }, [])
 
   return <RouterProvider router={router} />
 }

@@ -2,6 +2,12 @@ import type { IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { contextBridge, ipcRenderer } from 'electron'
 
+import type { Session } from '@tars/auth/server'
+import type { RegisterInput } from '@tars/core/schemas/auth'
+import { setupRenderer } from '@tars/auth/preload'
+
+setupRenderer()
+
 const windowControls: WindowControlsApi = {
   minimize: (): void => ipcRenderer.send('window:minimize'),
   toggleMaximize: (): void => ipcRenderer.send('window:toggle-maximize'),
@@ -21,23 +27,28 @@ const windowControls: WindowControlsApi = {
 }
 
 const auth = {
-  getSession: (): Promise<{ id: string; email: string } | null> =>
-    ipcRenderer.invoke('auth:get-session'),
-  login: (email: string, password: string): Promise<{ id: string; email: string }> =>
-    ipcRenderer.invoke('auth:login', { email, password }),
-  logout: (): Promise<void> => ipcRenderer.invoke('auth:logout')
+  getSession: (): Promise<Session | null> => ipcRenderer.invoke('auth:get-session'),
+  signIn: (email: string, password: string): Promise<AuthResult> =>
+    ipcRenderer.invoke('auth:sign-in', { email, password }),
+  signUp: (input: RegisterInput): Promise<AuthResult> => ipcRenderer.invoke('auth:sign-up', input)
 }
 
-const api = { auth, windowControls }
+const api = { windowControls }
 
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('getSession', auth.getSession)
+    contextBridge.exposeInMainWorld('signIn', auth.signIn)
+    contextBridge.exposeInMainWorld('signUp', auth.signUp)
   } catch (error) {
     console.error(error)
   }
 } else {
   window.electron = electronAPI
   window.api = api
+  window.getSession = auth.getSession
+  window.signIn = auth.signIn
+  window.signUp = auth.signUp
 }

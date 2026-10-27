@@ -5,5 +5,5 @@
     /* Preload scripts run in a renderer context, so they need DOM libs. */
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["src/preload/**/*"]
+  "include": ["src/preload/**/*", "src/env.d.ts"]
 }

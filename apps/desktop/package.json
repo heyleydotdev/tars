@@ -8,7 +8,7 @@
   "main": "./out/main/index.js",
   "scripts": {
     "postinstall": "install-electron && electron-builder install-app-deps",
-    "dev": "electron-vite dev",
+    "dev": "electron-vite dev --watch",
     "start": "electron-vite preview",
     "build": "bun run typecheck && electron-vite build",
     "clean": "git clean -xdf out .cache",
@@ -24,6 +24,9 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@tanstack/react-form": "1.33.5",
+    "@tars/auth": "workspace:*",
+    "@tars/core": "workspace:*",
     "@tars/ui": "workspace:*",
     "electron-updater": "^6.8.11"
   },

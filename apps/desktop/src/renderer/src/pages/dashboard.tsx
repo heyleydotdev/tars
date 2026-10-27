@@ -23,7 +23,7 @@ import {
 import { TooltipProvider } from '@tars/ui/components/tooltip'
 
 import TitleBar from '../components/title-bar'
-import { useAuthStore } from '../stores/auth'
+import { signOut } from '../lib/auth'
 import { useSidebarStore } from '../stores/sidebar'
 
 const navigation = [
@@ -34,7 +34,6 @@ const navigation = [
 
 function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: string) => void }) {
   const { isMobile, setOpenMobile } = useSidebar()
-  const logout = useAuthStore((state) => state.logout)
 
   return (
     <Sidebar collapsible="icon">
@@ -89,7 +88,7 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Log out" onClick={() => void logout()}>
+            <SidebarMenuButton tooltip="Log out" onClick={() => void signOut()}>
               <LogOutIcon />
               <span>Log out</span>
             </SidebarMenuButton>
