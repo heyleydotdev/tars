@@ -24,16 +24,16 @@ export function registerAuth(): void {
 
     const { response } = await dialog.showMessageBox(window, {
       type: 'question',
-      buttons: ['Cancel', 'Log out'],
-      defaultId: 0,
-      cancelId: 0,
+      buttons: ['Log out', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
       noLink: true,
       title: 'Log out',
       message: 'Log out of TARS?',
       detail: 'You can sign back in at any time.'
     })
 
-    return response === 1
+    return response === 0
   })
 
   ipcMain.handle('auth:sign-in', async (_event, input: LoginInput): Promise<AuthResult> => {
