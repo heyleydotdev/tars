@@ -55,6 +55,7 @@
 - Electron 45 has no dependency postinstall; `apps/desktop` runs `install-electron` in its own `postinstall`.
 - `packages/ui` needs `vite.config.ts` so the shadcn CLI detects a Vite project.
 - Apps importing `@tars/ui/globals.css` must add `@source` for `packages/ui/src`, or Tailwind drops the package's classes.
+- Vite caches linked workspace package metadata: after changing a workspace package's `exports`, restart `electron-vite dev` and clear `apps/desktop/node_modules/.vite`.
 
 ## Key Conventions
 
