@@ -1,0 +1,33 @@
+{
+  "name": "@tars/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./schema": "./src/schema.ts",
+    "./client": "./src/client.ts",
+    "./sql": "./src/sql.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "bun check --no-script",
+    "lint": "eslint .",
+    "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore",
+    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore",
+    "generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@tars/eslint": "workspace:*",
+    "@tars/prettier": "workspace:*",
+    "@tars/tsconfig": "workspace:*",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:"
+  },
+  "prettier": "@tars/prettier"
+}

@@ -9,6 +9,7 @@
     ],
     "catalog": {
       "@cloudflare/workers-types": "5.20260921.1",
+      "drizzle-orm": "^0.45.4",
       "@tailwindcss/vite": "4.3.3",
       "@types/node": "24.19.2",
       "@types/react": "19.3.0",
@@ -33,6 +34,7 @@
     "format:write": "turbo run format:write format:write:root",
     "format:root": "bun fmt --check --no-script \"*.md\" \"*.json\" \".vscode/*.json\"",
     "format:write:root": "bun fmt --no-script \"*.md\" \"*.json\" \".vscode/*.json\"",
+    "generate": "bun run --filter=@tars/auth generate && bun run --filter=@tars/db generate",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"
   },
