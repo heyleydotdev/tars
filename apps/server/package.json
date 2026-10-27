@@ -9,6 +9,8 @@
     "start": "wrangler dev --env-file ../../.env",
     "deploy": "wrangler deploy",
     "typegen": "wrangler types",
+    "migrate:local": "wrangler d1 migrations apply DB --local",
+    "migrate:remote": "wrangler d1 migrations apply DB --remote",
     "lint": "eslint .",
     "typecheck": "bun check -b --no-script",
     "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore",
@@ -28,6 +30,7 @@
   "prettier": "@tars/prettier",
   "dependencies": {
     "@tars/api": "workspace:*",
-    "@tars/auth": "workspace:*"
+    "@tars/auth": "workspace:*",
+    "@tars/db": "workspace:*"
   }
 }

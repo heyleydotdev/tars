@@ -15,7 +15,8 @@
     {
       "binding": "DB",
       "database_name": "tars-db",
-      "database_id": "da9781b9-1f19-4694-a3b8-0957a52e5621"
+      "database_id": "da9781b9-1f19-4694-a3b8-0957a52e5621",
+      "migrations_dir": "../../packages/db/migrations"
     }
   ],
   "dev": {
@@ -23,7 +24,9 @@
     "port": 3001
   },
   "upload_source_maps": true,
-  "vars": {}
+  "secrets": {
+    "required": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL"]
+  }
   /**
    * Smart Placement
    * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
