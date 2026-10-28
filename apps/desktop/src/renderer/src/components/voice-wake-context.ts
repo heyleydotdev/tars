@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 
 export type VoiceWakeContextValue = {
   isPaused: boolean
+  isTranscribing: boolean
   lastPhrase: string | null
   error: string | null
   togglePaused: () => void

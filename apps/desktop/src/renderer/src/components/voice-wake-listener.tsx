@@ -59,11 +59,12 @@ export function VoiceWakeListener({ session }: { session: Session }) {
   const value = useMemo(
     () => ({
       isPaused,
+      isTranscribing: wake.isTranscribing,
       lastPhrase: wake.lastPhrase,
       error: wake.error,
       togglePaused
     }),
-    [isPaused, wake.lastPhrase, wake.error, togglePaused]
+    [isPaused, wake.isTranscribing, wake.lastPhrase, wake.error, togglePaused]
   )
 
   return (

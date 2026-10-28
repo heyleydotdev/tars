@@ -134,6 +134,7 @@ async function toWav(blob: Blob): Promise<{ audio: ArrayBuffer; hasSpeech: boole
 export function useWakeWord(onWake: (phrase: string) => void) {
   const [lastPhrase, setLastPhrase] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isTranscribing, setIsTranscribing] = useState(false)
   const streamRef = useRef<MediaStream | null>(null)
   const lastWakeRef = useRef<{ text: string; at: number } | null>(null)
   const failedTranscriptionsRef = useRef(0)
@@ -149,6 +150,7 @@ export function useWakeWord(onWake: (phrase: string) => void) {
     sessionRef.current += 1
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
+    setIsTranscribing(false)
   }, [])
 
   const start = useCallback(async (): Promise<void> => {
@@ -199,9 +201,12 @@ export function useWakeWord(onWake: (phrase: string) => void) {
           continue
         }
 
+        setIsTranscribing(true)
         text = await window.transcribeAudio(decoded.audio)
       } catch {
         text = null
+      } finally {
+        setIsTranscribing(false)
       }
 
       if (session !== sessionRef.current) {
@@ -248,5 +253,5 @@ export function useWakeWord(onWake: (phrase: string) => void) {
     [stop]
   )
 
-  return { start, stop, lastPhrase, error }
+  return { start, stop, lastPhrase, error, isTranscribing }
 }

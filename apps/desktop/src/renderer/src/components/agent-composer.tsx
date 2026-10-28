@@ -41,10 +41,11 @@ export default function AgentComposer() {
         </Button>
         <Textarea
           ref={inputRef}
-          placeholder="Message Agent…"
+          placeholder={voice.isTranscribing ? 'Transcribing…' : 'Message Agent…'}
           className="max-h-56 min-h-9 resize-none"
           rows={1}
           aria-label="Message Agent"
+          disabled={voice.isTranscribing}
           onPointerDown={() => {
             if (!voice.isPaused) {
               voice.togglePaused()
