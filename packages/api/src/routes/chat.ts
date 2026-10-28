@@ -15,23 +15,23 @@ import { asc, desc, eq } from '@tars/db/sql'
 import { protectedProcedure } from '../context'
 import { ChatFailedError } from '../errors'
 
-async function resolveChat(db: Database, userId: string) {
+async function resolveChatId(db: Database, userId: string): Promise<string> {
   const [existing] = await db
-    .select()
+    .select({ id: chat.id })
     .from(chat)
     .where(eq(chat.userId, userId))
     .orderBy(desc(chat.updatedAt))
     .limit(1)
 
   if (existing) {
-    return existing
+    return existing.id
   }
 
   const id = crypto.randomUUID()
 
   await db.insert(chat).values({ id, userId })
 
-  return { id }
+  return id
 }
 
 export const chatRouter = {
@@ -61,12 +61,12 @@ export const chatRouter = {
     .input(sendChatMessageSchema)
     .output(asyncIteratorObject(chatEventSchema))
     .handler(async function* ({ input, context, signal, errors }) {
-      const thread = await resolveChat(context.db, context.session.user.id)
+      const chatId = await resolveChatId(context.db, context.session.user.id)
       const assistantId = crypto.randomUUID()
 
       await context.db.insert(chatMessage).values({
         id: crypto.randomUUID(),
-        chatId: thread.id,
+        chatId,
         role: 'user',
         content: input.content,
         status: 'completed'
@@ -75,12 +75,12 @@ export const chatRouter = {
       const history = await context.db
         .select({ role: chatMessage.role, content: chatMessage.content })
         .from(chatMessage)
-        .where(eq(chatMessage.chatId, thread.id))
+        .where(eq(chatMessage.chatId, chatId))
         .orderBy(asc(chatMessage.createdAt))
 
       await context.db.insert(chatMessage).values({
         id: assistantId,
-        chatId: thread.id,
+        chatId,
         role: 'assistant',
         content: '',
         status: 'thinking'
@@ -122,7 +122,7 @@ export const chatRouter = {
           .update(chatMessage)
           .set({ content, status: 'completed' })
           .where(eq(chatMessage.id, assistantId))
-        await context.db.update(chat).set({ updatedAt: new Date() }).where(eq(chat.id, thread.id))
+        await context.db.update(chat).set({ updatedAt: new Date() }).where(eq(chat.id, chatId))
       } catch (error) {
         await context.db
           .update(chatMessage)

@@ -18,6 +18,12 @@ export function useSendChatMessage() {
     mutationFn: async (content: string) => {
       const assistantKey = `assistant-${crypto.randomUUID()}`
 
+      const updateAssistant = (update: (message: ChatMessage) => ChatMessage): void => {
+        queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
+          messages?.map((message) => (message.id === assistantKey ? update(message) : message))
+        )
+      }
+
       queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) => [
         ...(messages ?? []),
         { id: `user-${crypto.randomUUID()}`, role: 'user', content, status: 'completed' },
@@ -28,26 +34,14 @@ export function useSendChatMessage() {
         const iterator = await orpc.chat.send.call({ content })
 
         for await (const event of iterator) {
-          queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
-            messages?.map((message) =>
-              message.id === assistantKey
-                ? { ...message, content: message.content + event.text }
-                : message
-            )
-          )
+          updateAssistant((message) => ({ ...message, content: message.content + event.text }))
         }
       } catch (error) {
-        queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
-          messages?.map((message) =>
-            message.id === assistantKey
-              ? {
-                  ...message,
-                  content: error instanceof ORPCError ? error.message : 'Chat failed',
-                  status: 'error'
-                }
-              : message
-          )
-        )
+        updateAssistant((message) => ({
+          ...message,
+          content: error instanceof ORPCError ? error.message : 'Chat failed',
+          status: 'error'
+        }))
       } finally {
         void queryClient.invalidateQueries({ queryKey: chatMessagesKey })
       }

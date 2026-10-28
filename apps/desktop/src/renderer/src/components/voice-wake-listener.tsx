@@ -39,7 +39,7 @@ export function VoiceWakeListener({ session }: { session: Session }) {
       void (async () => {
         await window.api.windowControls.show()
         await navigate('/')
-      })()
+      })().catch(() => {})
     },
     [navigate]
   )
