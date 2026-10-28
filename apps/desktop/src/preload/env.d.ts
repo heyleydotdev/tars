@@ -17,7 +17,10 @@ declare global {
     minimize: () => void
     toggleMaximize: () => void
     close: () => void
+    show: () => Promise<void>
     isMaximized: () => Promise<boolean>
+    isFocused: () => Promise<boolean>
+    onFocusChange: (callback: (focused: boolean) => void) => () => void
     onMaximizedChange: (callback: (maximized: boolean) => void) => () => void
   }
 

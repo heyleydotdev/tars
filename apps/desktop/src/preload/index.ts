@@ -12,7 +12,20 @@ const windowControls: WindowControlsApi = {
   minimize: (): void => ipcRenderer.send('window:minimize'),
   toggleMaximize: (): void => ipcRenderer.send('window:toggle-maximize'),
   close: (): void => ipcRenderer.send('window:close'),
+  show: (): Promise<void> => ipcRenderer.invoke('window:show'),
   isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:is-maximized'),
+  isFocused: (): Promise<boolean> => ipcRenderer.invoke('window:is-focused'),
+  onFocusChange: (callback): (() => void) => {
+    const listener = (_event: IpcRendererEvent, focused: boolean): void => {
+      callback(focused)
+    }
+
+    ipcRenderer.on('window:focus-changed', listener)
+
+    return () => {
+      ipcRenderer.removeListener('window:focus-changed', listener)
+    }
+  },
   onMaximizedChange: (callback): (() => void) => {
     const listener = (_event: IpcRendererEvent, maximized: boolean): void => {
       callback(maximized)

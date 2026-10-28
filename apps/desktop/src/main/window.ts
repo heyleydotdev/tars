@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
-import { BrowserWindow, screen, shell } from 'electron'
+import { app, BrowserWindow, screen, shell } from 'electron'
 
 import { WINDOW_BACKGROUND } from '@tars/core/constants'
 
@@ -15,6 +15,26 @@ export function markQuitting(): void {
 
 export function getMainWindow(): BrowserWindow | null {
   return BrowserWindow.getAllWindows()[0] ?? null
+}
+
+export function bringWindowToFront(window: BrowserWindow): void {
+  if (window.isMinimized()) {
+    window.restore()
+  }
+
+  app.focus({ steal: true })
+  window.show()
+
+  if (process.platform === 'win32') {
+    window.setAlwaysOnTop(true, 'floating')
+  }
+
+  window.moveTop()
+  window.focus()
+
+  if (process.platform === 'win32') {
+    window.setAlwaysOnTop(false)
+  }
 }
 
 export function createWindow(): BrowserWindow {
@@ -57,9 +77,18 @@ export function createWindow(): BrowserWindow {
     }
   )
 
+  const emitFocus = (): void => {
+    window.webContents.send('window:focus-changed', window.isVisible() && window.isFocused())
+  }
+
   window.on('ready-to-show', () => {
     window.show()
+    emitFocus()
   })
+  window.on('focus', emitFocus)
+  window.on('blur', emitFocus)
+  window.on('show', emitFocus)
+  window.on('hide', emitFocus)
 
   window.on('close', (event) => {
     if (quitting) return
@@ -97,12 +126,7 @@ export function showWindow(): void {
     return
   }
 
-  if (window.isMinimized()) {
-    window.restore()
-  }
-
-  window.show()
-  window.focus()
+  bringWindowToFront(window)
 }
 
 export function toggleWindow(): void {
