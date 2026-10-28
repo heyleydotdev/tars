@@ -1,17 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import {
+  VOICE_ANALYSER_POLL_MS,
   VOICE_CAPTURE_SETTINGS,
+  VOICE_MAX_SEGMENT_MS,
+  VOICE_MIN_SEGMENT_MS,
   VOICE_SAMPLE_RATE,
-  VOICE_SEGMENT_DURATION_MS,
+  VOICE_SILENCE_DURATION_MS,
   VOICE_SPEECH_ACTIVE_RATIO,
   VOICE_SPEECH_FRAME_DURATION_MS,
-  VOICE_SPEECH_RMS_THRESHOLD_SQUARED,
-  VOICE_WAKE_DEDUPLICATION_MS,
-  VOICE_WAKE_PATTERN
+  VOICE_SPEECH_RMS_THRESHOLD,
+  VOICE_SPEECH_RMS_THRESHOLD_SQUARED
 } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
-import { normalizeText } from '@tars/core/utils/string'
+
+import { useVoiceStore } from '../stores/voice'
+
+let audioContext: AudioContext | null = null
 
 async function recordSegment(stream: MediaStream): Promise<Blob> {
   const recorder = new MediaRecorder(stream)
@@ -27,15 +32,60 @@ async function recordSegment(stream: MediaStream): Promise<Blob> {
     recorder.onstop = () => resolve()
   })
 
+  audioContext ??= new AudioContext({ sampleRate: VOICE_SAMPLE_RATE })
+
+  const source = audioContext.createMediaStreamSource(stream)
+  const analyser = audioContext.createAnalyser()
+  analyser.fftSize = 1024
+  source.connect(analyser)
+
+  const samples = new Float32Array(analyser.fftSize)
+  const startedAt = performance.now()
+  let silenceStartedAt: number | null = null
+
   recorder.start()
-  await new Promise((resolve) => setTimeout(resolve, VOICE_SEGMENT_DURATION_MS))
+
+  await new Promise<void>((resolve) => {
+    const tick = (): void => {
+      analyser.getFloatTimeDomainData(samples)
+
+      let sum = 0
+      for (const sample of samples) {
+        sum += sample * sample
+      }
+
+      const rms = Math.sqrt(sum / samples.length)
+      const now = performance.now()
+      const elapsed = now - startedAt
+
+      if (rms >= VOICE_SPEECH_RMS_THRESHOLD) {
+        silenceStartedAt = null
+      } else if (silenceStartedAt === null) {
+        silenceStartedAt = now
+      }
+
+      const silent =
+        silenceStartedAt !== null && now - silenceStartedAt >= VOICE_SILENCE_DURATION_MS
+
+      if (elapsed >= VOICE_MAX_SEGMENT_MS || (elapsed >= VOICE_MIN_SEGMENT_MS && silent)) {
+        resolve()
+        return
+      }
+
+      setTimeout(tick, VOICE_ANALYSER_POLL_MS)
+    }
+
+    tick()
+  })
+
+  source.disconnect()
+  analyser.disconnect()
+
   recorder.stop()
   await stopped
 
   return new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
 }
-
-let decoder: AudioContext | null = null
 
 function encodeWav(samples: Float32Array): ArrayBuffer {
   const buffer = new ArrayBuffer(44 + samples.length * 2)
@@ -114,9 +164,9 @@ function containsSpeech(samples: Float32Array): boolean {
 // Meta's ASR only takes mono 16-bit PCM WAV, so decode the recorder's webm
 // segment and re-encode it at the model's native rate.
 async function toWav(blob: Blob): Promise<{ audio: ArrayBuffer; hasSpeech: boolean }> {
-  decoder ??= new AudioContext({ sampleRate: VOICE_SAMPLE_RATE })
+  audioContext ??= new AudioContext({ sampleRate: VOICE_SAMPLE_RATE })
 
-  const audio = await decoder.decodeAudioData(await blob.arrayBuffer())
+  const audio = await audioContext.decodeAudioData(await blob.arrayBuffer())
   const channels = audio.numberOfChannels
   const samples = new Float32Array(audio.length)
 
@@ -131,27 +181,25 @@ async function toWav(blob: Blob): Promise<{ audio: ArrayBuffer; hasSpeech: boole
   return { audio: encodeWav(samples), hasSpeech: containsSpeech(samples) }
 }
 
-export function useWakeWord(onWake: (phrase: string) => void) {
-  const [lastPhrase, setLastPhrase] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isTranscribing, setIsTranscribing] = useState(false)
+export function useWakeWord(onTranscript: (text: string) => void) {
+  const setError = useVoiceStore((state) => state.setError)
+  const setTranscribing = useVoiceStore((state) => state.setTranscribing)
   const streamRef = useRef<MediaStream | null>(null)
-  const lastWakeRef = useRef<{ text: string; at: number } | null>(null)
   const failedTranscriptionsRef = useRef(0)
-  const onWakeRef = useRef(onWake)
+  const onTranscriptRef = useRef(onTranscript)
   // Bumped on stop so a loop still awaiting a segment can tell it is stale.
   const sessionRef = useRef(0)
 
   useEffect(() => {
-    onWakeRef.current = onWake
-  }, [onWake])
+    onTranscriptRef.current = onTranscript
+  }, [onTranscript])
 
   const stop = useCallback((): void => {
     sessionRef.current += 1
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
-    setIsTranscribing(false)
-  }, [])
+    setTranscribing(false)
+  }, [setTranscribing])
 
   const start = useCallback(async (): Promise<void> => {
     if (streamRef.current) {
@@ -201,12 +249,12 @@ export function useWakeWord(onWake: (phrase: string) => void) {
           continue
         }
 
-        setIsTranscribing(true)
+        setTranscribing(true)
         text = await window.transcribeAudio(decoded.audio)
       } catch {
         text = null
       } finally {
-        setIsTranscribing(false)
+        setTranscribing(false)
       }
 
       if (session !== sessionRef.current) {
@@ -227,31 +275,19 @@ export function useWakeWord(onWake: (phrase: string) => void) {
       setError(null)
 
       if (text) {
-        setLastPhrase(text)
-
-        if (VOICE_WAKE_PATTERN.test(text)) {
-          const normalized = normalizeText(text)
-          const previous = lastWakeRef.current
-          const isDuplicate =
-            previous?.text === normalized && Date.now() - previous.at < VOICE_WAKE_DEDUPLICATION_MS
-
-          if (!isDuplicate) {
-            lastWakeRef.current = { text: normalized, at: Date.now() }
-            onWakeRef.current(text)
-          }
-        }
+        onTranscriptRef.current(text)
       }
     }
-  }, [stop])
+  }, [setError, setTranscribing, stop])
 
   useEffect(
     () => () => {
       stop()
-      void decoder?.close()
-      decoder = null
+      void audioContext?.close()
+      audioContext = null
     },
     [stop]
   )
 
-  return { start, stop, lastPhrase, error, isTranscribing }
+  return { start, stop }
 }

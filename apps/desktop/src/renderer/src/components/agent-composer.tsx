@@ -1,25 +1,32 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { MicIcon, MicOffIcon, SendIcon } from 'lucide-react'
 
 import { Button } from '@tars/ui/components/button'
 import { Textarea } from '@tars/ui/components/textarea'
 
 import { useSendChatMessage } from '../lib/chat'
-import { useVoiceWake } from './voice-wake-context'
+import { useComposerStore } from '../stores/composer'
+import { isVoicePaused, useVoiceStore } from '../stores/voice'
 
 export default function AgentComposer() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const voice = useVoiceWake()
+  const value = useComposerStore((state) => state.value)
+  const setValue = useComposerStore((state) => state.setValue)
+  const clear = useComposerStore((state) => state.clear)
+  const isPaused = useVoiceStore(isVoicePaused)
+  const isTranscribing = useVoiceStore((state) => state.isTranscribing)
+  const togglePaused = useVoiceStore((state) => state.togglePaused)
+  const pause = useVoiceStore((state) => state.pause)
   const sendMessage = useSendChatMessage()
-  const [value, setValue] = useState('')
 
   const handleSend = (): void => {
     const content = value.trim()
 
     if (!content) return
 
+    pause()
     sendMessage.mutate(content)
-    setValue('')
+    clear()
   }
 
   return (
@@ -28,13 +35,13 @@ export default function AgentComposer() {
         <Button
           type="button"
           size="icon"
-          variant={voice.isPaused ? 'outline' : 'secondary'}
-          className={`size-9 border ${voice.isPaused ? 'text-muted-foreground' : 'text-foreground after:bg-primary/50 relative after:absolute after:inset-0 after:animate-pulse after:rounded-[inherit]'}`}
-          aria-pressed={voice.isPaused}
-          aria-label={voice.isPaused ? 'Resume voice commands' : 'Pause voice commands'}
-          onClick={voice.togglePaused}
+          variant={isPaused ? 'outline' : 'secondary'}
+          className={`size-9 border ${isPaused ? 'text-muted-foreground' : 'text-foreground after:bg-primary/50 relative after:absolute after:inset-0 after:animate-pulse after:rounded-[inherit]'}`}
+          aria-pressed={isPaused}
+          aria-label={isPaused ? 'Resume voice commands' : 'Pause voice commands'}
+          onClick={togglePaused}
         >
-          {voice.isPaused ? <MicOffIcon /> : <MicIcon />}
+          {isPaused ? <MicOffIcon /> : <MicIcon />}
         </Button>
         <Textarea
           ref={inputRef}
@@ -46,14 +53,14 @@ export default function AgentComposer() {
               handleSend()
             }
           }}
-          placeholder={voice.isTranscribing ? 'Transcribing…' : 'Ask TARS anything…'}
+          placeholder={isTranscribing ? 'Transcribing…' : 'Ask TARS anything…'}
           className="max-h-56 min-h-9 resize-none"
           rows={1}
           aria-label="Message Agent"
-          disabled={voice.isTranscribing}
+          disabled={isTranscribing}
           onPointerDown={() => {
-            if (!voice.isPaused) {
-              voice.togglePaused()
+            if (!isPaused) {
+              togglePaused()
             }
           }}
         />

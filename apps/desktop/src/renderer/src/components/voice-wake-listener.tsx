@@ -1,26 +1,50 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Outlet, useNavigate } from 'react-router'
 
 import type { Session } from '@tars/auth/server'
+import { VOICE_WAKE_DEDUPLICATION_MS, VOICE_WAKE_PATTERN } from '@tars/core/constants'
+import { normalizeText } from '@tars/core/utils/string'
 
 import { useWakeWord } from '../lib/voice'
-import { voiceWakeContext } from './voice-wake-context'
+import { useComposerStore } from '../stores/composer'
+import { isVoicePaused, useVoiceStore } from '../stores/voice'
 
 export function VoiceWakeListener({ session }: { session: Session }) {
   const navigate = useNavigate()
-  const [windowFocused, setWindowFocused] = useState(true)
-  const [userPaused, setUserPaused] = useState(true)
+  const isPaused = useVoiceStore(isVoicePaused)
+  const setWindowFocused = useVoiceStore((state) => state.setWindowFocused)
+  const lastWakeRef = useRef<{ text: string; at: number } | null>(null)
 
-  const onWake = useCallback(() => {
-    void (async () => {
-      await window.api.windowControls.show()
-      await navigate('/')
-      // A wake-up call always resumes listening; the user re-pauses explicitly.
-      setUserPaused(false)
-    })()
-  }, [navigate])
+  const onTranscript = useCallback(
+    (text: string) => {
+      // While the window is focused, speech is dictation for the composer.
+      if (useVoiceStore.getState().windowFocused) {
+        useComposerStore.getState().append(text)
+        return
+      }
 
-  const wake = useWakeWord(onWake)
+      // While hidden or unfocused, only wake phrases matter.
+      if (!VOICE_WAKE_PATTERN.test(text)) return
+
+      const normalized = normalizeText(text)
+      const previous = lastWakeRef.current
+
+      if (previous?.text === normalized && Date.now() - previous.at < VOICE_WAKE_DEDUPLICATION_MS) {
+        return
+      }
+
+      lastWakeRef.current = { text: normalized, at: Date.now() }
+      useVoiceStore.getState().resume()
+
+      void (async () => {
+        await window.api.windowControls.show()
+        await navigate('/')
+      })()
+    },
+    [navigate]
+  )
+
+  const wake = useWakeWord(onTranscript)
   const { start, stop } = wake
 
   useEffect(() => {
@@ -38,12 +62,10 @@ export function VoiceWakeListener({ session }: { session: Session }) {
       disposed = true
       unsubscribe()
     }
-  }, [])
+  }, [setWindowFocused])
 
   // Listening is always on while hidden/unfocused; the user only controls it
   // while the window is focused.
-  const isPaused = windowFocused && userPaused
-
   useEffect(() => {
     if (isPaused) {
       stop()
@@ -52,24 +74,5 @@ export function VoiceWakeListener({ session }: { session: Session }) {
     }
   }, [isPaused, start, stop])
 
-  const togglePaused = useCallback(() => {
-    setUserPaused((paused) => !paused)
-  }, [])
-
-  const value = useMemo(
-    () => ({
-      isPaused,
-      isTranscribing: wake.isTranscribing,
-      lastPhrase: wake.lastPhrase,
-      error: wake.error,
-      togglePaused
-    }),
-    [isPaused, wake.isTranscribing, wake.lastPhrase, wake.error, togglePaused]
-  )
-
-  return (
-    <voiceWakeContext.Provider value={value}>
-      <Outlet context={session} />
-    </voiceWakeContext.Provider>
-  )
+  return <Outlet context={session} />
 }

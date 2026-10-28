@@ -5,22 +5,22 @@ import { Button } from '@tars/ui/components/button'
 import type { ChatMessageView } from './message-bubble'
 import { useStickToBottom } from '../hooks/use-stick-to-bottom'
 import { useChatMessages } from '../lib/chat'
+import { useVoiceStore } from '../stores/voice'
 import MessageBubble from './message-bubble'
 import SayHello from './say-hello'
-import { useVoiceWake } from './voice-wake-context'
 
 export default function ChatArea() {
   const { data: messages = [] } = useChatMessages()
-  const voice = useVoiceWake()
+  const error = useVoiceStore((state) => state.error)
   const { ref, isStuck, scrollToBottom } = useStickToBottom<HTMLDivElement>(messages)
 
-  const items: Array<ChatMessageView> = voice.error
+  const items: Array<ChatMessageView> = error
     ? [
         ...messages,
         {
           id: 'voice-error',
           role: 'assistant',
-          content: voice.error,
+          content: error,
           status: 'error',
           variant: 'error'
         }
