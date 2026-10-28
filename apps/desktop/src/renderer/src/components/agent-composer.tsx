@@ -41,7 +41,7 @@ export default function AgentComposer() {
         </Button>
         <Textarea
           ref={inputRef}
-          placeholder={voice.isTranscribing ? 'Transcribing…' : 'Message Agent…'}
+          placeholder={voice.isTranscribing ? 'Transcribing…' : 'Ask TARS anything…'}
           className="max-h-56 min-h-9 resize-none"
           rows={1}
           aria-label="Message Agent"
