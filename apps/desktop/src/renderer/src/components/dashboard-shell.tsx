@@ -31,10 +31,12 @@ import {
 } from '@tars/ui/components/sidebar'
 import { TooltipProvider } from '@tars/ui/components/tooltip'
 
-import TitleBar from '../components/title-bar'
 import { signOut } from '../lib/auth'
 import { useUser } from '../stores/auth'
 import { useSidebarStore } from '../stores/sidebar'
+import TitleBar from './title-bar'
+
+const destinations = [{ title: 'Agent', icon: BotIcon }]
 
 function UserIdentity({ name, email }: { name: string; email: string }) {
   return (
@@ -81,19 +83,25 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === 'Agent'}
-                  tooltip="Agent"
-                  onClick={() => {
-                    onSelect('Agent')
-                    if (isMobile) setOpenMobile(false)
-                  }}
-                >
-                  <BotIcon />
-                  <span>Agent</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {destinations.map((item) => {
+                const Icon = item.icon
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      isActive={active === item.title}
+                      tooltip={item.title}
+                      onClick={() => {
+                        onSelect(item.title)
+                        if (isMobile) setOpenMobile(false)
+                      }}
+                    >
+                      <Icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -128,11 +136,11 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
   )
 }
 
-export default function Dashboard({ children }: React.PropsWithChildren) {
+export default function DashboardShell({ children }: React.PropsWithChildren) {
   const { open, setOpen } = useSidebarStore(
     useShallow((state) => ({ open: state.open, setOpen: state.setOpen }))
   )
-  const [active, setActive] = useState('Agent')
+  const [active, setActive] = useState(destinations[0]?.title ?? 'Agent')
 
   return (
     <TooltipProvider>
@@ -144,7 +152,7 @@ export default function Dashboard({ children }: React.PropsWithChildren) {
             <SidebarTrigger />
             <span className="text-sm font-medium">{active}</span>
           </header>
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
