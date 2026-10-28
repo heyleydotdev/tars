@@ -1,6 +1,8 @@
 import { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
+import { requestId } from 'hono/request-id'
 
 import type { Auth } from '@tars/auth/server'
 import type { Database } from '@tars/db/client'
@@ -13,6 +15,8 @@ type Variables = { db: Database; auth: Auth }
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>()
 
+app.use('/api/*', requestId())
+
 app.use(
   '/api/*',
   cors({
@@ -24,6 +28,8 @@ app.use(
     maxAge: 600
   })
 )
+
+app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 }))
 
 app.use('/api/*', async (c, next) => {
   const db = createDb(c.env.DB)
@@ -92,11 +98,11 @@ app.use('/api/rpc/*', async (c, next) => {
 app.notFound((c) => c.text('Not Found', 404))
 
 app.onError((error, c) => {
-  console.error(error)
-
   if (error instanceof HTTPException) {
     return error.getResponse()
   }
+
+  console.error(c.get('requestId'), error)
 
   return c.text(ERRORS.internalServer, 500)
 })
