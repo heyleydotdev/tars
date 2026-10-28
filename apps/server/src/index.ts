@@ -13,20 +13,6 @@ type Variables = { db: Database; auth: Auth }
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>()
 
-function toHeaders(source: Record<string, string | Array<string> | undefined>): Headers {
-  const headers = new Headers()
-
-  for (const [key, value] of Object.entries(source)) {
-    if (value === undefined) continue
-
-    for (const item of Array.isArray(value) ? value : [value]) {
-      headers.append(key, item)
-    }
-  }
-
-  return headers
-}
-
 app.use(
   '/api/*',
   cors({
@@ -76,12 +62,11 @@ app.get('/api/ws', (c) => {
 
   server.accept()
   rpcWebSocketHandler.upgrade(server, {
-    context: (request) => ({
+    context: {
       db: c.get('db'),
       auth: c.get('auth'),
-      headers: toHeaders(request.headers),
       metaAiApiKey: c.env.META_AI_API
-    })
+    }
   })
 
   return new Response(null, { status: 101, webSocket: client })
@@ -93,7 +78,6 @@ app.use('/api/rpc/*', async (c, next) => {
     context: {
       db: c.get('db'),
       auth: c.get('auth'),
-      headers: c.req.raw.headers,
       metaAiApiKey: c.env.META_AI_API
     }
   })
