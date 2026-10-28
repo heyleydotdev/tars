@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   VOICE_CAPTURE_SETTINGS,
@@ -12,8 +12,6 @@ import {
 } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { normalizeText } from '@tars/core/utils/string'
-
-type VoiceState = 'idle' | 'listening' | 'transcribing'
 
 async function recordSegment(stream: MediaStream): Promise<Blob> {
   const recorder = new MediaRecorder(stream)
@@ -121,23 +119,26 @@ async function toWav(blob: Blob): Promise<{ audio: ArrayBuffer; hasSpeech: boole
 }
 
 export function useWakeWord(onWake: (phrase: string) => void) {
-  const [state, setState] = useState<VoiceState>('idle')
   const [lastPhrase, setLastPhrase] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const lastWakeRef = useRef<{ text: string; at: number } | null>(null)
   const failedTranscriptionsRef = useRef(0)
+  const onWakeRef = useRef(onWake)
   // Bumped on stop so a loop still awaiting a segment can tell it is stale.
   const sessionRef = useRef(0)
 
-  const stop = (): void => {
+  useEffect(() => {
+    onWakeRef.current = onWake
+  }, [onWake])
+
+  const stop = useCallback((): void => {
     sessionRef.current += 1
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
-    setState('idle')
-  }
+  }, [])
 
-  const start = async (): Promise<void> => {
+  const start = useCallback(async (): Promise<void> => {
     if (streamRef.current) {
       return
     }
@@ -160,9 +161,7 @@ export function useWakeWord(onWake: (phrase: string) => void) {
     }
 
     streamRef.current = stream
-
     const session = sessionRef.current
-    setState('listening')
 
     while (session === sessionRef.current) {
       let segment: Blob
@@ -178,22 +177,22 @@ export function useWakeWord(onWake: (phrase: string) => void) {
         return
       }
 
-      let text: string | null = ''
+      let text: string | null
 
       try {
         const decoded = await toWav(segment)
 
         if (!decoded.hasSpeech) {
-          if (session === sessionRef.current) {
-            setState('listening')
-          }
           continue
         }
 
-        setState('transcribing')
         text = await window.transcribeAudio(decoded.audio)
       } catch {
-        // Audio decoding or the Worker can fail; keep the loop alive.
+        text = null
+      }
+
+      if (session !== sessionRef.current) {
+        return
       }
 
       if (text === null) {
@@ -203,9 +202,6 @@ export function useWakeWord(onWake: (phrase: string) => void) {
           setError(ERRORS.transcriptionUnavailable)
         }
 
-        if (session === sessionRef.current) {
-          setState('listening')
-        }
         continue
       }
 
@@ -223,26 +219,21 @@ export function useWakeWord(onWake: (phrase: string) => void) {
 
           if (!isDuplicate) {
             lastWakeRef.current = { text: normalized, at: Date.now() }
-            onWake(text)
+            onWakeRef.current(text)
           }
         }
       }
-
-      if (session === sessionRef.current) {
-        setState('listening')
-      }
     }
-  }
+  }, [stop])
 
   useEffect(
     () => () => {
-      sessionRef.current += 1
-      streamRef.current?.getTracks().forEach((track) => track.stop())
+      stop()
       void decoder?.close()
       decoder = null
     },
-    []
+    [stop]
   )
 
-  return { state, lastPhrase, error, start, stop }
+  return { start, stop, lastPhrase, error }
 }

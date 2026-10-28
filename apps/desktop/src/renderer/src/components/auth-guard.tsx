@@ -4,6 +4,7 @@ import { safeRedirect } from '@tars/core/utils/redirect'
 
 import { useAuthStore } from '../stores/auth'
 import LoadingScreen from './loading-screen'
+import { VoiceWakeListener } from './voice-wake-listener'
 
 export function RequireAuth() {
   const session = useAuthStore((state) => state.session)
@@ -15,7 +16,7 @@ export function RequireAuth() {
     return <Navigate to={`/login?redirectTo=${encodeURIComponent(redirectTo)}`} replace />
   }
 
-  return <Outlet context={session} />
+  return <VoiceWakeListener session={session} />
 }
 
 export function GuestOnly() {
