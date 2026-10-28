@@ -8,3 +8,11 @@ export function initials(name: string): string {
       .join('') || 'U'
   )
 }
+
+export function normalizeText(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+}

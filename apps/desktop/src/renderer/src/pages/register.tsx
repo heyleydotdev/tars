@@ -2,16 +2,19 @@ import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useNavigate, useSearchParams } from 'react-router'
 
+import { ERRORS } from '@tars/core/errors'
 import { registerSchema } from '@tars/core/schemas/auth'
-import { Alert, AlertDescription } from '@tars/ui/components/alert'
+import { safeRedirect } from '@tars/core/utils/redirect'
 import { Button } from '@tars/ui/components/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/field'
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
 
 import AuthShell from '../components/auth-shell'
+import { FormError } from '../components/form-error'
+import { FormFooter } from '../components/form-footer'
+import { FormHeader } from '../components/form-header'
 import { signUp } from '../lib/auth'
-import { safeRedirect } from '../lib/redirect'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -28,9 +31,7 @@ export default function Register() {
         await signUp(value)
         void navigate(safeRedirect(searchParams.get('redirectTo')), { replace: true })
       } catch (error) {
-        setError(
-          error instanceof Error ? error.message : 'Unable to create an account. Please try again.'
-        )
+        setError(error instanceof Error ? error.message : ERRORS.signUpFailed)
       }
     }
   })
@@ -45,12 +46,7 @@ export default function Register() {
         }}
       >
         <FieldGroup>
-          <div className="flex flex-col items-center gap-1 text-center">
-            <h1 className="font-heading text-2xl font-semibold tracking-tight">
-              Create your account
-            </h1>
-            <p className="text-muted-foreground text-sm">Set up an account to continue.</p>
-          </div>
+          <FormHeader title="Create your account" description="Set up an account to continue." />
           <form.Field
             name="name"
             children={(field) => {
@@ -121,11 +117,7 @@ export default function Register() {
               )
             }}
           />
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
+          <FormError message={error} />
           <form.Subscribe
             selector={(state) => state.isSubmitting}
             children={(isSubmitting) => (
@@ -137,17 +129,11 @@ export default function Register() {
             )}
           />
         </FieldGroup>
-        <p className="text-muted-foreground text-center text-sm">
-          Already have an account?{' '}
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto p-0"
-            onClick={() => void navigate('/login')}
-          >
-            Sign in
-          </Button>
-        </p>
+        <FormFooter
+          prompt="Already have an account?"
+          action="Sign in"
+          onAction={() => void navigate('/login')}
+        />
       </form>
     </AuthShell>
   )

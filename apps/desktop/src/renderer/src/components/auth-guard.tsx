@@ -1,17 +1,9 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 
-import { Spinner } from '@tars/ui/components/spinner'
+import { safeRedirect } from '@tars/core/utils/redirect'
 
-import { safeRedirect } from '../lib/redirect'
 import { useAuthStore } from '../stores/auth'
-
-function LoadingScreen() {
-  return (
-    <div className="bg-background flex h-svh items-center justify-center">
-      <Spinner />
-    </div>
-  )
-}
+import LoadingScreen from './loading-screen'
 
 export function RequireAuth() {
   const session = useAuthStore((state) => state.session)

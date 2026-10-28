@@ -2,16 +2,19 @@ import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useNavigate, useSearchParams } from 'react-router'
 
+import { ERRORS } from '@tars/core/errors'
 import { loginSchema } from '@tars/core/schemas/auth'
-import { Alert, AlertDescription } from '@tars/ui/components/alert'
+import { safeRedirect } from '@tars/core/utils/redirect'
 import { Button } from '@tars/ui/components/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/field'
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
 
 import AuthShell from '../components/auth-shell'
+import { FormError } from '../components/form-error'
+import { FormFooter } from '../components/form-footer'
+import { FormHeader } from '../components/form-header'
 import { signIn } from '../lib/auth'
-import { safeRedirect } from '../lib/redirect'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -28,7 +31,7 @@ export default function Login() {
         await signIn(value.email, value.password)
         void navigate(safeRedirect(searchParams.get('redirectTo')), { replace: true })
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Unable to sign in. Please try again.')
+        setError(error instanceof Error ? error.message : ERRORS.signInFailed)
       }
     }
   })
@@ -43,10 +46,7 @@ export default function Login() {
         }}
       >
         <FieldGroup>
-          <div className="flex flex-col items-center gap-1 text-center">
-            <h1 className="font-heading text-2xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground text-sm">Sign in to continue to TARS.</p>
-          </div>
+          <FormHeader title="Welcome back" description="Sign in to continue to TARS." />
           <form.Field
             name="email"
             children={(field) => {
@@ -94,11 +94,7 @@ export default function Login() {
               )
             }}
           />
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
+          <FormError message={error} />
           <form.Subscribe
             selector={(state) => state.isSubmitting}
             children={(isSubmitting) => (
@@ -110,17 +106,11 @@ export default function Login() {
             )}
           />
         </FieldGroup>
-        <p className="text-muted-foreground text-center text-sm">
-          No account?{' '}
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto p-0"
-            onClick={() => void navigate('/register')}
-          >
-            Create one
-          </Button>
-        </p>
+        <FormFooter
+          prompt="No account?"
+          action="Create one"
+          onAction={() => void navigate('/register')}
+        />
       </form>
     </AuthShell>
   )

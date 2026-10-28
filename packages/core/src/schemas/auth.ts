@@ -1,16 +1,18 @@
 import * as z from 'zod'
 
-export const emailSchema = z.email('Enter a valid email address.')
+import { ERRORS } from '../errors'
+
+export const emailSchema = z.email(ERRORS.invalidEmail)
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, 'Password is required.')
+  password: z.string().min(1, ERRORS.passwordRequired)
 })
 
 export const registerSchema = z.object({
-  name: z.string().min(1, 'Name is required.'),
+  name: z.string().min(1, ERRORS.nameRequired),
   email: emailSchema,
-  password: z.string().min(8, 'Use at least 8 characters.')
+  password: z.string().min(8, ERRORS.passwordTooShort)
 })
 
 export type LoginInput = z.input<typeof loginSchema>

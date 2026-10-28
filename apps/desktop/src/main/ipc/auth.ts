@@ -2,6 +2,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 
 import type { Session } from '@tars/auth/server'
 import type { LoginInput, RegisterInput } from '@tars/core/schemas/auth'
+import { ERRORS } from '@tars/core/errors'
 
 import { authClient } from '../../lib/auth-client'
 
@@ -40,7 +41,7 @@ export function registerAuth(): void {
     const { error } = await authClient.signIn.email(input)
 
     return error
-      ? { session: null, error: error.message ?? 'Something went wrong.' }
+      ? { session: null, error: error.message ?? ERRORS.tryAgain }
       : { session: await currentSession(), error: null }
   })
 
@@ -48,7 +49,7 @@ export function registerAuth(): void {
     const { error } = await authClient.signUp.email(input)
 
     return error
-      ? { session: null, error: error.message ?? 'Something went wrong.' }
+      ? { session: null, error: error.message ?? ERRORS.tryAgain }
       : { session: await currentSession(), error: null }
   })
 }
