@@ -1,8 +1,5 @@
-import { useCallback, useEffect, useRef } from 'react'
-
 import {
   VOICE_ANALYSER_POLL_MS,
-  VOICE_CAPTURE_SETTINGS,
   VOICE_MAX_SEGMENT_MS,
   VOICE_MIN_SEGMENT_MS,
   VOICE_SAMPLE_RATE,
@@ -12,13 +9,10 @@ import {
   VOICE_SPEECH_RMS_THRESHOLD,
   VOICE_SPEECH_RMS_THRESHOLD_SQUARED
 } from '@tars/core/constants'
-import { ERRORS } from '@tars/core/errors'
-
-import { useVoiceStore } from '../stores/voice'
 
 let audioContext: AudioContext | null = null
 
-async function recordSegment(stream: MediaStream): Promise<Blob> {
+export async function recordSegment(stream: MediaStream): Promise<Blob> {
   const recorder = new MediaRecorder(stream)
   const chunks: Array<Blob> = []
 
@@ -163,7 +157,7 @@ function containsSpeech(samples: Float32Array): boolean {
 
 // Meta's ASR only takes mono 16-bit PCM WAV, so decode the recorder's webm
 // segment and re-encode it at the model's native rate.
-async function toWav(blob: Blob): Promise<{ audio: ArrayBuffer; hasSpeech: boolean }> {
+export async function toWav(blob: Blob): Promise<{ audio: ArrayBuffer; hasSpeech: boolean }> {
   audioContext ??= new AudioContext({ sampleRate: VOICE_SAMPLE_RATE })
 
   const audio = await audioContext.decodeAudioData(await blob.arrayBuffer())
@@ -181,113 +175,7 @@ async function toWav(blob: Blob): Promise<{ audio: ArrayBuffer; hasSpeech: boole
   return { audio: encodeWav(samples), hasSpeech: containsSpeech(samples) }
 }
 
-export function useWakeWord(onTranscript: (text: string) => void) {
-  const setError = useVoiceStore((state) => state.setError)
-  const setTranscribing = useVoiceStore((state) => state.setTranscribing)
-  const streamRef = useRef<MediaStream | null>(null)
-  const failedTranscriptionsRef = useRef(0)
-  const onTranscriptRef = useRef(onTranscript)
-  // Bumped on stop so a loop still awaiting a segment can tell it is stale.
-  const sessionRef = useRef(0)
-
-  useEffect(() => {
-    onTranscriptRef.current = onTranscript
-  }, [onTranscript])
-
-  const stop = useCallback((): void => {
-    sessionRef.current += 1
-    streamRef.current?.getTracks().forEach((track) => track.stop())
-    streamRef.current = null
-    setTranscribing(false)
-  }, [setTranscribing])
-
-  const start = useCallback(async (): Promise<void> => {
-    if (streamRef.current) {
-      return
-    }
-
-    setError(null)
-    failedTranscriptionsRef.current = 0
-
-    if (!(await window.requestMicrophoneAccess())) {
-      setError(ERRORS.microphoneAccessDenied)
-      return
-    }
-
-    let stream: MediaStream
-
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: VOICE_CAPTURE_SETTINGS })
-    } catch {
-      setError(ERRORS.microphoneAccessDenied)
-      return
-    }
-
-    streamRef.current = stream
-    const session = sessionRef.current
-
-    while (session === sessionRef.current) {
-      let segment: Blob
-
-      try {
-        segment = await recordSegment(stream)
-      } catch {
-        stop()
-        return
-      }
-
-      if (session !== sessionRef.current) {
-        return
-      }
-
-      let text: string | null
-
-      try {
-        const decoded = await toWav(segment)
-
-        if (!decoded.hasSpeech) {
-          continue
-        }
-
-        setTranscribing(true)
-        text = await window.transcribeAudio(decoded.audio)
-      } catch {
-        text = null
-      } finally {
-        setTranscribing(false)
-      }
-
-      if (session !== sessionRef.current) {
-        return
-      }
-
-      if (text === null) {
-        failedTranscriptionsRef.current += 1
-
-        if (failedTranscriptionsRef.current >= 2) {
-          setError(ERRORS.transcriptionUnavailable)
-        }
-
-        continue
-      }
-
-      failedTranscriptionsRef.current = 0
-      setError(null)
-
-      if (text) {
-        onTranscriptRef.current(text)
-      }
-    }
-  }, [setError, setTranscribing, stop])
-
-  useEffect(
-    () => () => {
-      stop()
-      void audioContext?.close()
-      audioContext = null
-    },
-    [stop]
-  )
-
-  return { start, stop }
+export function closeAudioContext(): void {
+  void audioContext?.close()
+  audioContext = null
 }

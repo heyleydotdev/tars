@@ -1,10 +1,8 @@
-import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useNavigate } from 'react-router'
 
 import { ERRORS } from '@tars/core/errors'
 import { registerSchema } from '@tars/core/schemas/auth'
-import { safeRedirect } from '@tars/core/utils/redirect'
 import { Button } from '@tars/ui/components/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/field'
 import { Input } from '@tars/ui/components/input'
@@ -14,26 +12,17 @@ import AuthShell from '../components/auth-shell'
 import { FormError } from '../components/form-error'
 import { FormFooter } from '../components/form-footer'
 import { FormHeader } from '../components/form-header'
+import { useAuthSubmit } from '../hooks/use-auth-submit'
 import { signUp } from '../lib/auth'
 
 export default function Register() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const [error, setError] = useState<string | null>(null)
+  const { error, submit } = useAuthSubmit(ERRORS.signUpFailed)
 
   const form = useForm({
     defaultValues: { name: '', email: '', password: '' },
     validators: { onSubmit: registerSchema },
-    onSubmit: async ({ value }) => {
-      setError(null)
-
-      try {
-        await signUp(value)
-        void navigate(safeRedirect(searchParams.get('redirectTo')), { replace: true })
-      } catch (error) {
-        setError(error instanceof Error ? error.message : ERRORS.signUpFailed)
-      }
-    }
+    onSubmit: ({ value }) => submit(() => signUp(value))
   })
 
   return (

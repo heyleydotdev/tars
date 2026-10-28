@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
 
 import { cn } from '@tars/ui/lib/utils'
+
+import { useWindowMaximized } from '../hooks/use-window-maximized'
 
 function MaximizeIcon({ maximized }: { maximized: boolean }) {
   if (maximized) {
@@ -46,14 +47,8 @@ function WindowControlButton(props: {
 }
 
 export default function TitleBar() {
-  const [maximized, setMaximized] = useState(false)
+  const maximized = useWindowMaximized()
   const controls = window.api.windowControls
-
-  useEffect(() => {
-    void controls.isMaximized().then(setMaximized)
-
-    return controls.onMaximizedChange(setMaximized)
-  }, [controls])
 
   return (
     <header className="bg-sidebar border-sidebar-border flex h-9 shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
