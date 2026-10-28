@@ -26,6 +26,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@orpc/client": "catalog:",
     "@tanstack/react-form": "1.33.5",
+    "@tanstack/react-query": "^5.105.0",
     "@tars/auth": "workspace:*",
     "@tars/core": "workspace:*",
     "@tars/ui": "workspace:*",
