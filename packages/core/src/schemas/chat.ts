@@ -7,10 +7,10 @@ export const sendChatMessageSchema = z.object({
   content: z.string().trim().min(1)
 })
 
-export const chatEventSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('delta'), text: z.string() }),
-  z.object({ type: z.literal('error'), message: z.string() })
-])
+export const chatEventSchema = z.object({
+  type: z.literal('delta'),
+  text: z.string()
+})
 
 export type ChatMessage = {
   id: string

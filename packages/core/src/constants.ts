@@ -2,11 +2,12 @@ export const APP_ID = 'com.tars.desktop'
 export const APP_NAME = 'Tars'
 export const PROTOCOL_SCHEME = APP_ID
 export const WINDOW_BACKGROUND = '#09090b'
-export const META_ASR_URL = 'https://api.meta.ai/v1/asr/transcribe'
 export const META_ASR_MODEL = 'muse-voice-transcribe-1.0'
 export const META_MODEL_API_URL = 'https://api.meta.ai/v1'
 export const META_CHAT_MODEL = 'muse-spark-1.3'
 export const META_CHAT_MAX_TOKENS = 2_000
+export const META_CHAT_SYSTEM_PROMPT =
+  'You are Tars, a concise and helpful personal assistant. Answer clearly and keep replies short unless the user asks for detail.'
 
 export const VOICE_SEGMENT_DURATION_MS = 2_500
 export const VOICE_SAMPLE_RATE = 16_000

@@ -1,3 +1,4 @@
+import { ORPCError } from '@orpc/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { ChatMessage } from '@tars/core/schemas/chat'
@@ -27,23 +28,13 @@ export function useSendChatMessage() {
         const iterator = await orpc.chat.send.call({ content })
 
         for await (const event of iterator) {
-          if (event.type === 'delta') {
-            queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
-              messages?.map((message) =>
-                message.id === assistantKey
-                  ? { ...message, content: message.content + event.text }
-                  : message
-              )
+          queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
+            messages?.map((message) =>
+              message.id === assistantKey
+                ? { ...message, content: message.content + event.text }
+                : message
             )
-          } else {
-            queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
-              messages?.map((message) =>
-                message.id === assistantKey
-                  ? { ...message, content: event.message, status: 'error' }
-                  : message
-              )
-            )
-          }
+          )
         }
       } catch (error) {
         queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
@@ -51,7 +42,7 @@ export function useSendChatMessage() {
             message.id === assistantKey
               ? {
                   ...message,
-                  content: error instanceof Error ? error.message : 'Chat failed',
+                  content: error instanceof ORPCError ? error.message : 'Chat failed',
                   status: 'error'
                 }
               : message

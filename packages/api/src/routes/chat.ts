@@ -2,12 +2,18 @@ import { asyncIteratorObject } from '@orpc/server'
 import OpenAIClient from 'openai'
 
 import type { Database } from '@tars/db/client'
-import { META_CHAT_MAX_TOKENS, META_CHAT_MODEL, META_MODEL_API_URL } from '@tars/core/constants'
+import {
+  META_CHAT_MAX_TOKENS,
+  META_CHAT_MODEL,
+  META_CHAT_SYSTEM_PROMPT,
+  META_MODEL_API_URL
+} from '@tars/core/constants'
 import { chatEventSchema, sendChatMessageSchema } from '@tars/core/schemas/chat'
 import { chat, chatMessage } from '@tars/db/schema'
 import { asc, desc, eq } from '@tars/db/sql'
 
 import { protectedProcedure } from '../context'
+import { ChatFailedError } from '../errors'
 
 async function resolveChat(db: Database, userId: string) {
   const [existing] = await db
@@ -51,9 +57,10 @@ export const chatRouter = {
   }),
 
   send: protectedProcedure
+    .errors({ CHAT_FAILED: ChatFailedError })
     .input(sendChatMessageSchema)
     .output(asyncIteratorObject(chatEventSchema))
-    .handler(async function* ({ input, context, signal }) {
+    .handler(async function* ({ input, context, signal, errors }) {
       const thread = await resolveChat(context.db, context.session.user.id)
       const assistantId = crypto.randomUUID()
 
@@ -91,10 +98,13 @@ export const chatRouter = {
           model: META_CHAT_MODEL,
           max_tokens: META_CHAT_MAX_TOKENS,
           stream: true,
-          messages: history.map((message) => ({
-            role: message.role,
-            content: message.content
-          }))
+          messages: [
+            { role: 'system', content: META_CHAT_SYSTEM_PROMPT },
+            ...history.map((message) => ({
+              role: message.role,
+              content: message.content
+            }))
+          ]
         })
 
         for await (const chunk of stream) {
@@ -119,10 +129,7 @@ export const chatRouter = {
           .set({ content, status: 'error' })
           .where(eq(chatMessage.id, assistantId))
 
-        yield {
-          type: 'error' as const,
-          message: error instanceof Error ? error.message : 'Chat failed'
-        }
+        throw errors.CHAT_FAILED({ cause: error })
       }
     })
 }
