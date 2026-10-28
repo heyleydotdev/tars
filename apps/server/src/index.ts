@@ -33,7 +33,7 @@ app.use(
     origin: (origin, c) =>
       c.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').includes(origin) ? origin : null,
     credentials: true,
-    allowHeaders: ['content-type'],
+    allowHeaders: ['content-type', 'authorization'],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     maxAge: 600
   })
