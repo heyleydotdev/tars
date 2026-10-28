@@ -8,6 +8,13 @@
       "when": 1793113144324,
       "tag": "0000_eminent_sentry",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793195541584,
+      "tag": "0001_outstanding_ultimo",
+      "breakpoints": true
     }
   ]
 }
