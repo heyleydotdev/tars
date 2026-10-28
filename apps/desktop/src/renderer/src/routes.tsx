@@ -1,7 +1,9 @@
 import { createHashRouter, Navigate } from 'react-router'
 
 import { GuestOnly, RequireAuth } from './components/auth-guard'
-import Agent from './pages/agent'
+import Desk from './pages/desk'
+import Expenses from './pages/expenses'
+import Journal from './pages/journal'
 import Login from './pages/login'
 import Register from './pages/register'
 
@@ -15,7 +17,11 @@ export const router = createHashRouter([
   },
   {
     element: <RequireAuth />,
-    children: [{ path: '/', element: <Agent /> }]
+    children: [
+      { path: '/', element: <Desk /> },
+      { path: '/journal', element: <Journal /> },
+      { path: '/expenses', element: <Expenses /> }
+    ]
   },
   { path: '*', element: <Navigate to="/" replace /> }
 ])

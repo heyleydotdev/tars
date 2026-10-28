@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { BotIcon, LogOutIcon, SearchIcon } from 'lucide-react'
+import { BotIcon, LogOutIcon, NotebookPenIcon, SearchIcon, WalletIcon } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import { initials } from '@tars/core/utils/string'
@@ -19,6 +19,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -36,7 +37,11 @@ import { useUser } from '../stores/auth'
 import { useSidebarStore } from '../stores/sidebar'
 import TitleBar from './title-bar'
 
-const destinations = [{ title: 'Agent', icon: BotIcon }]
+const destinations = [
+  { title: 'Desk', to: '/', icon: BotIcon },
+  { title: 'Journal', to: '/journal', icon: NotebookPenIcon },
+  { title: 'Expenses', to: '/expenses', icon: WalletIcon }
+]
 
 function UserIdentity({ name, email }: { name: string; email: string }) {
   return (
@@ -52,7 +57,7 @@ function UserIdentity({ name, email }: { name: string; email: string }) {
   )
 }
 
-function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: string) => void }) {
+function AppSidebar({ active, onSelect }: { active: string; onSelect: (to: string) => void }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const user = useUser()
 
@@ -81,6 +86,7 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
+          <SidebarGroupLabel>Notebook</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {destinations.map((item) => {
@@ -92,7 +98,7 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
                       isActive={active === item.title}
                       tooltip={item.title}
                       onClick={() => {
-                        onSelect(item.title)
+                        onSelect(item.to)
                         if (isMobile) setOpenMobile(false)
                       }}
                     >
@@ -137,15 +143,17 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (title: st
 }
 
 export default function DashboardShell({ children }: React.PropsWithChildren) {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { open, setOpen } = useSidebarStore(
     useShallow((state) => ({ open: state.open, setOpen: state.setOpen }))
   )
-  const [active, setActive] = useState(destinations[0]?.title ?? 'Agent')
+  const active = destinations.find((item) => item.to === pathname)?.title ?? 'Desk'
 
   return (
     <TooltipProvider>
       <SidebarProvider open={open} onOpenChange={setOpen} className="h-svh overflow-hidden">
-        <AppSidebar active={active} onSelect={setActive} />
+        <AppSidebar active={active} onSelect={navigate} />
         <SidebarInset className="h-full min-h-0">
           <TitleBar />
           <header className="bg-sidebar border-sidebar-border flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
