@@ -1,18 +1,18 @@
 import { ORPCError } from '@orpc/client'
 import { decodeBase64url } from '@orpc/server/helpers'
-import OpenAIClient from 'openai'
 
-import { META_ASR_MODEL, META_MODEL_API_URL, VOICE_WAKE_PHRASES } from '@tars/core/constants'
+import { META_ASR_MODEL, VOICE_WAKE_PHRASES } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { transcribeSchema } from '@tars/core/schemas/voice'
 
-import { protectedProcedure } from '../context'
+import { openAiMiddleware, protectedProcedure } from '../context'
 import { TranscriptionFailedError } from '../errors'
 
 export const voiceRouter = {
   transcribe: protectedProcedure
     .errors({ TRANSCRIPTION_FAILED: TranscriptionFailedError })
     .input(transcribeSchema)
+    .use(openAiMiddleware)
     .handler(async ({ input, context, errors }) => {
       const audio = decodeBase64url(input.audio)
 
@@ -39,15 +39,10 @@ export const voiceRouter = {
       )
       form.append('audio', new Blob([new Uint8Array(audio)], { type: 'audio/wav' }), 'audio.wav')
 
-      const client = new OpenAIClient({
-        apiKey: context.metaAiApiKey,
-        baseURL: META_MODEL_API_URL
-      })
-
       let data: { transcript?: string }
 
       try {
-        data = await client.post<{ transcript?: string }>('/asr/transcribe', {
+        data = await context.openAi.post<{ transcript?: string }>('/asr/transcribe', {
           body: form,
           timeout: 15_000
         })
