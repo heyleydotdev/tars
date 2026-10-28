@@ -7,6 +7,10 @@ export const sendChatMessageSchema = z.object({
   content: z.string().trim().min(1)
 })
 
+export const messageThinkingSchema = z.object({
+  messageId: z.string().min(1)
+})
+
 export const chatEventSchema = z.object({
   type: z.literal('delta'),
   text: z.string()

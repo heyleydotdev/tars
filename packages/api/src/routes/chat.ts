@@ -1,19 +1,37 @@
+import { ORPCError } from '@orpc/client'
 import { asyncIteratorObject } from '@orpc/server'
-import OpenAIClient from 'openai'
 
 import type { Database } from '@tars/db/client'
 import {
   META_CHAT_MAX_TOKENS,
   META_CHAT_MODEL,
-  META_CHAT_SYSTEM_PROMPT,
-  META_MODEL_API_URL
+  META_CHAT_SYSTEM_PROMPT
 } from '@tars/core/constants'
-import { chatEventSchema, sendChatMessageSchema } from '@tars/core/schemas/chat'
-import { chat, chatMessage } from '@tars/db/schema'
-import { asc, desc, eq } from '@tars/db/sql'
+import {
+  chatEventSchema,
+  messageThinkingSchema,
+  sendChatMessageSchema
+} from '@tars/core/schemas/chat'
+import { chat, chatMessage, chatThinking } from '@tars/db/schema'
+import { and, asc, desc, eq } from '@tars/db/sql'
 
-import { protectedProcedure } from '../context'
+import { openAiMiddleware, protectedProcedure } from '../context'
 import { ChatFailedError } from '../errors'
+
+type ChatUsage = {
+  input_tokens: number
+  output_tokens: number
+  output_tokens_details?: { reasoning_tokens?: number } | null
+}
+
+function thinkingRow(
+  messageId: string,
+  sequence: number,
+  kind: 'reasoning' | 'tool_call' | 'tool_result' | 'observation',
+  content: string
+) {
+  return { id: crypto.randomUUID(), messageId, sequence, kind, content }
+}
 
 async function resolveChatId(db: Database, userId: string): Promise<string> {
   const [existing] = await db
@@ -56,13 +74,39 @@ export const chatRouter = {
     return rows.map(({ id, role, content, status }) => ({ id, role, content, status }))
   }),
 
+  thinking: protectedProcedure.input(messageThinkingSchema).handler(async ({ input, context }) => {
+    const [owned] = await context.db
+      .select({ id: chatMessage.id })
+      .from(chatMessage)
+      .innerJoin(chat, eq(chatMessage.chatId, chat.id))
+      .where(and(eq(chatMessage.id, input.messageId), eq(chat.userId, context.session.user.id)))
+      .limit(1)
+
+    if (!owned) {
+      throw new ORPCError('NOT_FOUND')
+    }
+
+    return context.db
+      .select({
+        id: chatThinking.id,
+        kind: chatThinking.kind,
+        content: chatThinking.content,
+        sequence: chatThinking.sequence
+      })
+      .from(chatThinking)
+      .where(eq(chatThinking.messageId, input.messageId))
+      .orderBy(asc(chatThinking.sequence))
+  }),
+
   send: protectedProcedure
     .errors({ CHAT_FAILED: ChatFailedError })
     .input(sendChatMessageSchema)
     .output(asyncIteratorObject(chatEventSchema))
+    .use(openAiMiddleware)
     .handler(async function* ({ input, context, signal, errors }) {
       const chatId = await resolveChatId(context.db, context.session.user.id)
       const assistantId = crypto.randomUUID()
+      const startedAt = Date.now()
 
       await context.db.insert(chatMessage).values({
         id: crypto.randomUUID(),
@@ -86,36 +130,45 @@ export const chatRouter = {
         status: 'thinking'
       })
 
-      const client = new OpenAIClient({
-        apiKey: context.metaAiApiKey,
-        baseURL: META_MODEL_API_URL
-      })
-
       let content = ''
+      const summaryParts: Array<string> = []
+      let status: string | null = null
+      let usage: ChatUsage | null = null
 
       try {
-        const stream = await client.chat.completions.create({
+        const stream = await context.openAi.responses.create({
           model: META_CHAT_MODEL,
-          max_tokens: META_CHAT_MAX_TOKENS,
-          stream: true,
-          messages: [
-            { role: 'system', content: META_CHAT_SYSTEM_PROMPT },
-            ...history.map((message) => ({
-              role: message.role,
-              content: message.content
-            }))
-          ]
+          instructions: META_CHAT_SYSTEM_PROMPT,
+          input: history.map((message) => ({
+            role: message.role,
+            content: message.content
+          })),
+          reasoning: { summary: 'auto' },
+          max_output_tokens: META_CHAT_MAX_TOKENS,
+          stream: true
         })
 
-        for await (const chunk of stream) {
+        for await (const event of stream) {
           signal?.throwIfAborted()
 
-          const text = chunk.choices[0]?.delta.content ?? ''
+          if (event.type === 'response.output_text.delta') {
+            content += event.delta
+            yield { type: 'delta' as const, text: event.delta }
+          } else if (event.type === 'response.reasoning_summary_text.delta') {
+            summaryParts[event.summary_index] =
+              (summaryParts[event.summary_index] ?? '') + event.delta
+          } else if (event.type === 'response.completed' || event.type === 'response.incomplete') {
+            status = event.response.status ?? null
+            usage = event.response.usage ?? null
+          } else if (event.type === 'response.failed') {
+            throw new Error(event.response.error?.message ?? 'Chat failed')
+          }
+        }
 
-          if (!text) continue
+        const summary = summaryParts.filter(Boolean).join('\n\n')
 
-          content += text
-          yield { type: 'delta' as const, text }
+        if (status === null) {
+          throw new Error('Chat stream ended without a terminal response')
         }
 
         await context.db
@@ -123,11 +176,44 @@ export const chatRouter = {
           .set({ content, status: 'completed' })
           .where(eq(chatMessage.id, assistantId))
         await context.db.update(chat).set({ updatedAt: new Date() }).where(eq(chat.id, chatId))
+
+        if (summary) {
+          await context.db
+            .insert(chatThinking)
+            .values(thinkingRow(assistantId, 0, 'reasoning', summary))
+        }
+
+        await context.db.insert(chatThinking).values(
+          thinkingRow(
+            assistantId,
+            summary ? 1 : 0,
+            'observation',
+            JSON.stringify({
+              model: META_CHAT_MODEL,
+              status,
+              reasoningTokens: usage?.output_tokens_details?.reasoning_tokens ?? null,
+              outputTokens: usage?.output_tokens ?? null,
+              inputTokens: usage?.input_tokens ?? null,
+              durationMs: Date.now() - startedAt
+            })
+          )
+        )
       } catch (error) {
         await context.db
           .update(chatMessage)
           .set({ content, status: 'error' })
           .where(eq(chatMessage.id, assistantId))
+
+        await context.db
+          .insert(chatThinking)
+          .values(
+            thinkingRow(
+              assistantId,
+              0,
+              'observation',
+              error instanceof Error ? error.message : 'Chat failed'
+            )
+          )
 
         throw errors.CHAT_FAILED({ cause: error })
       }

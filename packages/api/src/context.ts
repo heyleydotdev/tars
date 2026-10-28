@@ -1,8 +1,10 @@
 import type { RequestHeadersHandlerPluginContext } from '@orpc/server/plugins'
 import { ORPCError, os } from '@orpc/server'
+import OpenAIClient from 'openai'
 
 import type { Auth } from '@tars/auth/server'
 import type { Database } from '@tars/db/client'
+import { META_MODEL_API_URL } from '@tars/core/constants'
 
 export type RpcServerContext = RequestHeadersHandlerPluginContext & {
   db: Database
@@ -11,6 +13,17 @@ export type RpcServerContext = RequestHeadersHandlerPluginContext & {
 }
 
 export const base = os.$context<RpcServerContext>()
+
+export const openAiMiddleware = base.middleware(async ({ context, next }) =>
+  next({
+    context: {
+      openAi: new OpenAIClient({
+        apiKey: context.metaAiApiKey,
+        baseURL: META_MODEL_API_URL
+      })
+    }
+  })
+)
 
 export const protectedProcedure = base.use(
   base.middleware(async ({ context, next }) => {

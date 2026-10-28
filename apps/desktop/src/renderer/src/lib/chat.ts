@@ -11,6 +11,10 @@ export function useChatMessages() {
   return useQuery(orpc.chat.list.queryOptions())
 }
 
+export function useMessageThinking(messageId: string, enabled: boolean) {
+  return useQuery(orpc.chat.thinking.queryOptions({ input: { messageId }, enabled }))
+}
+
 export function useSendChatMessage() {
   const queryClient = useQueryClient()
 
