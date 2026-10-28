@@ -10,23 +10,19 @@ export default function AgentComposer() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const voice = useVoiceWake()
 
-  const status = voice.error
-    ? voice.error
-    : voice.isPaused
-      ? 'Voice commands paused'
-      : voice.lastPhrase
-        ? `Heard: ${voice.lastPhrase}`
-        : 'Listening for “Tars”…'
+  const status = voice.error ? voice.error : voice.isPaused ? 'Voice commands paused' : null
 
   return (
     <div className="bg-sidebar flex shrink-0 flex-col gap-2 border-t p-3">
-      <p
-        className={`truncate px-1 text-xs ${
-          voice.error ? 'text-destructive' : 'text-muted-foreground'
-        }`}
-      >
-        {status}
-      </p>
+      {status ? (
+        <p
+          className={`truncate px-1 text-xs ${
+            voice.error ? 'text-destructive' : 'text-muted-foreground'
+          }`}
+        >
+          {status}
+        </p>
+      ) : null}
       <div className="flex items-end gap-2">
         <Button
           type="button"
