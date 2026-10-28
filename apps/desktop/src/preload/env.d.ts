@@ -35,5 +35,6 @@ declare global {
     confirmSignOut: () => Promise<boolean>
     requestMicrophoneAccess: () => Promise<boolean>
     transcribeAudio: (audio: ArrayBuffer) => Promise<string | null>
+    copyText: (text: string) => Promise<void>
   }
 }

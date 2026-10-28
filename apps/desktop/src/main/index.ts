@@ -5,6 +5,7 @@ import { APP_ID, APP_NAME } from '@tars/core/constants'
 
 import { authClient } from '../lib/auth-client'
 import { registerAuth } from './ipc/auth'
+import { registerClipboard } from './ipc/clipboard'
 import { registerMedia } from './ipc/media'
 import { registerVoice } from './ipc/voice'
 import { registerWindowControls } from './ipc/window-controls'
@@ -25,6 +26,7 @@ app.whenReady().then(() => {
 
   registerWindowControls()
   registerAuth()
+  registerClipboard()
   registerMedia()
   registerVoice()
   createTray({ onShow: showWindow, onToggle: toggleWindow, onQuit: () => app.quit() })

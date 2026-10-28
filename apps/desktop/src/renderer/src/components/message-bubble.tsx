@@ -1,15 +1,48 @@
-import { BugIcon, CopyIcon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { BugIcon, CheckIcon, CopyIcon } from 'lucide-react'
 
 import type { ChatMessage } from '@tars/core/schemas/chat'
 import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
+const COPIED_TIMEOUT_MS = 2_000
+
 export type ChatMessageView = ChatMessage & { variant?: 'error' }
 
 export default function MessageBubble({ message }: { message: ChatMessageView }) {
+  const [copied, setCopied] = useState(false)
+  const copiedTimeoutRef = useRef<number | null>(null)
   const isUser = message.role === 'user'
   const isError = message.variant === 'error' || message.status === 'error'
   const isThinking = message.status === 'thinking' && message.content === ''
+
+  useEffect(
+    () => () => {
+      if (copiedTimeoutRef.current !== null) {
+        window.clearTimeout(copiedTimeoutRef.current)
+      }
+    },
+    []
+  )
+
+  const copy = async (): Promise<void> => {
+    try {
+      await window.copyText(message.content)
+    } catch {
+      return
+    }
+
+    setCopied(true)
+
+    if (copiedTimeoutRef.current !== null) {
+      window.clearTimeout(copiedTimeoutRef.current)
+    }
+
+    copiedTimeoutRef.current = window.setTimeout(() => {
+      setCopied(false)
+      copiedTimeoutRef.current = null
+    }, COPIED_TIMEOUT_MS)
+  }
 
   return (
     <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
@@ -31,10 +64,10 @@ export default function MessageBubble({ message }: { message: ChatMessageView })
             type="button"
             variant="ghost"
             size="icon"
-            aria-label="Copy message"
-            onClick={() => void navigator.clipboard.writeText(message.content)}
+            aria-label={copied ? 'Copied' : 'Copy message'}
+            onClick={() => void copy()}
           >
-            <CopyIcon />
+            {copied ? <CheckIcon /> : <CopyIcon />}
           </Button>
           <Button type="button" variant="ghost" size="icon" aria-label="Debug">
             <BugIcon />
