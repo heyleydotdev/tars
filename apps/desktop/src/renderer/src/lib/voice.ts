@@ -6,7 +6,7 @@ import {
   VOICE_SEGMENT_DURATION_MS,
   VOICE_SPEECH_ACTIVE_RATIO,
   VOICE_SPEECH_FRAME_DURATION_MS,
-  VOICE_SPEECH_RMS_THRESHOLD,
+  VOICE_SPEECH_RMS_THRESHOLD_SQUARED,
   VOICE_WAKE_DEDUPLICATION_MS,
   VOICE_WAKE_PATTERN
 } from '@tars/core/constants'
@@ -70,32 +70,45 @@ function encodeWav(samples: Float32Array): ArrayBuffer {
 }
 
 function containsSpeech(samples: Float32Array): boolean {
+  if (samples.length === 0) return false
+
   const frameLength = Math.max(
     1,
     Math.round((VOICE_SAMPLE_RATE * VOICE_SPEECH_FRAME_DURATION_MS) / 1_000)
   )
-  const frameCount = Math.ceil(samples.length / frameLength)
+
+  const fullFrames = Math.floor(samples.length / frameLength)
+  const remainder = samples.length - fullFrames * frameLength
+  const frameCount = Math.max(1, fullFrames + (remainder >= frameLength / 2 ? 1 : 0))
+
+  const requiredActive = Math.ceil(frameCount * VOICE_SPEECH_ACTIVE_RATIO - 1e-9)
   let activeFrames = 0
 
   for (let frame = 0; frame < frameCount; frame += 1) {
     const start = frame * frameLength
     const end = Math.min(start + frameLength, samples.length)
-    let energy = 0
+    const length = end - start
 
+    let sum = 0
+    let sumSquares = 0
     for (let index = start; index < end; index += 1) {
       const sample = samples[index] ?? 0
-      energy += sample * sample
+      sum += sample
+      sumSquares += sample * sample
     }
 
-    const length = end - start
-    const rms = length > 0 ? Math.sqrt(energy / length) : 0
+    const mean = sum / length
+    const energy = Math.max(0, sumSquares / length - mean * mean)
 
-    if (rms >= VOICE_SPEECH_RMS_THRESHOLD) {
+    if (energy >= VOICE_SPEECH_RMS_THRESHOLD_SQUARED) {
       activeFrames += 1
+      if (activeFrames >= requiredActive) return true
     }
+
+    if (activeFrames + (frameCount - frame - 1) < requiredActive) return false
   }
 
-  return frameCount > 0 && activeFrames / frameCount >= VOICE_SPEECH_ACTIVE_RATIO
+  return activeFrames >= requiredActive
 }
 
 // Meta's ASR only takes mono 16-bit PCM WAV, so decode the recorder's webm

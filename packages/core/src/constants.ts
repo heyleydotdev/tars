@@ -8,11 +8,16 @@ export const VOICE_SEGMENT_DURATION_MS = 2_500
 export const VOICE_SAMPLE_RATE = 16_000
 export const VOICE_WAKE_DEDUPLICATION_MS = 5_000
 export const VOICE_SPEECH_FRAME_DURATION_MS = 20
-export const VOICE_SPEECH_RMS_THRESHOLD = 0.015
-export const VOICE_SPEECH_ACTIVE_RATIO = 0.1
+export const VOICE_SPEECH_RMS_THRESHOLD = 0.01
+export const VOICE_SPEECH_RMS_THRESHOLD_SQUARED =
+  VOICE_SPEECH_RMS_THRESHOLD * VOICE_SPEECH_RMS_THRESHOLD
+export const VOICE_SPEECH_ACTIVE_RATIO = 0.07
 
 export const VOICE_WAKE_PHRASES = [
   'tars',
+  'tarz',
+  'tarse',
+  'tarce',
   'hey tars',
   'hello tars',
   'hi tars',
