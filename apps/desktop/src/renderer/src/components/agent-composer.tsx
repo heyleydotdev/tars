@@ -4,17 +4,21 @@ import { MicIcon, MicOffIcon, SendIcon } from 'lucide-react'
 import { Button } from '@tars/ui/components/button'
 import { Textarea } from '@tars/ui/components/textarea'
 
-import { useChatStore } from '../stores/chat'
+import { useSendChatMessage } from '../lib/chat'
 import { useVoiceWake } from './voice-wake-context'
 
 export default function AgentComposer() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const voice = useVoiceWake()
-  const send = useChatStore((state) => state.send)
+  const sendMessage = useSendChatMessage()
   const [value, setValue] = useState('')
 
   const handleSend = (): void => {
-    send(value)
+    const content = value.trim()
+
+    if (!content) return
+
+    sendMessage.mutate(content)
     setValue('')
   }
 
@@ -58,7 +62,7 @@ export default function AgentComposer() {
           size="icon"
           className="size-9 border"
           aria-label="Send message"
-          disabled={value.trim() === ''}
+          disabled={value.trim() === '' || sendMessage.isPending}
           onClick={handleSend}
         >
           <SendIcon />
