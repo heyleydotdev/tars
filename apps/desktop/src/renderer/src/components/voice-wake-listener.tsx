@@ -9,7 +9,7 @@ import { voiceWakeContext } from './voice-wake-context'
 export function VoiceWakeListener({ session }: { session: Session }) {
   const navigate = useNavigate()
   const [windowFocused, setWindowFocused] = useState(true)
-  const [userPaused, setUserPaused] = useState(false)
+  const [userPaused, setUserPaused] = useState(true)
 
   const onWake = useCallback(() => {
     void (async () => {
