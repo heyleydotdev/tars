@@ -1,9 +1,12 @@
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, nativeTheme } from 'electron'
 
+import { APP_ID, APP_NAME } from '@tars/core/constants'
+
 import { authClient } from '../lib/auth-client'
-import { APP_ID, APP_NAME } from '../lib/constants'
 import { registerAuth } from './ipc/auth'
+import { registerMedia } from './ipc/media'
+import { registerVoice } from './ipc/voice'
 import { registerWindowControls } from './ipc/window-controls'
 import { createTray, destroyTray } from './tray'
 import { createWindow, markQuitting, showWindow, toggleWindow } from './window'
@@ -22,6 +25,8 @@ app.whenReady().then(() => {
 
   registerWindowControls()
   registerAuth()
+  registerMedia()
+  registerVoice()
   createTray({ onShow: showWindow, onToggle: toggleWindow, onQuit: () => app.quit() })
   createWindow()
 

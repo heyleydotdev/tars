@@ -18,6 +18,7 @@
       "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",
+        "@orpc/client": "catalog:",
         "@tanstack/react-form": "1.33.5",
         "@tars/auth": "workspace:*",
         "@tars/core": "workspace:*",
@@ -25,7 +26,9 @@
         "electron-updater": "^6.8.11",
       },
       "devDependencies": {
+        "@orpc/server": "catalog:",
         "@tailwindcss/vite": "catalog:",
+        "@tars/api": "workspace:*",
         "@tars/eslint": "workspace:*",
         "@tars/prettier": "workspace:*",
         "@tars/tsconfig": "workspace:*",
@@ -54,6 +57,7 @@
       "dependencies": {
         "@tars/api": "workspace:*",
         "@tars/auth": "workspace:*",
+        "@tars/core": "workspace:*",
         "@tars/db": "workspace:*",
         "hono": "4.13.14",
       },
@@ -73,10 +77,11 @@
       "name": "@tars/api",
       "version": "0.1.0",
       "dependencies": {
-        "@orpc/client": "^2.0.0-beta.44",
-        "@orpc/server": "^2.0.0-beta.44",
+        "@orpc/client": "catalog:",
+        "@orpc/server": "catalog:",
         "@orpc/tanstack-query": "^2.0.0-beta.44",
         "@tars/auth": "workspace:*",
+        "@tars/core": "workspace:*",
         "@tars/db": "workspace:*",
       },
       "devDependencies": {
@@ -210,6 +215,8 @@
   },
   "catalog": {
     "@cloudflare/workers-types": "5.20260921.1",
+    "@orpc/client": "^2.0.0-beta.44",
+    "@orpc/server": "^2.0.0-beta.44",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",

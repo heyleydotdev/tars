@@ -24,6 +24,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@orpc/client": "catalog:",
     "@tanstack/react-form": "1.33.5",
     "@tars/auth": "workspace:*",
     "@tars/core": "workspace:*",
@@ -31,7 +32,9 @@
     "electron-updater": "^6.8.11"
   },
   "devDependencies": {
+    "@orpc/server": "catalog:",
     "@tailwindcss/vite": "catalog:",
+    "@tars/api": "workspace:*",
     "@tars/eslint": "workspace:*",
     "@tars/prettier": "workspace:*",
     "@tars/tsconfig": "workspace:*",

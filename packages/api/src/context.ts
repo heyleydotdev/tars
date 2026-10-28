@@ -7,6 +7,7 @@ export type RpcServerContext = {
   db: Database
   auth: Auth
   headers: Headers
+  transcribe: (audio: Uint8Array) => Promise<string>
 }
 
 export const base = os.$context<RpcServerContext>()

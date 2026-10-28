@@ -15,10 +15,11 @@
     "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore"
   },
   "dependencies": {
-    "@orpc/client": "^2.0.0-beta.44",
-    "@orpc/server": "^2.0.0-beta.44",
+    "@orpc/client": "catalog:",
+    "@orpc/server": "catalog:",
     "@orpc/tanstack-query": "^2.0.0-beta.44",
     "@tars/auth": "workspace:*",
+    "@tars/core": "workspace:*",
     "@tars/db": "workspace:*"
   },
   "devDependencies": {

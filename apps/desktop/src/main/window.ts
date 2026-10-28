@@ -2,8 +2,10 @@ import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import { BrowserWindow, screen, shell } from 'electron'
 
+import { WINDOW_BACKGROUND } from '@tars/core/constants'
+
 import icon from '../../resources/icon.png?asset'
-import { WINDOW_BACKGROUND } from '../lib/constants'
+import { requestMicrophoneAccess } from './ipc/media'
 
 let quitting = false
 
@@ -35,6 +37,25 @@ export function createWindow(): BrowserWindow {
       sandbox: false
     }
   })
+
+  window.webContents.session.setPermissionCheckHandler(
+    (_webContents, permission, _origin, details) =>
+      permission === 'media' && details.mediaType !== 'video'
+  )
+  window.webContents.session.setPermissionRequestHandler(
+    (_webContents, permission, callback, details) => {
+      if (
+        permission !== 'media' ||
+        !('mediaTypes' in details) ||
+        details.mediaTypes?.includes('audio') !== true
+      ) {
+        callback(false)
+        return
+      }
+
+      void requestMicrophoneAccess(window).then(callback, () => callback(false))
+    }
+  )
 
   window.on('ready-to-show', () => {
     window.show()

@@ -30,5 +30,7 @@ declare global {
     signIn: (email: string, password: string) => Promise<AuthResult>
     signUp: (input: RegisterInput) => Promise<AuthResult>
     confirmSignOut: () => Promise<boolean>
+    requestMicrophoneAccess: () => Promise<boolean>
+    transcribeAudio: (audio: ArrayBuffer) => Promise<string | null>
   }
 }

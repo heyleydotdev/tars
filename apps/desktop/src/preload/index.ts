@@ -34,6 +34,12 @@ const auth = {
   confirmSignOut: (): Promise<boolean> => ipcRenderer.invoke('auth:confirm-sign-out')
 }
 
+const requestMicrophoneAccess = (): Promise<boolean> =>
+  ipcRenderer.invoke('media:request-microphone')
+
+const transcribeAudio = (audio: ArrayBuffer): Promise<string | null> =>
+  ipcRenderer.invoke('voice:transcribe', audio)
+
 const api = { windowControls }
 
 if (process.contextIsolated) {
@@ -44,6 +50,8 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('signIn', auth.signIn)
     contextBridge.exposeInMainWorld('signUp', auth.signUp)
     contextBridge.exposeInMainWorld('confirmSignOut', auth.confirmSignOut)
+    contextBridge.exposeInMainWorld('requestMicrophoneAccess', requestMicrophoneAccess)
+    contextBridge.exposeInMainWorld('transcribeAudio', transcribeAudio)
   } catch (error) {
     console.error(error)
   }
@@ -54,4 +62,6 @@ if (process.contextIsolated) {
   window.signIn = auth.signIn
   window.signUp = auth.signUp
   window.confirmSignOut = auth.confirmSignOut
+  window.requestMicrophoneAccess = requestMicrophoneAccess
+  window.transcribeAudio = transcribeAudio
 }

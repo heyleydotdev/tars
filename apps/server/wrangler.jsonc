@@ -28,7 +28,7 @@
     "BETTER_AUTH_TRUSTED_ORIGINS": "http://localhost:3000,com.tars.desktop:/"
   },
   "secrets": {
-    "required": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL"]
+    "required": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "META_AI_API"]
   }
   /**
    * Smart Placement
