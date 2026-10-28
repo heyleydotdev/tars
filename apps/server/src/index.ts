@@ -6,7 +6,6 @@ import type { Auth } from '@tars/auth/server'
 import type { Database } from '@tars/db/client'
 import { rpcHandler, rpcWebSocketHandler } from '@tars/api/server'
 import { createAuth } from '@tars/auth/server'
-import { META_ASR_URL } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { createDb } from '@tars/db/client'
 
@@ -14,44 +13,18 @@ type Variables = { db: Database; auth: Auth }
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>()
 
-// Muse Voice Transcribe only accepts mono 16-bit PCM WAV; the renderer records
-// webm and converts before sending.
-async function transcribe(env: Env, audio: Uint8Array): Promise<string> {
-  const form = new FormData()
+function toHeaders(source: Record<string, string | Array<string> | undefined>): Headers {
+  const headers = new Headers()
 
-  form.append(
-    'request',
-    new Blob(
-      [
-        JSON.stringify({
-          model: 'muse-voice-transcribe-1.0',
-          mode: 'PUSH_TO_TALK',
-          audioEncoding: 'WAV',
-          languageBias: ['English'],
-          keywords: ['Tars']
-        })
-      ],
-      { type: 'application/json' }
-    )
-  )
-  form.append('audio', new Blob([audio], { type: 'audio/wav' }), 'audio.wav')
+  for (const [key, value] of Object.entries(source)) {
+    if (value === undefined) continue
 
-  const response = await fetch(META_ASR_URL, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${env.META_AI_API}` },
-    body: form,
-    signal: AbortSignal.timeout(15_000)
-  })
-
-  if (!response.ok) {
-    const detail = await response.text()
-    console.error('Transcription failed', response.status, detail)
-    throw new Error(`Meta transcription failed with status ${response.status}`)
+    for (const item of Array.isArray(value) ? value : [value]) {
+      headers.append(key, item)
+    }
   }
 
-  const data = (await response.json()) as { transcript?: string }
-
-  return data.transcript?.trim() ?? ''
+  return headers
 }
 
 app.use(
@@ -103,12 +76,12 @@ app.get('/api/ws', (c) => {
 
   server.accept()
   rpcWebSocketHandler.upgrade(server, {
-    context: {
+    context: (request) => ({
       db: c.get('db'),
       auth: c.get('auth'),
-      headers: c.req.raw.headers,
-      transcribe: (audio) => transcribe(c.env, audio)
-    }
+      headers: toHeaders(request.headers),
+      metaAiApiKey: c.env.META_AI_API
+    })
   })
 
   return new Response(null, { status: 101, webSocket: client })
@@ -121,7 +94,7 @@ app.use('/api/rpc/*', async (c, next) => {
       db: c.get('db'),
       auth: c.get('auth'),
       headers: c.req.raw.headers,
-      transcribe: (audio) => transcribe(c.env, audio)
+      metaAiApiKey: c.env.META_AI_API
     }
   })
 

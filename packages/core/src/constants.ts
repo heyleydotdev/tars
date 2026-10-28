@@ -3,6 +3,7 @@ export const APP_NAME = 'Tars'
 export const PROTOCOL_SCHEME = APP_ID
 export const WINDOW_BACKGROUND = '#09090b'
 export const META_ASR_URL = 'https://api.meta.ai/v1/asr/transcribe'
+export const META_ASR_MODEL = 'muse-voice-transcribe-1.0'
 
 export const VOICE_SEGMENT_DURATION_MS = 2_500
 export const VOICE_SAMPLE_RATE = 16_000

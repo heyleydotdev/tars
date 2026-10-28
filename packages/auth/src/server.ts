@@ -1,6 +1,7 @@
 import { electron } from '@better-auth/electron'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { bearer } from 'better-auth/plugins'
 
 import { type Database } from '@tars/db/client'
 
@@ -18,7 +19,7 @@ export function createAuth(env: AuthEnv) {
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: env.BETTER_AUTH_TRUSTED_ORIGINS.split(','),
     emailAndPassword: { enabled: true },
-    plugins: [electron()]
+    plugins: [electron(), bearer()]
   })
 }
 
