@@ -1,7 +1,7 @@
 import { ORPCError } from '@orpc/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import type { ChatMessage } from '@tars/core/schemas/chat'
+import type { ChatMessage, MessageThinkingInput } from '@tars/core/schemas/chat'
 
 import { orpc } from './orpc'
 
@@ -11,8 +11,8 @@ export function useChatMessages() {
   return useQuery(orpc.chat.list.queryOptions())
 }
 
-export function useMessageThinking(messageId: string, enabled: boolean) {
-  return useQuery(orpc.chat.thinking.queryOptions({ input: { messageId }, enabled }))
+export function useMessageThinking(input: MessageThinkingInput, enabled: boolean) {
+  return useQuery(orpc.chat.thinking.queryOptions({ input, enabled }))
 }
 
 export function useSendChatMessage() {
@@ -21,7 +21,6 @@ export function useSendChatMessage() {
   return useMutation({
     mutationFn: async (content: string) => {
       const assistantKey = `assistant-${crypto.randomUUID()}`
-
       const updateAssistant = (update: (message: ChatMessage) => ChatMessage): void => {
         queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) =>
           messages?.map((message) => (message.id === assistantKey ? update(message) : message))
@@ -30,15 +29,27 @@ export function useSendChatMessage() {
 
       queryClient.setQueryData<Array<ChatMessage>>(chatMessagesKey, (messages) => [
         ...(messages ?? []),
-        { id: `user-${crypto.randomUUID()}`, role: 'user', content, status: 'completed' },
-        { id: assistantKey, role: 'assistant', content: '', status: 'thinking' }
+        {
+          id: `user-${crypto.randomUUID()}`,
+          role: 'user',
+          content,
+          status: 'completed',
+          records: []
+        },
+        { id: assistantKey, role: 'assistant', content: '', status: 'thinking', records: [] }
       ])
 
       try {
-        const iterator = await orpc.chat.send.call({ content })
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+        const iterator = await orpc.chat.send.call({ content, timezone })
 
         for await (const event of iterator) {
-          updateAssistant((message) => ({ ...message, content: message.content + event.text }))
+          updateAssistant((message) => ({
+            ...message,
+            content: message.content + event.text,
+            records: event.records,
+            status: 'completed'
+          }))
         }
       } catch (error) {
         updateAssistant((message) => ({

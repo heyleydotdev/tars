@@ -3,7 +3,7 @@ import { decodeBase64url } from '@orpc/server/helpers'
 
 import { META_ASR_MODEL, VOICE_WAKE_PHRASES } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
-import { transcribeSchema } from '@tars/core/schemas/voice'
+import { transcribeSchema } from '@tars/core/schemas/chat'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
 import { TranscriptionFailedError } from '../errors'

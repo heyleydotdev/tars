@@ -1,77 +1,117 @@
 import { ORPCError } from '@orpc/client'
 import { asyncIteratorObject } from '@orpc/server'
 
+import type { ChatEventOutput, ChatPhaseOutput, SavedRecordOutput } from '@tars/core/schemas/chat'
 import type { Database } from '@tars/db/client'
+import type {
+  ChatInsert,
+  ChatMessageInsert,
+  ChatMessageSelect,
+  ChatSelect,
+  ChatThinkingInsert,
+  ChatThinkingSelect
+} from '@tars/db/schema'
+import { META_CHAT_MAX_TOKENS, META_CHAT_MODEL } from '@tars/core/constants'
 import {
-  META_CHAT_MAX_TOKENS,
-  META_CHAT_MODEL,
-  META_CHAT_SYSTEM_PROMPT
-} from '@tars/core/constants'
+  buildDeskExtractionPrompt,
+  buildDeskRepairPrompt,
+  buildDeskReviewPrompt
+} from '@tars/core/prompts'
 import {
   chatEventSchema,
+  deskResultJsonSchema,
   messageThinkingSchema,
   sendChatMessageSchema
 } from '@tars/core/schemas/chat'
-import { chat, chatMessage, chatThinking } from '@tars/db/schema'
-import { and, asc, desc, eq } from '@tars/db/sql'
+import { groupRecordsByMessage, saveDeskRecords } from '@tars/core/services/records'
+import { needsDeskReview, parseDeskOutput } from '@tars/core/utils/desk'
+import {
+  chat,
+  chatMessage,
+  chatThinking,
+  expense,
+  journalEntry,
+  reminder,
+  todo
+} from '@tars/db/schema'
+import { and, asc, desc, eq, inArray } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
 import { ChatFailedError } from '../errors'
 
-type ChatUsage = {
-  input_tokens: number
-  output_tokens: number
-  output_tokens_details?: { reasoning_tokens?: number } | null
+type DeskPhase = ChatPhaseOutput['phase']
+
+function observationRow(messageId: string, sequence: number, content: string): ChatThinkingInsert {
+  return {
+    id: crypto.randomUUID(),
+    messageId,
+    sequence,
+    kind: 'observation' as const,
+    content
+  }
 }
 
-function thinkingRow(
-  messageId: string,
-  sequence: number,
-  kind: 'reasoning' | 'tool_call' | 'tool_result' | 'observation',
-  content: string
-) {
-  return { id: crypto.randomUUID(), messageId, sequence, kind, content }
-}
-
-async function resolveChatId(db: Database, userId: string): Promise<string> {
-  const [existing] = await db
+async function findChat(db: Database, userId: string): Promise<Pick<ChatSelect, 'id'> | undefined> {
+  const [thread] = await db
     .select({ id: chat.id })
     .from(chat)
     .where(eq(chat.userId, userId))
     .orderBy(desc(chat.updatedAt))
     .limit(1)
 
-  if (existing) {
-    return existing.id
+  return thread
+}
+
+async function resolveChatId(db: Database, userId: string): Promise<string> {
+  const thread = await findChat(db, userId)
+
+  if (thread) {
+    return thread.id
   }
 
   const id = crypto.randomUUID()
+  const values: ChatInsert = { id, userId }
 
-  await db.insert(chat).values({ id, userId })
+  await db.insert(chat).values(values)
 
   return id
 }
 
 export const chatRouter = {
   list: protectedProcedure.handler(async ({ context }) => {
-    const [thread] = await context.db
-      .select()
-      .from(chat)
-      .where(eq(chat.userId, context.session.user.id))
-      .orderBy(desc(chat.updatedAt))
-      .limit(1)
+    const thread = await findChat(context.db, context.session.user.id)
 
     if (!thread) {
       return []
     }
 
-    const rows = await context.db
+    const rows: Array<ChatMessageSelect> = await context.db
       .select()
       .from(chatMessage)
       .where(eq(chatMessage.chatId, thread.id))
       .orderBy(asc(chatMessage.createdAt))
 
-    return rows.map(({ id, role, content, status }) => ({ id, role, content, status }))
+    const messageIds = rows.filter((row) => row.role === 'assistant').map((row) => row.id)
+    let recordsByMessage = new Map<string, Array<SavedRecordOutput>>()
+
+    if (messageIds.length > 0) {
+      const [todos, reminders, expenses, journals] = await Promise.all([
+        context.db.select().from(todo).where(inArray(todo.messageId, messageIds)),
+        context.db.select().from(reminder).where(inArray(reminder.messageId, messageIds)),
+        context.db.select().from(expense).where(inArray(expense.messageId, messageIds)),
+        context.db.select().from(journalEntry).where(inArray(journalEntry.messageId, messageIds))
+      ])
+
+      recordsByMessage = groupRecordsByMessage({ todos, reminders, expenses, journals })
+    }
+
+    return rows.map(({ id, role, content, status }) => ({
+      id,
+      role,
+      content,
+      status,
+      records: recordsByMessage.get(id) ?? []
+    }))
   }),
 
   thinking: protectedProcedure.input(messageThinkingSchema).handler(async ({ input, context }) => {
@@ -86,16 +126,19 @@ export const chatRouter = {
       throw new ORPCError('NOT_FOUND')
     }
 
-    return context.db
-      .select({
-        id: chatThinking.id,
-        kind: chatThinking.kind,
-        content: chatThinking.content,
-        sequence: chatThinking.sequence
-      })
-      .from(chatThinking)
-      .where(eq(chatThinking.messageId, input.messageId))
-      .orderBy(asc(chatThinking.sequence))
+    const thinking: Array<Pick<ChatThinkingSelect, 'id' | 'kind' | 'content' | 'sequence'>> =
+      await context.db
+        .select({
+          id: chatThinking.id,
+          kind: chatThinking.kind,
+          content: chatThinking.content,
+          sequence: chatThinking.sequence
+        })
+        .from(chatThinking)
+        .where(eq(chatThinking.messageId, input.messageId))
+        .orderBy(asc(chatThinking.sequence))
+
+    return thinking
   }),
 
   send: protectedProcedure
@@ -104,101 +147,142 @@ export const chatRouter = {
     .output(asyncIteratorObject(chatEventSchema))
     .use(openAiMiddleware)
     .handler(async function* ({ input, context, signal, errors }) {
-      const chatId = await resolveChatId(context.db, context.session.user.id)
+      const userId = context.session.user.id
+      const chatId = await resolveChatId(context.db, userId)
+      const userMessageId = crypto.randomUUID()
       const assistantId = crypto.randomUUID()
-      const startedAt = Date.now()
 
-      await context.db.insert(chatMessage).values({
-        id: crypto.randomUUID(),
+      const userMessage: ChatMessageInsert = {
+        id: userMessageId,
         chatId,
         role: 'user',
         content: input.content,
         status: 'completed'
-      })
-
-      const history = await context.db
-        .select({ role: chatMessage.role, content: chatMessage.content })
-        .from(chatMessage)
-        .where(eq(chatMessage.chatId, chatId))
-        .orderBy(asc(chatMessage.createdAt))
-
-      await context.db.insert(chatMessage).values({
+      }
+      const assistantMessage: ChatMessageInsert = {
         id: assistantId,
         chatId,
         role: 'assistant',
         content: '',
         status: 'thinking'
-      })
+      }
+
+      await context.db.batch([
+        context.db.insert(chatMessage).values(userMessage),
+        context.db.insert(chatMessage).values(assistantMessage)
+      ])
 
       let content = ''
-      const summaryParts: Array<string> = []
-      let status: string | null = null
-      let usage: ChatUsage | null = null
 
-      try {
-        const stream = await context.openAi.responses.create({
+      const extractionPrompt = buildDeskExtractionPrompt({
+        now: new Date(),
+        timezone: input.timezone,
+        currency: input.currency
+      })
+
+      const reports: Array<ChatPhaseOutput> = []
+
+      const runPhase = async (phase: DeskPhase, prompt: string): Promise<string> => {
+        const phaseStartedAt = Date.now()
+        const response = await context.openAi.responses.create(
+          {
+            model: META_CHAT_MODEL,
+            instructions: extractionPrompt,
+            input: prompt,
+            reasoning: { summary: 'auto' },
+            text: {
+              format: {
+                type: 'json_schema',
+                name: 'desk_result',
+                strict: true,
+                schema: deskResultJsonSchema
+              }
+            },
+            max_output_tokens: META_CHAT_MAX_TOKENS
+          },
+          { signal }
+        )
+
+        const summary = response.output
+          .filter((item) => item.type === 'reasoning')
+          .flatMap((item) => item.summary.map((part) => part.text))
+          .join('\n\n')
+        const usage = response.usage ?? null
+
+        reports.push({
+          phase,
           model: META_CHAT_MODEL,
-          instructions: META_CHAT_SYSTEM_PROMPT,
-          input: history.map((message) => ({
-            role: message.role,
-            content: message.content
-          })),
-          reasoning: { summary: 'auto' },
-          max_output_tokens: META_CHAT_MAX_TOKENS,
-          stream: true
+          status: response.status ?? null,
+          durationMs: Date.now() - phaseStartedAt,
+          inputTokens: usage?.input_tokens ?? null,
+          outputTokens: usage?.output_tokens ?? null,
+          reasoningTokens: usage?.output_tokens_details.reasoning_tokens ?? null,
+          reasoning: summary || null
         })
 
-        for await (const event of stream) {
-          signal?.throwIfAborted()
+        return response.output_text
+      }
 
-          if (event.type === 'response.output_text.delta') {
-            content += event.delta
-            yield { type: 'delta' as const, text: event.delta }
-          } else if (event.type === 'response.reasoning_summary_text.delta') {
-            summaryParts[event.summary_index] =
-              (summaryParts[event.summary_index] ?? '') + event.delta
-          } else if (event.type === 'response.completed' || event.type === 'response.incomplete') {
-            status = event.response.status ?? null
-            usage = event.response.usage ?? null
-          } else if (event.type === 'response.failed') {
-            throw new Error(event.response.error?.message ?? 'Chat failed')
+      try {
+        const extracted = await runPhase('extract', input.content)
+        let parsed = parseDeskOutput(extracted)
+
+        if (!parsed.ok) {
+          const repaired = await runPhase(
+            'repair',
+            buildDeskRepairPrompt({
+              issues: parsed.issues,
+              message: input.content,
+              output: parsed.output
+            })
+          )
+
+          parsed = parseDeskOutput(repaired)
+        }
+
+        if (!parsed.ok) {
+          throw new Error('Model could not produce valid records')
+        }
+
+        let result = parsed.result
+
+        if (needsDeskReview(input.content, result)) {
+          const reviewed = await runPhase(
+            'review',
+            buildDeskReviewPrompt({ message: input.content, draft: JSON.stringify(result) })
+          )
+          const reviewedResult = parseDeskOutput(reviewed)
+
+          if (reviewedResult.ok) {
+            result = reviewedResult.result
           }
         }
 
-        const summary = summaryParts.filter(Boolean).join('\n\n')
+        content = result.reply
 
-        if (status === null) {
-          throw new Error('Chat stream ended without a terminal response')
-        }
+        const records = await saveDeskRecords(context.db, userId, assistantId, result)
 
-        await context.db
-          .update(chatMessage)
-          .set({ content, status: 'completed' })
-          .where(eq(chatMessage.id, assistantId))
-        await context.db.update(chat).set({ updatedAt: new Date() }).where(eq(chat.id, chatId))
-
-        if (summary) {
-          await context.db
-            .insert(chatThinking)
-            .values(thinkingRow(assistantId, 0, 'reasoning', summary))
-        }
-
-        await context.db.insert(chatThinking).values(
-          thinkingRow(
-            assistantId,
-            summary ? 1 : 0,
-            'observation',
-            JSON.stringify({
-              model: META_CHAT_MODEL,
-              status,
-              reasoningTokens: usage?.output_tokens_details?.reasoning_tokens ?? null,
-              outputTokens: usage?.output_tokens ?? null,
-              inputTokens: usage?.input_tokens ?? null,
-              durationMs: Date.now() - startedAt
-            })
+        const [first, ...rest] = [
+          context.db
+            .update(chatMessage)
+            .set({ content, status: 'completed' })
+            .where(eq(chatMessage.id, assistantId)),
+          context.db.update(chat).set({ updatedAt: new Date() }).where(eq(chat.id, chatId)),
+          ...reports.map((report, sequence) =>
+            context.db
+              .insert(chatThinking)
+              .values(observationRow(assistantId, sequence, JSON.stringify(report)))
           )
-        )
+        ]
+
+        await context.db.batch([first, ...rest])
+
+        const event: ChatEventOutput = { type: 'delta', text: content, records }
+
+        yield event
       } catch (error) {
+        console.error('chat.send failed', error)
+
         await context.db
           .update(chatMessage)
           .set({ content, status: 'error' })
@@ -207,12 +291,7 @@ export const chatRouter = {
         await context.db
           .insert(chatThinking)
           .values(
-            thinkingRow(
-              assistantId,
-              0,
-              'observation',
-              error instanceof Error ? error.message : 'Chat failed'
-            )
+            observationRow(assistantId, 0, error instanceof Error ? error.message : 'Chat failed')
           )
 
         throw errors.CHAT_FAILED({ cause: error })

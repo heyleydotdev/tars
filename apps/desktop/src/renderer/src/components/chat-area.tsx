@@ -22,6 +22,7 @@ export default function ChatArea() {
           role: 'assistant',
           content: error,
           status: 'error',
+          records: [],
           variant: 'error'
         }
       ]
