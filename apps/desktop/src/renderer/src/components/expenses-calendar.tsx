@@ -8,6 +8,7 @@ import {
   toDateKey,
   toMonthKey
 } from '@tars/core/utils/format'
+import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
 const WEEKDAYS = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
@@ -43,34 +44,30 @@ export default function ExpensesCalendar({
 
   return (
     <div className="p-3">
-      <div className="border-border flex items-center justify-between border-b pb-2">
+      <div className="flex items-center justify-between border-b pb-2">
         <span className="text-foreground text-xs tabular-nums">
           {toMonthKey(month).replace('-', '.')}
         </span>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onToday}
-            className="border-border text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:ring-ring flex h-7 items-center border px-1.5 text-xs transition-colors focus-visible:ring-1 focus-visible:outline-none"
-          >
+          <Button variant="outline" size="sm" onClick={onToday}>
             today
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
             aria-label="Previous month"
             onClick={() => onMonthChange(shiftMonth(month, -1))}
-            className="border-border text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:ring-ring flex size-7 items-center justify-center border transition-colors focus-visible:ring-1 focus-visible:outline-none"
           >
-            <ChevronLeftIcon className="size-4" />
-          </button>
-          <button
-            type="button"
+            <ChevronLeftIcon />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
             aria-label="Next month"
             onClick={() => onMonthChange(shiftMonth(month, 1))}
-            className="border-border text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:ring-ring flex size-7 items-center justify-center border transition-colors focus-visible:ring-1 focus-visible:outline-none"
           >
-            <ChevronRightIcon className="size-4" />
-          </button>
+            <ChevronRightIcon />
+          </Button>
         </div>
       </div>
 
@@ -82,7 +79,7 @@ export default function ExpensesCalendar({
         ))}
       </div>
 
-      <div className="border-border bg-border grid grid-cols-7 gap-px overflow-hidden border">
+      <div className="bg-border grid grid-cols-7 gap-px overflow-hidden border">
         {cells.map(({ date, key, outside }) => {
           const spend = outside ? 0 : (dailyTotals.get(key) ?? 0)
           const ratio = maxDaily > 0 ? spend / maxDaily : 0
@@ -99,7 +96,7 @@ export default function ExpensesCalendar({
               title={spend > 0 ? formatCurrency(spend, currency) : undefined}
               onClick={() => onSelect(date)}
               className={cn(
-                'bg-background hover:bg-muted/40 focus-visible:ring-ring relative flex h-9 flex-col items-center justify-center gap-0.5 text-xs tabular-nums transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset',
+                'bg-background hover:bg-muted/40 focus-visible:ring-ring/50 relative flex h-9 flex-col items-center justify-center gap-0.5 text-xs tabular-nums transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset',
                 outside
                   ? 'text-muted'
                   : isToday && !isSelected

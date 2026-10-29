@@ -13,7 +13,7 @@ import { useMessageThinking } from '../lib/chat'
 
 function PhaseCard({ phase }: { phase: ChatPhaseOutput }) {
   return (
-    <section className="rounded-md border p-3">
+    <section className="border p-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-medium capitalize">{phase.phase}</h3>
         <span className="text-muted-foreground text-xs">

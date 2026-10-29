@@ -1,3 +1,4 @@
+import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
 import ConsoleHeader from './console-header'
@@ -31,22 +32,23 @@ export default function ExpensesStats({
         <>
           <span className="text-muted-foreground tabular-nums">{month}</span>
           {currencies.length > 1 ? (
-            <div role="group" aria-label="Currency" className="border-border flex border">
+            <div role="group" aria-label="Currency" className="flex border">
               {currencies.map((code) => (
-                <button
+                <Button
                   key={code}
-                  type="button"
+                  variant="ghost"
+                  size="xs"
                   onClick={() => onCurrencyChange(code)}
                   aria-pressed={code === currency}
                   className={cn(
-                    'focus-visible:ring-ring px-1.5 py-0.5 transition-colors focus-visible:ring-1 focus-visible:outline-none',
+                    'px-1.5',
                     code === currency
-                      ? 'bg-foreground text-background'
+                      ? 'bg-foreground text-background hover:bg-foreground/90 hover:text-background'
                       : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
                   )}
                 >
                   {code}
-                </button>
+                </Button>
               ))}
             </div>
           ) : (

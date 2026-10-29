@@ -85,7 +85,11 @@ export default function AgentComposer() {
                 type="button"
                 size="icon-sm"
                 variant="outline"
-                className={`rounded-full ${isPaused ? 'text-muted-foreground' : 'text-foreground after:bg-primary/50 relative after:absolute after:inset-0 after:animate-pulse after:rounded-[inherit]'}`}
+                className={
+                  isPaused
+                    ? 'text-muted-foreground'
+                    : 'text-foreground after:bg-primary/50 relative after:absolute after:inset-0 after:animate-pulse'
+                }
                 aria-pressed={isPaused}
                 aria-label={isPaused ? 'Resume voice commands' : 'Pause voice commands'}
                 onClick={togglePaused}
@@ -96,7 +100,7 @@ export default function AgentComposer() {
                 type="submit"
                 size="icon-sm"
                 variant="default"
-                className="ml-auto rounded-full"
+                className="ml-auto"
                 aria-label="Send message"
                 disabled={!canSend}
               >

@@ -29,7 +29,7 @@ export default function ExpensesBreakdown({
           <div key={category.label} className="px-3 py-2">
             <div className="flex items-baseline justify-between gap-3 text-xs">
               <span className="flex min-w-0 items-center gap-2">
-                <span aria-hidden className={cn('size-1.5 rounded-full', color.dot)} />
+                <span aria-hidden className={cn('size-1.5', color.dot)} />
                 <span className="text-foreground truncate">{category.label}</span>
               </span>
               <span className="text-foreground tabular-nums">

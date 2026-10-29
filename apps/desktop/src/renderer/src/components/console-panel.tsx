@@ -14,8 +14,8 @@ export default function ConsolePanel({
 }>) {
   return (
     <section className={cn('bg-background flex min-h-0 flex-col lg:h-auto', className)}>
-      <header className="border-border bg-muted/10 flex h-9 shrink-0 items-center gap-2 border-b px-3">
-        <span aria-hidden className={cn('size-1.5 rounded-full', accent)} />
+      <header className="bg-muted/10 flex h-9 shrink-0 items-center gap-2 border-b px-3">
+        <span aria-hidden className={cn('size-1.5', accent)} />
         <h2 className="text-foreground text-xs tracking-wide">{title}</h2>
         {count ? (
           <span className="text-muted-foreground text-xs tabular-nums">[{count}]</span>

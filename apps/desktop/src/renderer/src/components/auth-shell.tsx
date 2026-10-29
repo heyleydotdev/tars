@@ -4,7 +4,7 @@ export default function AuthShell({ children }: React.PropsWithChildren) {
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-2">
         <aside className="bg-sidebar text-sidebar-foreground hidden flex-col justify-between p-10 lg:flex">
           <div className="flex items-center gap-3">
-            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 items-center justify-center rounded-lg text-xs font-semibold">
+            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 items-center justify-center text-xs font-semibold">
               TA
             </div>
             <span className="font-heading text-sm font-semibold tracking-[0.18em]">TARS</span>

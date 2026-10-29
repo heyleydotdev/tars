@@ -60,7 +60,7 @@ export default function TitleBar() {
     <header className="bg-sidebar border-sidebar-border relative z-60 flex h-(--title-bar-height) shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
       {session ? (
         <div className="flex items-center gap-2 pl-2">
-          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md text-xs font-semibold">
+          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center text-xs font-semibold">
             TA
           </div>
           <span className="text-sm font-medium">TARS</span>
@@ -68,7 +68,7 @@ export default function TitleBar() {
             type="button"
             aria-label="Toggle Sidebar"
             onClick={() => setOpen(!open)}
-            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground ml-1 hidden size-7 place-items-center rounded-md [-webkit-app-region:no-drag] md:grid"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground ml-1 hidden size-7 place-items-center [-webkit-app-region:no-drag] md:grid"
           >
             <PanelLeftIcon className="size-4" />
           </button>

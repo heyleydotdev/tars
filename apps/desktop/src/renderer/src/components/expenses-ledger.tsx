@@ -3,6 +3,7 @@ import { XIcon } from 'lucide-react'
 
 import type { ExpenseItemOutput } from '@tars/core/schemas/expenses'
 import { formatCurrency, formatTime, toDateKey } from '@tars/core/utils/format'
+import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
 import { categoryColor, categoryLabel, expenseAt } from '../lib/expenses'
@@ -21,7 +22,7 @@ function ExpenseRow({ item }: { item: ExpenseItemOutput }) {
         <p className="text-foreground text-[13px] leading-5 wrap-break-word">{item.description}</p>
         {item.category ? (
           <span className={cn('mt-0.5 flex items-center gap-1.5 text-xs', color.text)}>
-            <span aria-hidden className={cn('size-1 rounded-full', color.dot)} />
+            <span aria-hidden className={cn('size-1', color.dot)} />
             {`#${categoryLabel(item.category)}`}
           </span>
         ) : null}
@@ -66,17 +67,17 @@ export default function ExpensesLedger({
   return (
     <div className="flex h-full flex-col">
       {selectedDay ? (
-        <div className="border-border bg-muted/10 flex items-center gap-2 border-b px-3 py-1.5 text-xs">
+        <div className="bg-muted/10 flex items-center gap-2 border-b px-3 py-1.5 text-xs">
           <span className="text-muted-foreground">filter=</span>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="xs"
             onClick={onClearDay}
             aria-label={`Clear day filter ${toDateKey(selectedDay)}`}
-            className="border-border text-foreground hover:bg-muted/40 focus-visible:ring-ring flex items-center gap-1 border px-1.5 py-0.5 transition-colors focus-visible:ring-1 focus-visible:outline-none"
           >
             day:{toDateKey(selectedDay)}
             <XIcon className="size-3" />
-          </button>
+          </Button>
           <span className="text-muted-foreground ml-auto tabular-nums">{items.length} items</span>
         </div>
       ) : null}
@@ -92,7 +93,7 @@ export default function ExpensesLedger({
         <div>
           {groups.map((group) => (
             <section key={group.key}>
-              <div className="border-border bg-muted/20 flex items-center justify-between border-b px-3 py-1.5 text-xs backdrop-blur lg:sticky lg:top-0 lg:z-10">
+              <div className="bg-muted/20 flex items-center justify-between border-b px-3 py-1.5 text-xs backdrop-blur lg:sticky lg:top-0 lg:z-10">
                 <span className="text-foreground tabular-nums">{group.key}</span>
                 <span className="text-muted-foreground tabular-nums">
                   {group.items.length} · {formatCurrency(group.total, currency)}

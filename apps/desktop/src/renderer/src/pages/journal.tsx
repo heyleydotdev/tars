@@ -95,10 +95,7 @@ export default function Journal() {
                   className="lg:min-h-0 lg:flex-1"
                 >
                   {setTodoDone.isError || setReminderDone.isError ? (
-                    <p
-                      role="status"
-                      className="border-border text-destructive border-b px-3 py-1 text-xs"
-                    >
+                    <p role="status" className="text-destructive border-b px-3 py-1 text-xs">
                       // update failed
                     </p>
                   ) : null}
