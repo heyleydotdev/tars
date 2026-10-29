@@ -37,6 +37,18 @@ export function bringWindowToFront(window: BrowserWindow): void {
   }
 }
 
+function openExternal(url: string): void {
+  try {
+    const { protocol } = new URL(url)
+
+    if (protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:') {
+      void shell.openExternal(url).catch(() => {})
+    }
+  } catch {
+    // Ignore malformed links.
+  }
+}
+
 export function createWindow(): BrowserWindow {
   // 80% of the work area, capped so large monitors don't open a full-desktop window.
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
@@ -105,8 +117,18 @@ export function createWindow(): BrowserWindow {
   window.on('unmaximize', sendMaximizedState)
 
   window.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    openExternal(details.url)
+
     return { action: 'deny' }
+  })
+
+  window.webContents.on('will-navigate', (event, url) => {
+    const current = window.webContents.getURL()
+
+    if (url.split('#')[0] === current.split('#')[0]) return
+
+    event.preventDefault()
+    openExternal(url)
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
