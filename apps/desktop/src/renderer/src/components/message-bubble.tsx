@@ -2,14 +2,44 @@ import { useState } from 'react'
 import { BugIcon, CheckIcon, CopyIcon } from 'lucide-react'
 
 import type { ChatMessage } from '@tars/core/schemas/chat'
+import { Bubble, BubbleContent } from '@tars/ui/components/bubble'
 import { Button } from '@tars/ui/components/button'
-import { cn } from '@tars/ui/lib/utils'
+import { Markdown } from '@tars/ui/components/markdown'
+import { Message, MessageContent, MessageFooter } from '@tars/ui/components/message'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
 
 import { useCopyToClipboard } from '../hooks/use-copy-to-clipboard'
+import { deskResultMarkdown } from '../lib/desk'
 import MessageDebugDialog from './message-debug-dialog'
-import SavedRecords from './saved-records'
 
 export type ChatMessageView = ChatMessage & { variant?: 'error' }
+
+function MessageAction({
+  label,
+  onClick,
+  children
+}: React.PropsWithChildren<{ label: string; onClick: () => void }>) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            onClick={onClick}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{label}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 export default function MessageBubble({ message }: { message: ChatMessageView }) {
   const [debugOpen, setDebugOpen] = useState(false)
@@ -17,54 +47,65 @@ export default function MessageBubble({ message }: { message: ChatMessageView })
   const isUser = message.role === 'user'
   const isError = message.variant === 'error' || message.status === 'error'
   const isThinking = message.status === 'thinking' && message.content === ''
+  const content =
+    !isUser && message.records.length > 0
+      ? deskResultMarkdown(message.content, message.records)
+      : message.content
 
-  return (
-    <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
-      <div
-        className={cn(
-          'max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap',
-          isError
-            ? 'text-destructive'
-            : isUser
-              ? 'bg-primary text-primary-foreground rounded-br-sm'
-              : 'bg-muted rounded-bl-sm'
-        )}
-      >
-        {isThinking ? <span className="text-muted-foreground">Thinking…</span> : message.content}
-      </div>
-      {message.role === 'assistant' && message.records.length > 0 ? (
-        <SavedRecords records={message.records} />
-      ) : null}
-      {message.role === 'assistant' && !isThinking ? (
-        <>
-          <div role="group" aria-label="Message actions" className="flex items-center">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={copied ? 'Copied' : 'Copy message'}
+  if (isUser) {
+    return (
+      <Message align="end">
+        <MessageContent className="gap-2">
+          <Bubble align="end" variant="muted">
+            <BubbleContent>{message.content}</BubbleContent>
+          </Bubble>
+          <MessageFooter>
+            <MessageAction
+              label={copied ? 'Copied' : 'Copy message'}
               onClick={() => void copy(message.content)}
             >
               {copied ? <CheckIcon /> : <CopyIcon />}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Debug message"
-              onClick={() => setDebugOpen(true)}
-            >
-              <BugIcon />
-            </Button>
-          </div>
-          <MessageDebugDialog
-            messageId={message.id}
-            status={message.status}
-            open={debugOpen}
-            onOpenChange={setDebugOpen}
-          />
-        </>
+            </MessageAction>
+          </MessageFooter>
+        </MessageContent>
+      </Message>
+    )
+  }
+
+  return (
+    <>
+      <Message>
+        <MessageContent className="gap-2">
+          {isThinking ? (
+            <p className="text-muted-foreground animate-pulse text-sm">Thinking…</p>
+          ) : isError ? (
+            <p className="text-destructive text-sm whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <Markdown>{content}</Markdown>
+          )}
+          {!isThinking ? (
+            <MessageFooter className="gap-1 px-0">
+              <MessageAction
+                label={copied ? 'Copied' : 'Copy message'}
+                onClick={() => void copy(content)}
+              >
+                {copied ? <CheckIcon /> : <CopyIcon />}
+              </MessageAction>
+              <MessageAction label="Debug message" onClick={() => setDebugOpen(true)}>
+                <BugIcon />
+              </MessageAction>
+            </MessageFooter>
+          ) : null}
+        </MessageContent>
+      </Message>
+      {!isThinking ? (
+        <MessageDebugDialog
+          messageId={message.id}
+          status={message.status}
+          open={debugOpen}
+          onOpenChange={setDebugOpen}
+        />
       ) : null}
-    </div>
+    </>
   )
 }
