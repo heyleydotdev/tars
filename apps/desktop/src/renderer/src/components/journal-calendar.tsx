@@ -2,38 +2,16 @@ import { useMemo, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
 import type { ReminderItemOutput, TodoItemOutput } from '@tars/core/schemas/journal'
-import { toDateKey } from '@tars/core/utils/format'
+import {
+  buildMonthGrid,
+  shiftMonth,
+  startOfMonth,
+  toDateKey,
+  toMonthKey
+} from '@tars/core/utils/format'
 import { cn } from '@tars/ui/lib/utils'
 
 const WEEKDAYS = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
-
-function startOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1)
-}
-
-function shiftMonth(date: Date, delta: number): Date {
-  return new Date(date.getFullYear(), date.getMonth() + delta, 1)
-}
-
-function monthLabel(date: Date): string {
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
-function buildMonth(view: Date): Array<{ date: Date; outside: boolean }> {
-  const year = view.getFullYear()
-  const month = view.getMonth()
-  const firstWeekday = new Date(year, month, 1).getDay()
-  const days = new Date(year, month + 1, 0).getDate()
-
-  return Array.from({ length: 42 }, (_, index) => {
-    const day = index - firstWeekday + 1
-
-    return {
-      date: new Date(year, month, day),
-      outside: day < 1 || day > days
-    }
-  })
-}
 
 export default function JournalCalendar({
   selected,
@@ -47,7 +25,7 @@ export default function JournalCalendar({
   todos: Array<TodoItemOutput>
 }) {
   const [view, setView] = useState(() => startOfMonth(selected))
-  const cells = useMemo(() => buildMonth(view), [view])
+  const cells = useMemo(() => buildMonthGrid(view), [view])
   const selectedKey = toDateKey(selected)
   const todayKey = toDateKey(new Date())
   const reminderKeys = useMemo(
@@ -62,7 +40,9 @@ export default function JournalCalendar({
   return (
     <div className="p-3">
       <div className="border-border flex items-center justify-between border-b pb-2">
-        <span className="text-foreground text-xs tabular-nums">{monthLabel(view)}</span>
+        <span className="text-foreground text-xs tabular-nums">
+          {toMonthKey(view).replace('-', '.')}
+        </span>
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -92,8 +72,7 @@ export default function JournalCalendar({
       </div>
 
       <div className="border-border bg-border grid grid-cols-7 gap-px overflow-hidden border">
-        {cells.map(({ date, outside }) => {
-          const key = toDateKey(date)
+        {cells.map(({ date, key, outside }) => {
           const isSelected = key === selectedKey
           const isToday = key === todayKey
 

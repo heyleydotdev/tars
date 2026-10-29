@@ -42,6 +42,40 @@ export function toDateKey(value: string | Date): string {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
+export function toMonthKey(value: string | Date): string {
+  const date = typeof value === 'string' ? parseDate(value) : value
+
+  if (!date) return ''
+
+  return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}`
+}
+
+export function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+export function shiftMonth(date: Date, delta: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1)
+}
+
+export function buildMonthGrid(view: Date): Array<{ date: Date; key: string; outside: boolean }> {
+  const year = view.getFullYear()
+  const month = view.getMonth()
+  const firstWeekday = new Date(year, month, 1).getDay()
+  const days = new Date(year, month + 1, 0).getDate()
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const day = index - firstWeekday + 1
+    const date = new Date(year, month, day)
+
+    return {
+      date,
+      key: toDateKey(date),
+      outside: day < 1 || day > days
+    }
+  })
+}
+
 export function formatDuration(durationMs: number): string {
   return durationMs >= 1000 ? `${(durationMs / 1000).toFixed(1)}s` : `${durationMs}ms`
 }
