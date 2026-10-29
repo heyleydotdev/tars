@@ -16,3 +16,46 @@ body {
   overflow: hidden;
   user-select: none;
 }
+
+.journal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.journal-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.journal-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--border);
+  background-clip: padding-box;
+}
+
+.journal-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+  background-clip: padding-box;
+}
+
+@keyframes journal-cursor {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.journal-cursor {
+  animation: journal-cursor 1.2s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journal-cursor {
+    animation: none;
+  }
+}
