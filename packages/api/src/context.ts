@@ -6,7 +6,7 @@ import type { Auth } from '@tars/auth/server'
 import type { Database } from '@tars/db/client'
 import { META_MODEL_API_URL } from '@tars/core/constants'
 
-export type RpcServerContext = RequestHeadersHandlerPluginContext & {
+type RpcServerContext = RequestHeadersHandlerPluginContext & {
   db: Database
   auth: Auth
   metaAiApiKey: string
