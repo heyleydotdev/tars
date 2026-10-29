@@ -3,13 +3,14 @@ import { useMemo, useState } from 'react'
 import type { JournalPageOutput } from '@tars/core/schemas/journal'
 import { toDateKey } from '@tars/core/utils/format'
 
+import ConsolePanel from '../components/console-panel'
 import DashboardShell from '../components/dashboard-shell'
 import JournalAgenda from '../components/journal-agenda'
 import JournalCalendar from '../components/journal-calendar'
 import JournalNotes from '../components/journal-notes'
-import JournalPanel from '../components/journal-panel'
 import JournalStats from '../components/journal-stats'
 import LoadingScreen from '../components/loading-screen'
+import PageError from '../components/page-error'
 import { useJournal, useSetReminderDone, useSetTodoDone } from '../lib/journal'
 
 const EMPTY_TODOS: JournalPageOutput['todos'] = []
@@ -65,27 +66,15 @@ export default function Journal() {
           />
 
           {journal.isError && !journal.data ? (
-            <div className="flex flex-1 items-center justify-center p-4">
-              <div className="border-border text-muted-foreground max-w-sm border p-5 text-xs">
-                <p className="text-destructive">// failed to load records</p>
-                <p className="text-muted-foreground mt-1">the worker may be offline.</p>
-                <button
-                  type="button"
-                  onClick={() => void journal.refetch()}
-                  className="border-border text-foreground hover:bg-muted/40 focus-visible:ring-ring mt-3 border px-2 py-1 text-xs tracking-wide uppercase transition-colors focus-visible:ring-1 focus-visible:outline-none"
-                >
-                  retry
-                </button>
-              </div>
-            </div>
+            <PageError onRetry={() => void journal.refetch()} />
           ) : (
             <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
-              <JournalPanel title="notes.md" count={String(journals.length)} accent="bg-sky-400">
+              <ConsolePanel title="notes.md" count={String(journals.length)} accent="bg-sky-400">
                 <JournalNotes journals={journals} />
-              </JournalPanel>
+              </ConsolePanel>
 
               <div className="bg-border flex flex-col gap-px lg:min-h-0">
-                <JournalPanel
+                <ConsolePanel
                   title="reminders.cal"
                   count={String(reminders.length)}
                   accent="bg-amber-400"
@@ -97,9 +86,9 @@ export default function Journal() {
                     reminders={reminders}
                     todos={todos}
                   />
-                </JournalPanel>
+                </ConsolePanel>
 
-                <JournalPanel
+                <ConsolePanel
                   title="agenda.log"
                   count={String(agendaCount)}
                   accent="bg-violet-400"
@@ -119,7 +108,7 @@ export default function Journal() {
                     onToggleReminder={(id, done) => setReminderDone.mutate({ id, done })}
                     onToggleTodo={(id, done) => setTodoDone.mutate({ id, done })}
                   />
-                </JournalPanel>
+                </ConsolePanel>
               </div>
             </div>
           )}

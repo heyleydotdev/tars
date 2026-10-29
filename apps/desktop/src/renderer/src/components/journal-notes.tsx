@@ -1,11 +1,11 @@
 import type { JournalItemOutput } from '@tars/core/schemas/journal'
 import { toDateKey } from '@tars/core/utils/format'
 
-import { JournalEmpty } from './journal-panel'
+import { ConsoleEmpty } from './console-panel'
 
 export default function JournalNotes({ journals }: { journals: Array<JournalItemOutput> }) {
   if (journals.length === 0) {
-    return <JournalEmpty title="no entries" hint="tell tars about your day" />
+    return <ConsoleEmpty title="no entries" hint="tell tars about your day" />
   }
 
   return (

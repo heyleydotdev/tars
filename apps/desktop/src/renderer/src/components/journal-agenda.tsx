@@ -2,7 +2,7 @@ import type { ReminderItemOutput, TodoItemOutput } from '@tars/core/schemas/jour
 import { formatTime } from '@tars/core/utils/format'
 import { cn } from '@tars/ui/lib/utils'
 
-import { JournalEmpty } from './journal-panel'
+import { ConsoleEmpty } from './console-panel'
 
 export default function JournalAgenda({
   reminders,
@@ -44,7 +44,7 @@ export default function JournalAgenda({
   )
 
   if (items.length === 0) {
-    return <JournalEmpty title="nothing scheduled" hint="select a marked day" />
+    return <ConsoleEmpty title="nothing scheduled" hint="select a marked day" />
   }
 
   return (

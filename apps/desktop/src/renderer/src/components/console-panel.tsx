@@ -1,6 +1,6 @@
 import { cn } from '@tars/ui/lib/utils'
 
-export default function JournalPanel({
+export default function ConsolePanel({
   title,
   count,
   accent,
@@ -22,12 +22,12 @@ export default function JournalPanel({
         ) : null}
         <span aria-hidden className="bg-border ml-auto h-px w-8" />
       </header>
-      <div className="journal-scroll min-h-0 flex-1 lg:overflow-y-auto">{children}</div>
+      <div className="console-scroll min-h-0 flex-1 lg:overflow-y-auto">{children}</div>
     </section>
   )
 }
 
-export function JournalEmpty({ title, hint }: { title: string; hint: string }) {
+export function ConsoleEmpty({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="text-muted-foreground flex h-full min-h-40 flex-col items-center justify-center gap-1 p-6 text-center text-xs">
       <p className="text-muted-foreground">// {title}</p>
