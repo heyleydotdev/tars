@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router'
 
-import { safeRedirect } from '@tars/core/utils/redirect'
+import { safeRedirect } from '@tars/core/utils/string'
 
 import { useAuthStore } from '../stores/auth'
 import LoadingScreen from './loading-screen'

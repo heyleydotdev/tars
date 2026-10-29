@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 
-import { safeRedirect } from '@tars/core/utils/redirect'
+import { safeRedirect } from '@tars/core/utils/string'
 
 export function useAuthSubmit(fallbackError: string) {
   const navigate = useNavigate()

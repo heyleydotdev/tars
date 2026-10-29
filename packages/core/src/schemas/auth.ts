@@ -15,6 +15,8 @@ export const registerSchema = z.object({
   password: z.string().min(8, ERRORS.passwordTooShort)
 })
 
+export type EmailInput = z.input<typeof emailSchema>
+export type EmailOutput = z.output<typeof emailSchema>
 export type LoginInput = z.input<typeof loginSchema>
 export type LoginOutput = z.output<typeof loginSchema>
 export type RegisterInput = z.input<typeof registerSchema>

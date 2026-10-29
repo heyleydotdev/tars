@@ -2,7 +2,7 @@ import { BotIcon, LogOutIcon, NotebookPenIcon, SearchIcon, WalletIcon } from 'lu
 import { useLocation, useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
-import { initials } from '@tars/core/utils/string'
+import { getInitials } from '@tars/core/utils/string'
 import { Avatar, AvatarFallback } from '@tars/ui/components/avatar'
 import {
   DropdownMenu,
@@ -45,7 +45,7 @@ function UserIdentity({ name, email }: { name: string; email: string }) {
   return (
     <>
       <Avatar className="size-8">
-        <AvatarFallback>{initials(name)}</AvatarFallback>
+        <AvatarFallback>{getInitials(name)}</AvatarFallback>
       </Avatar>
       <div className="grid flex-1 text-left text-sm leading-tight">
         <span className="truncate font-medium">{name}</span>

@@ -1,4 +1,4 @@
-export function initials(name: string): string {
+export function getInitials(name: string): string {
   return (
     name
       .split(/\s+/)
@@ -12,7 +12,11 @@ export function initials(name: string): string {
 export function normalizeText(value: string): string {
   return value
     .trim()
-    .toLocaleLowerCase()
+    .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .replace(/\s+/g, ' ')
+}
+
+export function safeRedirect(value: string | null): string {
+  return value?.startsWith('/') && !value.startsWith('//') && !value.startsWith('/\\') ? value : '/'
 }
