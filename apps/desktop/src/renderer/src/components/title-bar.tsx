@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react'
+import { PanelLeftIcon } from 'lucide-react'
 
 import { cn } from '@tars/ui/lib/utils'
 
 import { useWindowMaximized } from '../hooks/use-window-maximized'
+import { useAuthStore } from '../stores/auth'
+import { useSidebarStore } from '../stores/sidebar'
 
 function MaximizeIcon({ maximized }: { maximized: boolean }) {
   if (maximized) {
@@ -49,9 +52,28 @@ function WindowControlButton(props: {
 export default function TitleBar() {
   const maximized = useWindowMaximized()
   const controls = window.api.windowControls
+  const session = useAuthStore((state) => state.session)
+  const open = useSidebarStore((state) => state.open)
+  const setOpen = useSidebarStore((state) => state.setOpen)
 
   return (
-    <header className="bg-sidebar border-sidebar-border flex h-9 shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
+    <header className="bg-sidebar border-sidebar-border relative z-60 flex h-(--title-bar-height) shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
+      {session ? (
+        <div className="flex items-center gap-2 pl-2">
+          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md text-[10px] font-semibold">
+            TA
+          </div>
+          <span className="text-sm font-medium">TARS</span>
+          <button
+            type="button"
+            aria-label="Toggle Sidebar"
+            onClick={() => setOpen(!open)}
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground ml-1 hidden size-7 place-items-center rounded-md [-webkit-app-region:no-drag] md:grid"
+          >
+            <PanelLeftIcon className="size-4" />
+          </button>
+        </div>
+      ) : null}
       <div className="ml-auto flex h-full [-webkit-app-region:no-drag]">
         <WindowControlButton label="Minimize" onClick={() => controls.minimize()}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">

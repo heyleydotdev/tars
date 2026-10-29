@@ -1,9 +1,6 @@
-import TitleBar from './title-bar'
-
 export default function AuthShell({ children }: React.PropsWithChildren) {
   return (
-    <div className="bg-background flex h-svh flex-col overflow-hidden">
-      <TitleBar />
+    <div className="bg-background flex flex-col overflow-hidden">
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-2">
         <aside className="bg-sidebar text-sidebar-foreground hidden flex-col justify-between p-10 lg:flex">
           <div className="flex items-center gap-3">

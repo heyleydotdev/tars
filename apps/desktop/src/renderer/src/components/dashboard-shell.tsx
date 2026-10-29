@@ -20,7 +20,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -35,7 +34,6 @@ import { TooltipProvider } from '@tars/ui/components/tooltip'
 import { signOut } from '../lib/auth'
 import { useUser } from '../stores/auth'
 import { useSidebarStore } from '../stores/sidebar'
-import TitleBar from './title-bar'
 
 const destinations = [
   { title: 'Desk', to: '/', icon: BotIcon },
@@ -62,16 +60,7 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (to: strin
   const user = useUser()
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-sidebar-border flex h-9 flex-row items-center gap-2 border-b px-2 py-0 md:[-webkit-app-region:drag]">
-        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md text-[10px] font-semibold group-data-[collapsible=icon]:hidden">
-          TA
-        </div>
-        <span className="truncate text-sm font-medium group-data-[collapsible=icon]:hidden">
-          TARS
-        </span>
-        <SidebarTrigger className="ml-auto [-webkit-app-region:no-drag]" />
-      </SidebarHeader>
+    <Sidebar collapsible="icon" className="relative h-full">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -152,10 +141,9 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
 
   return (
     <TooltipProvider>
-      <SidebarProvider open={open} onOpenChange={setOpen} className="h-svh overflow-hidden">
+      <SidebarProvider open={open} onOpenChange={setOpen} className="min-h-0 overflow-hidden">
         <AppSidebar active={active} onSelect={navigate} />
-        <SidebarInset className="h-full min-h-0">
-          <TitleBar />
+        <SidebarInset className="min-h-0">
           <header className="bg-sidebar border-sidebar-border flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
             <SidebarTrigger />
             <span className="text-sm font-medium">{active}</span>
