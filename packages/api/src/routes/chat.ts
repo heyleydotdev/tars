@@ -25,8 +25,7 @@ import {
 import {
   buildDeskContext,
   buildDeskExtractionPrompt,
-  buildDeskRepairPrompt,
-  buildDeskReviewPrompt
+  buildDeskRepairPrompt
 } from '@tars/core/prompts'
 import {
   chatEventSchema,
@@ -39,7 +38,7 @@ import {
   loadDeskContextRecords,
   saveDeskRecords
 } from '@tars/core/services/records'
-import { needsDeskReview, parseDeskOutput } from '@tars/core/utils/desk'
+import { parseDeskOutput } from '@tars/core/utils/desk'
 import {
   chat,
   chatMessage,
@@ -76,13 +75,23 @@ function observationRow(messageId: string, sequence: number, content: string): C
 
 async function loadHistory(db: Database, chatId: string) {
   const rows = await db
-    .select({ id: chatMessage.id, role: chatMessage.role, content: chatMessage.content })
+    .select({
+      id: chatMessage.id,
+      role: chatMessage.role,
+      content: chatMessage.content,
+      createdAt: chatMessage.createdAt
+    })
     .from(chatMessage)
     .where(eq(chatMessage.chatId, chatId))
     .orderBy(desc(chatMessage.createdAt))
     .limit(DESK_HISTORY_MESSAGES)
 
-  const history: Array<{ id: string; role: 'user' | 'assistant'; content: string }> = []
+  const history: Array<{
+    id: string
+    role: 'user' | 'assistant'
+    content: string
+    createdAt: Date
+  }> = []
   let chars = 0
 
   for (const row of rows) {
@@ -200,12 +209,17 @@ export const chatRouter = {
       const contextRecords = await loadDeskContextRecords(
         context.db,
         userId,
-        history.filter((message) => message.role === 'assistant').map((message) => message.id)
+        history.filter((message) => message.role === 'assistant').map((message) => message.id),
+        input.timezone
       )
       const deskContext = buildDeskContext({
-        messages: history.map((message) => ({ role: message.role, content: message.content })),
-        records: contextRecords,
-        message: input.content
+        messages: history.map((message) => ({
+          role: message.role,
+          content: message.content,
+          createdAt: message.createdAt
+        })),
+        message: input.content,
+        timezone: input.timezone
       })
       const userMessageId = crypto.randomUUID()
       const assistantId = crypto.randomUUID()
@@ -235,7 +249,8 @@ export const chatRouter = {
       const extractionPrompt = buildDeskExtractionPrompt({
         now: new Date(),
         timezone: input.timezone,
-        currency: input.currency
+        currency: input.currency,
+        records: contextRecords
       })
 
       const reports: Array<ChatPhaseOutput> = []
@@ -306,22 +321,7 @@ export const chatRouter = {
           throw new Error('Model could not produce valid records')
         }
 
-        let result = parsed.result
-
-        if (needsDeskReview(input.content, result)) {
-          yield phaseEvent('review', 'running', null)
-          const reviewed = await runPhase(
-            'review',
-            buildDeskReviewPrompt({ input: deskContext, draft: JSON.stringify(result) })
-          )
-          yield phaseEvent('review', 'completed', reports.at(-1)?.durationMs ?? null)
-          const reviewedResult = parseDeskOutput(reviewed)
-
-          if (reviewedResult.ok) {
-            result = reviewedResult.result
-          }
-        }
-
+        const result = parsed.result
         content = result.reply
 
         const records = await saveDeskRecords(context.db, userId, assistantId, result)
@@ -345,7 +345,7 @@ export const chatRouter = {
 
         yield event
       } catch (error) {
-        console.error('chat.send failed', error)
+        console.error('chat.send failed')
 
         await context.db
           .update(chatMessage)

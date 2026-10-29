@@ -6,6 +6,7 @@ export const ERRORS = {
   signInFailed: 'We couldn’t sign you in. Check your email and password, then try again.',
   signUpFailed: 'We couldn’t create your account. Please try again.',
   tryAgain: 'Something went wrong. Please try again.',
+  messageTooLong: 'Keep messages under 4,000 characters.',
   missingRootElement: 'Missing #root element',
   audioRequired: 'Audio is required.',
   invalidBase64: 'Invalid base64 value',

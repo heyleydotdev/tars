@@ -4,6 +4,16 @@ import { chatPhaseSchema, deskResultSchema } from '../schemas/chat'
 type DeskParseResult =
   { ok: true; result: DeskResultOutput } | { ok: false; issues: string; output: string }
 
+export function hasDeskChanges(result: DeskResultOutput): boolean {
+  return (
+    result.todos.length > 0 ||
+    result.reminders.length > 0 ||
+    result.expenses.length > 0 ||
+    result.journals.length > 0 ||
+    result.deletions.length > 0
+  )
+}
+
 export function parseDeskOutput(text: string): DeskParseResult {
   let output: unknown
 
@@ -29,25 +39,15 @@ export function parseDeskOutput(text: string): DeskParseResult {
     }
   }
 
-  return { ok: true, result: parsed.data }
-}
-
-export function needsDeskReview(message: string, result: DeskResultOutput): boolean {
-  const records = [...result.todos, ...result.reminders, ...result.expenses, ...result.journals]
-
-  if (result.deletions.length > 0 || records.some((record) => record.id !== null)) {
-    return true
+  if (parsed.data.clarification && hasDeskChanges(parsed.data)) {
+    return {
+      ok: false,
+      issues: 'clarification must have empty records and deletions',
+      output: text
+    }
   }
 
-  const count = records.length
-
-  if (count === 0) return false
-  if (count > 1) return true
-  if (result.reminders.length > 0 || result.expenses.length > 0) return true
-
-  return /\b(tomorrow|today|tonight|yesterday|next|monday|tuesday|wednesday|thursday|friday|saturday|sunday|remind|spent|paid|bought|\$|₹|€|£)/i.test(
-    message
-  )
+  return { ok: true, result: parsed.data }
 }
 
 export function parseChatPhase(content: string): ChatPhaseOutput | null {

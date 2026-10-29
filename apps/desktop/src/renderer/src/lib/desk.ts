@@ -9,11 +9,13 @@ function recordLine(record: SavedRecordOutput): string {
   switch (record.type) {
     case 'todo':
       return `- **${escapeMarkdown(record.title)}** — todo${
-        record.dueAt
-          ? ` · ${formatDateTime(record.dueAt)}`
-          : record.priority
-            ? ` · ${record.priority} priority`
-            : ''
+        record.done
+          ? ' · done'
+          : record.dueAt
+            ? ` · ${formatDateTime(record.dueAt)}`
+            : record.priority
+              ? ` · ${record.priority} priority`
+              : ''
       }`
     case 'reminder':
       return `- **${escapeMarkdown(record.title)}** — reminder · ${formatDateTime(record.remindAt)}`
@@ -34,5 +36,5 @@ export function deskResultMarkdown(reply: string, records: Array<SavedRecordOutp
     return reply
   }
 
-  return `${reply || 'Saved to Desk.'}\n\n${records.map(recordLine).join('\n')}`
+  return `${records.map(recordLine).join('\n')}\n\n${reply || 'Saved to Desk.'}`
 }

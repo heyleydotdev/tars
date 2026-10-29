@@ -10,7 +10,7 @@ const STARTERS = [
 
 function buildSuggestions(records: Array<SavedRecordOutput>): Array<string> {
   const record =
-    records.find((item) => item.type === 'todo') ??
+    records.find((item) => item.type === 'todo' && !item.done) ??
     records.find((item) => item.type === 'reminder') ??
     records.find((item) => item.type === 'expense')
 
@@ -35,6 +35,8 @@ function buildSuggestions(records: Array<SavedRecordOutput>): Array<string> {
         `Remove the ${record.description} expense.`,
         ...STARTERS
       ]
+    default:
+      return STARTERS
   }
 }
 

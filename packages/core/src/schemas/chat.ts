@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { DESK_PRIORITIES } from '../constants'
+import { CHAT_MESSAGE_MAX_LENGTH, DESK_PRIORITIES } from '../constants'
 import { ERRORS } from '../errors'
 
 const recordIdSchema = z
@@ -11,6 +11,7 @@ const recordIdSchema = z
 const todoRecordSchema = z.strictObject({
   id: recordIdSchema,
   title: z.string(),
+  done: z.boolean().describe('True when the todo is finished'),
   notes: z.string().nullable(),
   dueAt: z.string().nullable(),
   priority: z.enum(DESK_PRIORITIES).nullable()
@@ -43,6 +44,9 @@ const journalRecordSchema = z.strictObject({
 
 export const deskResultSchema = z.strictObject({
   reply: z.string(),
+  clarification: z
+    .boolean()
+    .describe('True only when asking a question instead of saving; arrays must be empty'),
   todos: z.array(todoRecordSchema),
   reminders: z.array(reminderRecordSchema),
   expenses: z.array(expenseRecordSchema),
@@ -64,6 +68,7 @@ export const savedRecordSchema = z.discriminatedUnion('type', [
     type: z.literal('todo'),
     id: z.string(),
     title: z.string(),
+    done: z.boolean(),
     dueAt: z.string().nullable(),
     priority: z.enum(DESK_PRIORITIES).nullable()
   }),
@@ -120,9 +125,12 @@ export const chatEventSchema = z.discriminatedUnion('type', [
 ])
 
 export const sendChatMessageSchema = z.object({
-  content: z.string().trim().min(1),
-  timezone: z.string().optional(),
-  currency: z.string().optional()
+  content: z.string().trim().min(1).max(CHAT_MESSAGE_MAX_LENGTH, ERRORS.messageTooLong),
+  timezone: z.string().max(64).optional(),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional()
 })
 
 export const messageThinkingSchema = z.object({
@@ -171,7 +179,10 @@ type WithId<T> = Omit<T, 'id'> & { id: string }
 export type DeskContextRecord =
   | ({ type: 'todo' } & WithId<TodoRecordOutput>)
   | ({ type: 'reminder' } & WithId<ReminderRecordOutput>)
-  | ({ type: 'expense' } & WithId<ExpenseRecordOutput>)
+  | ({ type: 'expense' } & WithId<ExpenseRecordOutput> & {
+        savedAt: string
+        minutesAgo: number
+      })
   | ({ type: 'journal' } & WithId<JournalRecordOutput>)
 
 export type ChatMessage = {

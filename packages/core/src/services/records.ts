@@ -21,9 +21,9 @@ import type {
   SavedRecordOutput,
   TodoRecordOutput
 } from '../schemas/chat'
-import { parseDate } from '../utils/format'
+import { formatZonedIso, parseDate } from '../utils/format'
 
-type TodoRecord = Pick<TodoSelect, 'id' | 'messageId' | 'title' | 'dueAt' | 'priority'>
+type TodoRecord = Pick<TodoSelect, 'id' | 'messageId' | 'title' | 'status' | 'dueAt' | 'priority'>
 
 type ReminderRecord = Pick<ReminderSelect, 'id' | 'messageId' | 'title' | 'remindAt'>
 
@@ -48,6 +48,7 @@ type RecordType = DeskResultOutput['deletions'][number]['type']
 function todoValues(record: TodoRecordOutput) {
   return {
     title: record.title,
+    status: record.done ? ('done' as const) : ('open' as const),
     notes: record.notes,
     dueAt: parseDate(record.dueAt),
     priority: record.priority
@@ -87,6 +88,7 @@ function savedTodo(record: TodoRecord): SavedRecordOutput {
     type: 'todo',
     id: record.id,
     title: record.title,
+    done: record.status === 'done',
     dueAt: record.dueAt?.toISOString() ?? null,
     priority: record.priority
   }
@@ -194,7 +196,8 @@ export function groupRecordsByMessage(tables: RecordTables): Map<string, Array<S
 export async function loadDeskContextRecords(
   db: Database,
   userId: string,
-  messageIds: Array<string>
+  messageIds: Array<string>,
+  timezone?: string
 ): Promise<Array<DeskContextRecord>> {
   if (messageIds.length === 0) {
     return []
@@ -224,6 +227,7 @@ export async function loadDeskContextRecords(
       type: 'todo',
       id: record.id,
       title: record.title,
+      done: record.status === 'done',
       notes: record.notes,
       dueAt: record.dueAt?.toISOString() ?? null,
       priority: record.priority
@@ -242,7 +246,9 @@ export async function loadDeskContextRecords(
       amount: record.amountCents / 100,
       currency: record.currency,
       category: record.category,
-      occurredAt: record.occurredAt?.toISOString() ?? null
+      occurredAt: record.occurredAt?.toISOString() ?? null,
+      savedAt: formatZonedIso(record.createdAt, timezone).value,
+      minutesAgo: Math.max(0, Math.round((Date.now() - record.createdAt.getTime()) / 60_000))
     })),
     ...journals.map((record): DeskContextRecord => ({
       type: 'journal',
@@ -318,29 +324,42 @@ export async function saveDeskRecords(
       }) satisfies JournalEntryInsert
   )
 
+  const todoDeletionIds = result.deletions
+    .filter((deletion) => deletion.type === 'todo')
+    .map((deletion) => deletion.id)
+  const reminderDeletionIds = result.deletions
+    .filter((deletion) => deletion.type === 'reminder')
+    .map((deletion) => deletion.id)
+  const expenseDeletionIds = result.deletions
+    .filter((deletion) => deletion.type === 'expense')
+    .map((deletion) => deletion.id)
+  const journalDeletionIds = result.deletions
+    .filter((deletion) => deletion.type === 'journal')
+    .map((deletion) => deletion.id)
+
   const [ownedTodoIds, ownedReminderIds, ownedExpenseIds, ownedJournalIds] = await Promise.all([
     loadOwnedIds(
       db,
       userId,
-      todoRecords.edited.map((record) => record.id),
+      [...todoRecords.edited.map((record) => record.id), ...todoDeletionIds],
       todo
     ),
     loadOwnedIds(
       db,
       userId,
-      reminderRecords.edited.map((record) => record.id),
+      [...reminderRecords.edited.map((record) => record.id), ...reminderDeletionIds],
       reminder
     ),
     loadOwnedIds(
       db,
       userId,
-      expenseRecords.edited.map((record) => record.id),
+      [...expenseRecords.edited.map((record) => record.id), ...expenseDeletionIds],
       expense
     ),
     loadOwnedIds(
       db,
       userId,
-      journalRecords.edited.map((record) => record.id),
+      [...journalRecords.edited.map((record) => record.id), ...journalDeletionIds],
       journalEntry
     )
   ])
@@ -425,12 +444,14 @@ export async function saveDeskRecords(
     await db.batch([firstInsert, ...restInserts])
   }
 
-  const deletionIds = (type: RecordType): Array<string> =>
-    result.deletions.filter((deletion) => deletion.type === type).map((deletion) => deletion.id)
+  const deletionIds = (type: RecordType, owned: Set<string>): Array<string> =>
+    result.deletions
+      .filter((deletion) => deletion.type === type && owned.has(deletion.id))
+      .map((deletion) => deletion.id)
 
   const todoChanges = [
     ...todoUpdates.map((update) => update.statement),
-    ...deletionIds('todo').map((id) =>
+    ...deletionIds('todo', ownedTodoIds).map((id) =>
       db.delete(todo).where(and(eq(todo.id, id), eq(todo.userId, userId)))
     )
   ]
@@ -442,7 +463,7 @@ export async function saveDeskRecords(
 
   const reminderChanges = [
     ...reminderUpdates.map((update) => update.statement),
-    ...deletionIds('reminder').map((id) =>
+    ...deletionIds('reminder', ownedReminderIds).map((id) =>
       db.delete(reminder).where(and(eq(reminder.id, id), eq(reminder.userId, userId)))
     )
   ]
@@ -454,7 +475,7 @@ export async function saveDeskRecords(
 
   const expenseChanges = [
     ...expenseUpdates.map((update) => update.statement),
-    ...deletionIds('expense').map((id) =>
+    ...deletionIds('expense', ownedExpenseIds).map((id) =>
       db.delete(expense).where(and(eq(expense.id, id), eq(expense.userId, userId)))
     )
   ]
@@ -466,7 +487,7 @@ export async function saveDeskRecords(
 
   const journalChanges = [
     ...journalUpdates.map((update) => update.statement),
-    ...deletionIds('journal').map((id) =>
+    ...deletionIds('journal', ownedJournalIds).map((id) =>
       db.delete(journalEntry).where(and(eq(journalEntry.id, id), eq(journalEntry.userId, userId)))
     )
   ]
