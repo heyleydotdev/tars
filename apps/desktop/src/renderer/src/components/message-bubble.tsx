@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/too
 import { useCopyToClipboard } from '../hooks/use-copy-to-clipboard'
 import { deskResultMarkdown } from '../lib/desk'
 import MessageDebugDialog from './message-debug-dialog'
+import PhaseProgress from './phase-progress'
 
 export type ChatMessageView = ChatMessage & { variant?: 'error' }
 
@@ -77,7 +78,7 @@ export default function MessageBubble({ message }: { message: ChatMessageView })
       <Message>
         <MessageContent className="gap-2">
           {isThinking ? (
-            <p className="text-muted-foreground animate-pulse text-sm">Thinking…</p>
+            <PhaseProgress phases={message.phases ?? []} />
           ) : isError ? (
             <p className="text-destructive text-sm whitespace-pre-wrap">{message.content}</p>
           ) : (

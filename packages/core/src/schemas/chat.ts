@@ -90,8 +90,10 @@ export const savedRecordSchema = z.discriminatedUnion('type', [
   })
 ])
 
+const chatPhaseNameSchema = z.enum(['extract', 'repair', 'review'])
+
 export const chatPhaseSchema = z.object({
-  phase: z.enum(['extract', 'repair', 'review']),
+  phase: chatPhaseNameSchema,
   model: z.string(),
   status: z.string().nullable(),
   durationMs: z.number(),
@@ -101,11 +103,21 @@ export const chatPhaseSchema = z.object({
   reasoning: z.string().nullable()
 })
 
-export const chatEventSchema = z.object({
-  type: z.literal('delta'),
-  text: z.string(),
-  records: z.array(savedRecordSchema)
+export const chatPhaseEventSchema = z.object({
+  type: z.literal('phase'),
+  phase: chatPhaseNameSchema,
+  status: z.enum(['running', 'completed']),
+  durationMs: z.number().nullable()
 })
+
+export const chatEventSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('delta'),
+    text: z.string(),
+    records: z.array(savedRecordSchema)
+  }),
+  chatPhaseEventSchema
+])
 
 export const sendChatMessageSchema = z.object({
   content: z.string().trim().min(1),
@@ -140,6 +152,13 @@ export type ChatPhaseInput = z.input<typeof chatPhaseSchema>
 export type ChatPhaseOutput = z.output<typeof chatPhaseSchema>
 export type ChatEventInput = z.input<typeof chatEventSchema>
 export type ChatEventOutput = z.output<typeof chatEventSchema>
+export type ChatPhaseEventInput = z.input<typeof chatPhaseEventSchema>
+export type ChatPhaseEventOutput = z.output<typeof chatPhaseEventSchema>
+export type ChatPhaseProgress = {
+  phase: ChatPhaseOutput['phase']
+  status: 'running' | 'completed'
+  durationMs: number | null
+}
 export type SendChatMessageInput = z.input<typeof sendChatMessageSchema>
 export type SendChatMessageOutput = z.output<typeof sendChatMessageSchema>
 export type MessageThinkingInput = z.input<typeof messageThinkingSchema>
@@ -161,4 +180,5 @@ export type ChatMessage = {
   content: string
   status: ChatStatus
   records: Array<SavedRecordOutput>
+  phases?: Array<ChatPhaseProgress>
 }

@@ -36,7 +36,14 @@ export function useSendChatMessage() {
           status: 'completed',
           records: []
         },
-        { id: assistantKey, role: 'assistant', content: '', status: 'thinking', records: [] }
+        {
+          id: assistantKey,
+          role: 'assistant',
+          content: '',
+          status: 'thinking',
+          records: [],
+          phases: []
+        }
       ])
 
       try {
@@ -44,6 +51,21 @@ export function useSendChatMessage() {
         const iterator = await orpc.chat.send.call({ content, timezone })
 
         for await (const event of iterator) {
+          if (event.type === 'phase') {
+            updateAssistant((message) => {
+              const phases = (message.phases ?? []).filter((phase) => phase.phase !== event.phase)
+
+              return {
+                ...message,
+                phases: [
+                  ...phases,
+                  { phase: event.phase, status: event.status, durationMs: event.durationMs }
+                ]
+              }
+            })
+            continue
+          }
+
           updateAssistant((message) => ({
             ...message,
             content: message.content + event.text,

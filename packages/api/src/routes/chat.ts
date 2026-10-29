@@ -1,7 +1,12 @@
 import { ORPCError } from '@orpc/client'
 import { asyncIteratorObject } from '@orpc/server'
 
-import type { ChatEventOutput, ChatPhaseOutput, SavedRecordOutput } from '@tars/core/schemas/chat'
+import type {
+  ChatEventOutput,
+  ChatPhaseEventOutput,
+  ChatPhaseOutput,
+  SavedRecordOutput
+} from '@tars/core/schemas/chat'
 import type { Database } from '@tars/db/client'
 import type {
   ChatInsert,
@@ -50,6 +55,14 @@ import { openAiMiddleware, protectedProcedure } from '../context'
 import { ChatFailedError } from '../errors'
 
 type DeskPhase = ChatPhaseOutput['phase']
+
+function phaseEvent(
+  phase: DeskPhase,
+  status: 'running' | 'completed',
+  durationMs: number | null
+): ChatPhaseEventOutput {
+  return { type: 'phase', phase, status, durationMs }
+}
 
 function observationRow(messageId: string, sequence: number, content: string): ChatThinkingInsert {
   return {
@@ -269,10 +282,13 @@ export const chatRouter = {
       }
 
       try {
+        yield phaseEvent('extract', 'running', null)
         const extracted = await runPhase('extract', deskContext)
+        yield phaseEvent('extract', 'completed', reports.at(-1)?.durationMs ?? null)
         let parsed = parseDeskOutput(extracted)
 
         if (!parsed.ok) {
+          yield phaseEvent('repair', 'running', null)
           const repaired = await runPhase(
             'repair',
             buildDeskRepairPrompt({
@@ -281,6 +297,7 @@ export const chatRouter = {
               output: parsed.output
             })
           )
+          yield phaseEvent('repair', 'completed', reports.at(-1)?.durationMs ?? null)
 
           parsed = parseDeskOutput(repaired)
         }
@@ -292,10 +309,12 @@ export const chatRouter = {
         let result = parsed.result
 
         if (needsDeskReview(input.content, result)) {
+          yield phaseEvent('review', 'running', null)
           const reviewed = await runPhase(
             'review',
             buildDeskReviewPrompt({ input: deskContext, draft: JSON.stringify(result) })
           )
+          yield phaseEvent('review', 'completed', reports.at(-1)?.durationMs ?? null)
           const reviewedResult = parseDeskOutput(reviewed)
 
           if (reviewedResult.ok) {
