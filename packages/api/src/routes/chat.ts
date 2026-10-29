@@ -11,8 +11,14 @@ import type {
   ChatThinkingInsert,
   ChatThinkingSelect
 } from '@tars/db/schema'
-import { META_CHAT_MAX_TOKENS, META_CHAT_MODEL } from '@tars/core/constants'
 import {
+  DESK_HISTORY_CHARS,
+  DESK_HISTORY_MESSAGES,
+  META_CHAT_MAX_TOKENS,
+  META_CHAT_MODEL
+} from '@tars/core/constants'
+import {
+  buildDeskContext,
   buildDeskExtractionPrompt,
   buildDeskRepairPrompt,
   buildDeskReviewPrompt
@@ -23,7 +29,11 @@ import {
   messageThinkingSchema,
   sendChatMessageSchema
 } from '@tars/core/schemas/chat'
-import { groupRecordsByMessage, saveDeskRecords } from '@tars/core/services/records'
+import {
+  groupRecordsByMessage,
+  loadDeskContextRecords,
+  saveDeskRecords
+} from '@tars/core/services/records'
 import { needsDeskReview, parseDeskOutput } from '@tars/core/utils/desk'
 import {
   chat,
@@ -49,6 +59,30 @@ function observationRow(messageId: string, sequence: number, content: string): C
     kind: 'observation' as const,
     content
   }
+}
+
+async function loadHistory(db: Database, chatId: string) {
+  const rows = await db
+    .select({ id: chatMessage.id, role: chatMessage.role, content: chatMessage.content })
+    .from(chatMessage)
+    .where(eq(chatMessage.chatId, chatId))
+    .orderBy(desc(chatMessage.createdAt))
+    .limit(DESK_HISTORY_MESSAGES)
+
+  const history: Array<{ id: string; role: 'user' | 'assistant'; content: string }> = []
+  let chars = 0
+
+  for (const row of rows) {
+    const content = row.content.trim()
+
+    if (!content) continue
+    if (history.length > 0 && chars + content.length > DESK_HISTORY_CHARS) break
+
+    history.unshift({ ...row, content })
+    chars += content.length
+  }
+
+  return history
 }
 
 async function findChat(db: Database, userId: string): Promise<Pick<ChatSelect, 'id'> | undefined> {
@@ -149,6 +183,17 @@ export const chatRouter = {
     .handler(async function* ({ input, context, signal, errors }) {
       const userId = context.session.user.id
       const chatId = await resolveChatId(context.db, userId)
+      const history = await loadHistory(context.db, chatId)
+      const contextRecords = await loadDeskContextRecords(
+        context.db,
+        userId,
+        history.filter((message) => message.role === 'assistant').map((message) => message.id)
+      )
+      const deskContext = buildDeskContext({
+        messages: history.map((message) => ({ role: message.role, content: message.content })),
+        records: contextRecords,
+        message: input.content
+      })
       const userMessageId = crypto.randomUUID()
       const assistantId = crypto.randomUUID()
 
@@ -224,7 +269,7 @@ export const chatRouter = {
       }
 
       try {
-        const extracted = await runPhase('extract', input.content)
+        const extracted = await runPhase('extract', deskContext)
         let parsed = parseDeskOutput(extracted)
 
         if (!parsed.ok) {
@@ -232,7 +277,7 @@ export const chatRouter = {
             'repair',
             buildDeskRepairPrompt({
               issues: parsed.issues,
-              message: input.content,
+              input: deskContext,
               output: parsed.output
             })
           )
@@ -249,7 +294,7 @@ export const chatRouter = {
         if (needsDeskReview(input.content, result)) {
           const reviewed = await runPhase(
             'review',
-            buildDeskReviewPrompt({ message: input.content, draft: JSON.stringify(result) })
+            buildDeskReviewPrompt({ input: deskContext, draft: JSON.stringify(result) })
           )
           const reviewedResult = parseDeskOutput(reviewed)
 

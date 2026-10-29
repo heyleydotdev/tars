@@ -6,6 +6,8 @@ export const META_ASR_MODEL = 'muse-voice-transcribe-1.0'
 export const META_MODEL_API_URL = 'https://api.meta.ai/v1'
 export const META_CHAT_MODEL = 'muse-spark-1.3'
 export const META_CHAT_MAX_TOKENS = 6_000
+export const DESK_HISTORY_MESSAGES = 20
+export const DESK_HISTORY_CHARS = 6_000
 
 export const DESK_PRIORITIES = ['low', 'medium', 'high'] as const
 

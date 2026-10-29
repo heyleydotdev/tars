@@ -33,8 +33,13 @@ export function parseDeskOutput(text: string): DeskParseResult {
 }
 
 export function needsDeskReview(message: string, result: DeskResultOutput): boolean {
-  const count =
-    result.todos.length + result.reminders.length + result.expenses.length + result.journals.length
+  const records = [...result.todos, ...result.reminders, ...result.expenses, ...result.journals]
+
+  if (result.deletions.length > 0 || records.some((record) => record.id !== null)) {
+    return true
+  }
+
+  const count = records.length
 
   if (count === 0) return false
   if (count > 1) return true

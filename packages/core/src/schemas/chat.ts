@@ -3,7 +3,13 @@ import * as z from 'zod'
 import { DESK_PRIORITIES } from '../constants'
 import { ERRORS } from '../errors'
 
+const recordIdSchema = z
+  .string()
+  .nullable()
+  .describe('Existing record id to edit; null for a new record')
+
 const todoRecordSchema = z.strictObject({
+  id: recordIdSchema,
   title: z.string(),
   notes: z.string().nullable(),
   dueAt: z.string().nullable(),
@@ -11,12 +17,14 @@ const todoRecordSchema = z.strictObject({
 })
 
 const reminderRecordSchema = z.strictObject({
+  id: recordIdSchema,
   title: z.string(),
   remindAt: z.string(),
   notes: z.string().nullable()
 })
 
 const expenseRecordSchema = z.strictObject({
+  id: recordIdSchema,
   description: z.string(),
   amount: z.number(),
   currency: z.string(),
@@ -25,6 +33,7 @@ const expenseRecordSchema = z.strictObject({
 })
 
 const journalRecordSchema = z.strictObject({
+  id: recordIdSchema,
   title: z.string().nullable(),
   content: z.string(),
   mood: z.string().nullable(),
@@ -37,7 +46,15 @@ export const deskResultSchema = z.strictObject({
   todos: z.array(todoRecordSchema),
   reminders: z.array(reminderRecordSchema),
   expenses: z.array(expenseRecordSchema),
-  journals: z.array(journalRecordSchema)
+  journals: z.array(journalRecordSchema),
+  deletions: z
+    .array(
+      z.object({
+        type: z.enum(['todo', 'reminder', 'expense', 'journal']),
+        id: z.string()
+      })
+    )
+    .describe('Existing records to remove')
 })
 
 export const deskResultJsonSchema = z.toJSONSchema(deskResultSchema, { target: 'draft-7' })
@@ -129,6 +146,14 @@ export type MessageThinkingInput = z.input<typeof messageThinkingSchema>
 export type MessageThinkingOutput = z.output<typeof messageThinkingSchema>
 export type TranscribeInput = z.input<typeof transcribeSchema>
 export type TranscribeOutput = z.output<typeof transcribeSchema>
+
+type WithId<T> = Omit<T, 'id'> & { id: string }
+
+export type DeskContextRecord =
+  | ({ type: 'todo' } & WithId<TodoRecordOutput>)
+  | ({ type: 'reminder' } & WithId<ReminderRecordOutput>)
+  | ({ type: 'expense' } & WithId<ExpenseRecordOutput>)
+  | ({ type: 'journal' } & WithId<JournalRecordOutput>)
 
 export type ChatMessage = {
   id: string
