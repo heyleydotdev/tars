@@ -11,6 +11,7 @@ import {
 import { useSendChatMessage } from '../lib/chat'
 import { useComposerStore } from '../stores/composer'
 import { isVoicePaused, useVoiceStore } from '../stores/voice'
+import DeskSuggestions from './desk-suggestions'
 
 export default function AgentComposer() {
   const formRef = useRef<HTMLFormElement>(null)
@@ -34,62 +35,75 @@ export default function AgentComposer() {
     clear()
   }
 
+  const handleSuggestion = (suggestion: string): void => {
+    if (sendMessage.isPending || isTranscribing) return
+
+    pause()
+    sendMessage.mutate(suggestion)
+    clear()
+  }
+
   return (
     <div className="bg-sidebar shrink-0 p-3">
-      <form
-        ref={formRef}
-        className="mx-auto w-full max-w-3xl"
-        onSubmit={(event) => {
-          event.preventDefault()
-          handleSend()
-        }}
-      >
-        <InputGroup>
-          <InputGroupTextarea
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault()
-                formRef.current?.requestSubmit()
-              }
-            }}
-            placeholder={isTranscribing ? 'Transcribing…' : 'Ask TARS anything…'}
-            className="max-h-56 min-h-9 p-3"
-            rows={1}
-            aria-label="Message Agent"
-            disabled={isTranscribing}
-            onPointerDown={() => {
-              if (!isPaused) {
-                togglePaused()
-              }
-            }}
-          />
-          <InputGroupAddon align="block-end">
-            <InputGroupButton
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              className={`rounded-full ${isPaused ? 'text-muted-foreground' : 'text-foreground after:bg-primary/50 relative after:absolute after:inset-0 after:animate-pulse after:rounded-[inherit]'}`}
-              aria-pressed={isPaused}
-              aria-label={isPaused ? 'Resume voice commands' : 'Pause voice commands'}
-              onClick={togglePaused}
-            >
-              {isPaused ? <MicOffIcon /> : <MicIcon />}
-            </InputGroupButton>
-            <InputGroupButton
-              type="submit"
-              size="icon-sm"
-              variant="default"
-              className="ml-auto rounded-full"
-              aria-label="Send message"
-              disabled={!canSend}
-            >
-              <ArrowUpIcon />
-            </InputGroupButton>
-          </InputGroupAddon>
-        </InputGroup>
-      </form>
+      <div className="mx-auto w-full max-w-3xl">
+        <DeskSuggestions
+          disabled={sendMessage.isPending || isTranscribing}
+          onSelect={handleSuggestion}
+        />
+        <form
+          ref={formRef}
+          onSubmit={(event) => {
+            event.preventDefault()
+            handleSend()
+          }}
+        >
+          <InputGroup>
+            <InputGroupTextarea
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
+                  formRef.current?.requestSubmit()
+                }
+              }}
+              placeholder={isTranscribing ? 'Transcribing…' : 'Ask TARS anything…'}
+              className="max-h-56 min-h-9 p-3"
+              rows={1}
+              aria-label="Message Agent"
+              disabled={isTranscribing}
+              onPointerDown={() => {
+                if (!isPaused) {
+                  togglePaused()
+                }
+              }}
+            />
+            <InputGroupAddon align="block-end">
+              <InputGroupButton
+                type="button"
+                size="icon-sm"
+                variant="outline"
+                className={`rounded-full ${isPaused ? 'text-muted-foreground' : 'text-foreground after:bg-primary/50 relative after:absolute after:inset-0 after:animate-pulse after:rounded-[inherit]'}`}
+                aria-pressed={isPaused}
+                aria-label={isPaused ? 'Resume voice commands' : 'Pause voice commands'}
+                onClick={togglePaused}
+              >
+                {isPaused ? <MicOffIcon /> : <MicIcon />}
+              </InputGroupButton>
+              <InputGroupButton
+                type="submit"
+                size="icon-sm"
+                variant="default"
+                className="ml-auto rounded-full"
+                aria-label="Send message"
+                disabled={!canSend}
+              >
+                <ArrowUpIcon />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        </form>
+      </div>
     </div>
   )
 }
