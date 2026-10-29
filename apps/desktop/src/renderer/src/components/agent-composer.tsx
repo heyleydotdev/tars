@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { ArrowUpIcon, MicIcon, MicOffIcon } from 'lucide-react'
 
+import { CHAT_MESSAGE_MAX_LENGTH } from '@tars/core/constants'
 import {
   InputGroup,
   InputGroupAddon,
@@ -70,6 +71,7 @@ export default function AgentComposer() {
               placeholder={isTranscribing ? 'Transcribing…' : 'Ask TARS anything…'}
               className="max-h-56 min-h-9 p-3"
               rows={1}
+              maxLength={CHAT_MESSAGE_MAX_LENGTH}
               aria-label="Message Agent"
               disabled={isTranscribing}
               onPointerDown={() => {
