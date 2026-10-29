@@ -77,6 +77,7 @@
 - Renderer pages live in `apps/desktop/src/renderer/src/pages/`; no `-page` suffix.
 - Assistant replies render as markdown (`@tars/ui/components/markdown`); desk results are composed to markdown in `lib/desk.ts`, not per-response components.
 - Desk extraction receives the last 20 messages (6k-char cap) plus saved records with ids; edits reuse the id and removals go in `deletions`.
+- `chat.send` streams `phase` events around extract/repair/review; the renderer shows them with `PhaseProgress` (Trace).
 - Renderer routes live in `src/renderer/src/routes.tsx` (`createHashRouter`); Electron serves `file://`, so React Router framework/SPA history routing is unavailable.
 - Global state lives in `src/renderer/src/stores/*` (Zustand); select multiple fields with `useShallow`.
 - `stores/auth.ts` holds only the session; auth actions live in `src/renderer/src/lib/auth.ts`. Protected pages call `useUser()`, which reads the session from the `RequireAuth` outlet context — no null checks in pages.
