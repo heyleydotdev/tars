@@ -75,3 +75,10 @@ export const chatThinkingRelations = relations(chatThinking, ({ one }) => ({
     references: [chatMessage.id]
   })
 }))
+
+export type ChatInsert = typeof chat.$inferInsert
+export type ChatSelect = typeof chat.$inferSelect
+export type ChatMessageInsert = typeof chatMessage.$inferInsert
+export type ChatMessageSelect = typeof chatMessage.$inferSelect
+export type ChatThinkingInsert = typeof chatThinking.$inferInsert
+export type ChatThinkingSelect = typeof chatThinking.$inferSelect

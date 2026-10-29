@@ -15,6 +15,13 @@
       "when": 1793195541584,
       "tag": "0001_outstanding_ultimo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793214218836,
+      "tag": "0002_groovy_moonstone",
+      "breakpoints": true
     }
   ]
 }
