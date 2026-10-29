@@ -1,10 +1,13 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+@import 'streamdown/styles.css';
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/dm-sans';
 
 @custom-variant dark (&:is(.dark *));
+
+@source '../../node_modules/streamdown/dist/*.js';
 
 @theme inline {
   --font-heading: 'DM Sans Variable', sans-serif;
