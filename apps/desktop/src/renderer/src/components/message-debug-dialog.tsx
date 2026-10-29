@@ -60,7 +60,7 @@ export default function MessageDebugDialog(props: {
           <DialogTitle>Message debug</DialogTitle>
           <DialogDescription>Status: {status}</DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-96 flex-col gap-2 overflow-auto">
+        <div className="-mx-4 flex max-h-[50vh] flex-col gap-2 overflow-y-auto px-4">
           {thinking.isPending ? (
             <p className="text-muted-foreground text-xs">Loading…</p>
           ) : thinking.data?.length ? (
