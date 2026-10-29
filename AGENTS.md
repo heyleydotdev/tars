@@ -62,6 +62,15 @@
 - `packages/ui` needs `vite.config.ts` so the shadcn CLI detects a Vite project.
 - Apps importing `@tars/ui/globals.css` must add `@source` for `packages/ui/src`, or Tailwind drops the package's classes.
 
+## Core Package
+
+- `@tars/core` is the shared point; apps and packages import from it instead of growing their own service/util layers.
+- `src/services/*` is server-side only (D1, server orchestration) and is the only core area allowed to import `@tars/db`.
+- `src/utils/*` is pure and shared across renderer, main, and Worker: no DB, OpenAI, Electron, or React.
+- Group helpers by category, one file per category (`format.ts` for dates/numbers/JSON, `string.ts` for strings/URLs); never one file per function.
+- Every schema exports `XInput`/`XOutput` (`z.input`/`z.output`), even when unused; consumers use those types instead of re-inferring.
+- Every table in `packages/db/src/schema/*` except `auth.ts` exports `<Table>Insert`/`<Table>Select`; consumers use those instead of `$inferInsert`/`$inferSelect`.
+
 ## Key Conventions
 
 - File and directory names are lowercase kebab-case; tool-dictated names excepted.
@@ -70,7 +79,7 @@
 - Global state lives in `src/renderer/src/stores/*` (Zustand); select multiple fields with `useShallow`.
 - `stores/auth.ts` holds only the session; auth actions live in `src/renderer/src/lib/auth.ts`. Protected pages call `useUser()`, which reads the session from the `RequireAuth` outlet context — no null checks in pages.
 - Preload exposes top-level bridges (`getSession`, `signIn`, `signUp`, `confirmSignOut`); `window.api` is window controls only.
-- Shared zod schemas and string utils live in `@tars/core` (`schemas/*`, `utils/*`); IPC payloads use its `LoginInput`/`RegisterInput` types instead of re-validating in main.
+- IPC payloads use `@tars/core` schema types (`LoginInput`/`RegisterInput`) instead of re-validating in main.
 - Inline one-off parameter and prop types in the signature; no type alias unless reused.
 - Use `React.PropsWithChildren` for components that accept children.
 - Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.
