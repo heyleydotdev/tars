@@ -60,7 +60,7 @@ export default function TitleBar() {
     <header className="bg-sidebar border-sidebar-border relative z-60 flex h-(--title-bar-height) shrink-0 items-center border-b select-none [-webkit-app-region:drag]">
       {session ? (
         <div className="flex items-center gap-2 pl-2">
-          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md text-[10px] font-semibold">
+          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md text-xs font-semibold">
             TA
           </div>
           <span className="text-sm font-medium">TARS</span>

@@ -16,7 +16,7 @@ function PhaseCard({ phase }: { phase: ChatPhaseOutput }) {
     <section className="rounded-md border p-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-medium capitalize">{phase.phase}</h3>
-        <span className="text-muted-foreground text-[11px]">
+        <span className="text-muted-foreground text-xs">
           {phase.status ?? 'unknown'} · {formatDuration(phase.durationMs)}
         </span>
       </div>
@@ -25,7 +25,7 @@ function PhaseCard({ phase }: { phase: ChatPhaseOutput }) {
           {phase.reasoning}
         </p>
       ) : null}
-      <dl className="text-muted-foreground mt-2 grid grid-cols-3 gap-2 text-[11px]">
+      <dl className="text-muted-foreground mt-2 grid grid-cols-3 gap-2 text-xs">
         <div>
           <dt>Input</dt>
           <dd className="text-foreground">{phase.inputTokens ?? '—'}</dd>
@@ -39,7 +39,7 @@ function PhaseCard({ phase }: { phase: ChatPhaseOutput }) {
           <dd className="text-foreground">{phase.reasoningTokens ?? '—'}</dd>
         </div>
       </dl>
-      <p className="text-muted-foreground mt-2 text-[11px]">{phase.model}</p>
+      <p className="text-muted-foreground mt-2 text-xs">{phase.model}</p>
     </section>
   )
 }
