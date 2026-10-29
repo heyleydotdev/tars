@@ -3,6 +3,12 @@ const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short'
 })
 
+const timeFormat = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23'
+})
+
 const amountFormats = new Map<string, Intl.NumberFormat>()
 
 export function parseDate(value: string | null): Date | null {
@@ -17,6 +23,23 @@ export function formatDateTime(value: string): string {
   const date = parseDate(value)
 
   return date ? dateTimeFormat.format(date) : value
+}
+
+export function formatTime(value: string): string {
+  const date = parseDate(value)
+
+  return date ? timeFormat.format(date) : value
+}
+
+export function toDateKey(value: string | Date): string {
+  const date = typeof value === 'string' ? parseDate(value) : value
+
+  if (!date) return ''
+
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 export function formatDuration(durationMs: number): string {

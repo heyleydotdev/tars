@@ -9,6 +9,7 @@ export const META_CHAT_MAX_TOKENS = 6_000
 export const CHAT_MESSAGE_MAX_LENGTH = 4_000
 export const DESK_HISTORY_MESSAGES = 20
 export const DESK_HISTORY_CHARS = 6_000
+export const JOURNAL_ITEM_LIMIT = 100
 
 export const DESK_PRIORITIES = ['low', 'medium', 'high'] as const
 
