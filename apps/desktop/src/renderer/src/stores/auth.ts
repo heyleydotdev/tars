@@ -3,9 +3,15 @@ import { create } from 'zustand'
 
 import type { Session } from '@tars/auth/server'
 
+type AuthStore = {
+  session: Session | null | undefined
+  setSession: (session: Session | null | undefined) => void
+}
+
 // `undefined` means the session has not been restored yet.
-export const useAuthStore = create<{ session: Session | null | undefined }>(() => ({
-  session: undefined
+export const useAuthStore = create<AuthStore>()((set) => ({
+  session: undefined,
+  setSession: (session) => set({ session })
 }))
 
 // Only for routes under RequireAuth, which provides the session and redirects

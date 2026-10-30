@@ -9,7 +9,7 @@ type ComposerStore = {
   clear: () => void
 }
 
-export const useComposerStore = create<ComposerStore>((set) => ({
+export const useComposerStore = create<ComposerStore>()((set) => ({
   value: '',
   setValue: (value) => set({ value }),
   append: (text) =>

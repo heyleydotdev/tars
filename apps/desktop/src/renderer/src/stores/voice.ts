@@ -13,7 +13,7 @@ type VoiceStore = {
   resume: () => void
 }
 
-export const useVoiceStore = create<VoiceStore>((set) => ({
+export const useVoiceStore = create<VoiceStore>()((set) => ({
   windowFocused: true,
   userPaused: true,
   isTranscribing: false,
