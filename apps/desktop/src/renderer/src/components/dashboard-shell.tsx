@@ -4,6 +4,7 @@ import {
   ChartNoAxesColumnIcon,
   LogOutIcon,
   NotebookPenIcon,
+  RulerIcon,
   SearchIcon,
   WalletIcon
 } from 'lucide-react'
@@ -49,12 +50,23 @@ import ConfirmDialog from './confirm-dialog'
 import DeskChatPanel from './desk-chat-panel'
 import ShellAlert from './shell-alert'
 
-const destinations = [
-  { title: 'Desk', to: '/', icon: BotIcon },
-  { title: 'Journal', to: '/journal', icon: NotebookPenIcon },
-  { title: 'Expenses', to: '/expenses', icon: WalletIcon },
-  { title: 'Stats', to: '/stats', icon: ChartNoAxesColumnIcon }
+const navigation = [
+  {
+    label: 'Notebook',
+    items: [
+      { title: 'Desk', to: '/', icon: BotIcon },
+      { title: 'Journal', to: '/journal', icon: NotebookPenIcon },
+      { title: 'Expenses', to: '/expenses', icon: WalletIcon },
+      { title: 'Stats', to: '/stats', icon: ChartNoAxesColumnIcon }
+    ]
+  },
+  {
+    label: 'Developer Kit',
+    items: [{ title: 'Measure', to: '/measure', icon: RulerIcon }]
+  }
 ]
+
+const destinations = navigation.flatMap((group) => group.items)
 
 function UserIdentity({ name, email }: { name: string; email: string }) {
   return (
@@ -97,32 +109,34 @@ function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Notebook</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {destinations.map((item) => {
-                const Icon = item.icon
+        {navigation.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => {
+                  const Icon = item.icon
 
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={active === item.title}
-                      tooltip={item.title}
-                      onClick={() => {
-                        onSelect(item.to)
-                        if (isMobile) setOpenMobile(false)
-                      }}
-                    >
-                      <Icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        isActive={active === item.title}
+                        tooltip={item.title}
+                        onClick={() => {
+                          onSelect(item.to)
+                          if (isMobile) setOpenMobile(false)
+                        }}
+                      >
+                        <Icon />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>

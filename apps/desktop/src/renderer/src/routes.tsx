@@ -5,6 +5,7 @@ import Desk from './pages/desk'
 import Expenses from './pages/expenses'
 import Journal from './pages/journal'
 import Login from './pages/login'
+import Measure from './pages/measure'
 import Register from './pages/register'
 import Stats from './pages/stats'
 
@@ -22,7 +23,8 @@ export const router = createHashRouter([
       { path: '/', element: <Desk /> },
       { path: '/journal', element: <Journal /> },
       { path: '/expenses', element: <Expenses /> },
-      { path: '/stats', element: <Stats /> }
+      { path: '/stats', element: <Stats /> },
+      { path: '/measure', element: <Measure /> }
     ]
   },
   { path: '*', element: <Navigate to="/" replace /> }
