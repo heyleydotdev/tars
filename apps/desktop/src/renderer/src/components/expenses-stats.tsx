@@ -1,6 +1,5 @@
 import { capitalize } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
-import { cn } from '@tars/ui/lib/utils'
 
 import { categoryColor } from '../lib/expenses'
 import ConsoleHeader from './console-header'
@@ -38,16 +37,11 @@ export default function ExpensesStats({
               {currencies.map((code) => (
                 <Button
                   key={code}
-                  variant="ghost"
+                  variant={code === currency ? 'default' : 'ghost'}
                   size="xs"
                   onClick={() => onCurrencyChange(code)}
                   aria-pressed={code === currency}
-                  className={cn(
-                    'px-1.5',
-                    code === currency
-                      ? 'bg-foreground text-background hover:bg-foreground/90 hover:text-background'
-                      : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
-                  )}
+                  className="px-1.5"
                 >
                   {code}
                 </Button>

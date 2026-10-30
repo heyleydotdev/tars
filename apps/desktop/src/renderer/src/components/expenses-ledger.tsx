@@ -37,7 +37,7 @@ function ExpenseRow({
           {formatTime(at)}
         </time>
         <div className="min-w-0">
-          <p className="text-foreground font-sans text-sm/6 wrap-break-word">{item.title}</p>
+          <p className="text-foreground font-sans text-[0.8rem]/6 wrap-break-word">{item.title}</p>
           {item.description && item.description !== item.title ? (
             <p className="text-muted-foreground font-sans text-[0.8rem]/6 wrap-break-word">
               {item.description}
