@@ -6,6 +6,7 @@ import type {
   ReminderItemOutput,
   TodoItemOutput
 } from '@tars/core/schemas/journal'
+import { ERRORS } from '@tars/core/errors'
 import { toDateKey } from '@tars/core/utils/format'
 
 import ConfirmDialog from '../components/confirm-dialog'
@@ -84,8 +85,8 @@ export default function Journal() {
     if (!journal.isError || !journal.data) return
 
     showAlert({
-      title: 'Refresh failed',
-      description: 'Showing the last loaded journal.',
+      title: ERRORS.refreshFailed,
+      description: ERRORS.lastLoadedJournal,
       variant: 'destructive'
     })
   }, [journal.data, journal.isError, showAlert])
@@ -94,8 +95,8 @@ export default function Journal() {
     if (!setTodoDone.isError && !setReminderDone.isError) return
 
     showAlert({
-      title: 'Update failed',
-      description: 'Your change was rolled back. Try again.',
+      title: ERRORS.updateFailed,
+      description: ERRORS.changeRolledBack,
       variant: 'destructive'
     })
   }, [setReminderDone.isError, setTodoDone.isError, showAlert])
@@ -142,8 +143,8 @@ export default function Journal() {
       setDeleteTarget(null)
     } catch {
       showAlert({
-        title: 'Delete failed',
-        description: 'Nothing was removed. Try again.',
+        title: ERRORS.deleteFailed,
+        description: ERRORS.nothingRemoved,
         variant: 'destructive'
       })
     }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import type { ExpenseItemOutput, ExpenseListOutput } from '@tars/core/schemas/expenses'
+import { ERRORS } from '@tars/core/errors'
 import { formatCurrency, startOfMonth, toDateKey, toMonthKey } from '@tars/core/utils/format'
 
 import ConfirmDialog from '../components/confirm-dialog'
@@ -98,8 +99,8 @@ export default function Expenses() {
     if (!expenses.isError || !expenses.data) return
 
     showAlert({
-      title: 'Refresh failed',
-      description: 'Showing the last loaded expenses.',
+      title: ERRORS.refreshFailed,
+      description: ERRORS.lastLoadedExpenses,
       variant: 'destructive'
     })
   }, [expenses.data, expenses.isError, showAlert])
@@ -124,8 +125,8 @@ export default function Expenses() {
       setDeleteTarget(null)
     } catch {
       showAlert({
-        title: 'Delete failed',
-        description: 'Nothing was removed. Try again.',
+        title: ERRORS.deleteFailed,
+        description: ERRORS.nothingRemoved,
         variant: 'destructive'
       })
     }

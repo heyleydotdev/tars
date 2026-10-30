@@ -1,4 +1,5 @@
 import type { RegisterInput } from '@tars/core/schemas/auth'
+import { ERRORS } from '@tars/core/errors'
 
 import { useShellAlertStore } from '../stores/alert'
 import { useAuthStore } from '../stores/auth'
@@ -37,8 +38,8 @@ export async function signOut(): Promise<void> {
     useAuthStore.getState().setSession(null)
   } catch {
     useShellAlertStore.getState().showAlert({
-      title: 'Sign out failed',
-      description: 'Try again.',
+      title: ERRORS.signOutFailed,
+      description: ERRORS.tryAgain,
       variant: 'destructive'
     })
   }

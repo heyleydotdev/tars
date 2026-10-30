@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 
+import { ERRORS } from '@tars/core/errors'
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -23,11 +24,8 @@ export default function ChatArea() {
     if (!isError) return
 
     showAlert({
-      title: 'Chat unavailable',
-      description:
-        messages.length > 0
-          ? 'Showing the last loaded conversation.'
-          : 'Could not load your conversation. Try again.',
+      title: ERRORS.chatUnavailable,
+      description: messages.length > 0 ? ERRORS.chatShowingLast : ERRORS.chatLoadFailed,
       variant: 'destructive'
     })
   }, [isError, messages.length, showAlert])
