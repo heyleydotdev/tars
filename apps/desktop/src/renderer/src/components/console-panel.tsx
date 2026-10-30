@@ -5,14 +5,12 @@ export default function ConsolePanel({
   count,
   accent,
   className,
-  actions,
   children
 }: React.PropsWithChildren<{
   title: string
   count?: string
   accent: string
   className?: string
-  actions?: React.ReactNode
 }>) {
   return (
     <section className={cn('bg-background flex min-h-0 flex-col lg:h-auto', className)}>
@@ -23,18 +21,8 @@ export default function ConsolePanel({
           <span className="text-muted-foreground font-mono text-xs tabular-nums">[{count}]</span>
         ) : null}
         <span aria-hidden className="bg-border ml-auto h-px w-8" />
-        {actions}
       </header>
       <div className="console-scroll min-h-0 flex-1 lg:overflow-y-auto">{children}</div>
     </section>
-  )
-}
-
-export function ConsoleEmpty({ title, hint }: { title: string; hint: string }) {
-  return (
-    <div className="text-muted-foreground flex h-full min-h-40 flex-col items-center justify-center gap-1 p-6 text-center text-xs">
-      <p className="text-muted-foreground">// {title}</p>
-      <p>{hint}</p>
-    </div>
   )
 }
