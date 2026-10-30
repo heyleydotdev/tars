@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CreateMeasureReferenceInput,
   MeasureReferenceListOutput,
-  MeasureRequestInput
+  MeasureRequestInput,
+  MeasureResultOutput
 } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
 
@@ -20,6 +21,17 @@ export type PreparedMeasureImage = {
   dataUrl: string
   width: number
   height: number
+  name: string
+}
+
+export type MeasureBatchStatus = 'idle' | 'measuring' | 'done' | 'error'
+
+export type MeasureBatchItem = {
+  id: string
+  photo: PreparedMeasureImage
+  status: MeasureBatchStatus
+  result: MeasureResultOutput | null
+  error: string | null
 }
 
 export function formatMm(value: number): string {
@@ -60,7 +72,8 @@ export async function prepareMeasureImage(file: File): Promise<PreparedMeasureIm
   return {
     dataUrl: canvas.toDataURL('image/jpeg', 0.9),
     width,
-    height
+    height,
+    name: file.name
   }
 }
 

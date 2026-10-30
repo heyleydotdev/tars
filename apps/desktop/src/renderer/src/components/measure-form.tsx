@@ -1,20 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
-import { PlusIcon, RulerIcon } from 'lucide-react'
+import { ImagePlusIcon, PlusIcon, RulerIcon } from 'lucide-react'
 
 import type { MeasureFormOutput, MeasureReferenceItemOutput } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
 import { measureFormSchema } from '@tars/core/schemas/measure'
 import { titleCase } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel
-} from '@tars/ui/components/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/field'
 import { Input } from '@tars/ui/components/input'
+import { InputGroup, InputGroupAddon, InputGroupButton } from '@tars/ui/components/input-group'
 import {
   Select,
   SelectContent,
@@ -24,10 +19,12 @@ import {
 } from '@tars/ui/components/select'
 import { Spinner } from '@tars/ui/components/spinner'
 
-import { useMeasureReferences } from '../lib/measure'
+import type { PreparedMeasureImage } from '../lib/measure'
+import { prepareMeasureImage, useMeasureReferences } from '../lib/measure'
 import { FormError } from './form-error'
 import MeasureReferenceDialog from './measure-reference-dialog'
 
+const DEFAULT_REFERENCE_ID = 'a4'
 const EMPTY_REFERENCES: Array<MeasureReferenceItemOutput> = []
 
 function referenceSummary(reference: MeasureReferenceItemOutput): string {
@@ -37,16 +34,19 @@ function referenceSummary(reference: MeasureReferenceItemOutput): string {
 export default function MeasureForm({
   photo,
   pending,
+  onPhotos,
   onMeasure,
   onChange
 }: {
   photo: boolean
   pending: boolean
+  onPhotos: (photos: Array<PreparedMeasureImage>) => void
   onMeasure: (values: MeasureFormOutput) => Promise<string | null>
   onChange: () => void
 }) {
   const [formError, setFormError] = useState<string | null>(null)
   const [addReferenceOpen, setAddReferenceOpen] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const references = useMeasureReferences()
   const items = references.data?.items ?? EMPTY_REFERENCES
   const form = useForm({
@@ -69,132 +69,183 @@ export default function MeasureForm({
   })
 
   useEffect(() => {
-    const first = items[0]
+    const fallback = items[0]
+    const defaultReference = items.find((reference) => reference.id === DEFAULT_REFERENCE_ID)
 
-    if (!first) return
+    if (!fallback) return
 
     const current = form.getFieldValue('referenceId')
 
     if (!items.some((reference) => reference.id === current)) {
-      form.setFieldValue('referenceId', first.id)
+      form.setFieldValue('referenceId', (defaultReference ?? fallback).id)
     }
   }, [form, items])
+
+  async function acceptFiles(files: Array<File>): Promise<void> {
+    if (files.length === 0) return
+
+    setFormError(null)
+
+    const photos: Array<PreparedMeasureImage> = []
+
+    for (const file of files) {
+      try {
+        photos.push(await prepareMeasureImage(file))
+      } catch (error) {
+        setFormError(error instanceof Error ? error.message : ERRORS.imageUnreadable)
+      }
+    }
+
+    if (photos.length > 0) onPhotos(photos)
+  }
 
   return (
     <>
       <form
-        className="flex flex-col gap-4"
+        className="bg-sidebar sticky bottom-0 z-20 border-t"
         onSubmit={(event) => {
           event.preventDefault()
           void form.handleSubmit()
         }}
       >
-        <FormError message={references.isError ? ERRORS.referencesUnavailable : formError} />
+        <div className="mx-auto w-full max-w-5xl space-y-3 p-3">
+          <FormError message={references.isError ? ERRORS.referencesUnavailable : formError} />
 
-        <FieldGroup className="gap-4">
-          <form.Field
-            name="referenceId"
-            children={(field) => {
-              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(event) => {
+              const files = [...(event.target.files ?? [])]
+              event.target.value = ''
+              void acceptFiles(files)
+            }}
+          />
 
-              return (
-                <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor="measure-reference">Reference</FieldLabel>
-                  <div className="flex gap-2">
-                    <Select
+          <FieldGroup className="gap-3 sm:flex-row sm:items-end">
+            <form.Field
+              name="referenceId"
+              children={(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <Field data-invalid={isInvalid} className="sm:w-56 sm:shrink-0">
+                    <FieldLabel htmlFor="measure-reference">Reference</FieldLabel>
+                    <InputGroup>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(value) => {
+                          if (typeof value !== 'string') return
+
+                          field.handleChange(value)
+                          setFormError(null)
+                          onChange()
+                        }}
+                        disabled={
+                          pending ||
+                          references.isPending ||
+                          references.isError ||
+                          items.length === 0
+                        }
+                      >
+                        <SelectTrigger
+                          id="measure-reference"
+                          data-slot="input-group-control"
+                          className="h-full min-w-0 flex-1 border-0 bg-transparent px-2.5 shadow-none ring-0 focus-visible:ring-0 dark:bg-transparent"
+                        >
+                          <SelectValue>
+                            {(value: string) => {
+                              const reference = items.find((item) => item.id === value)
+
+                              if (reference) return referenceSummary(reference)
+                              if (references.isPending) return 'Loading References…'
+                              if (references.isError) return 'References Unavailable'
+
+                              return 'No References'
+                            }}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {items.map((reference) => (
+                            <SelectItem key={reference.id} value={reference.id}>
+                              {referenceSummary(reference)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <InputGroupAddon align="inline-end" className="py-0 pr-1">
+                        <InputGroupButton
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Add Reference"
+                          disabled={pending}
+                          onClick={() => setAddReferenceOpen(true)}
+                        >
+                          <PlusIcon />
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                  </Field>
+                )
+              }}
+            />
+
+            <form.Field
+              name="prompt"
+              children={(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <Field data-invalid={isInvalid} className="min-w-0 flex-1">
+                    <FieldLabel htmlFor="measure-object">Object</FieldLabel>
+                    <Input
+                      id="measure-object"
                       value={field.state.value}
-                      onValueChange={(value) => {
-                        if (typeof value !== 'string') return
-
-                        field.handleChange(value)
+                      maxLength={80}
+                      placeholder="Cardboard Box"
+                      disabled={pending}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => {
+                        field.handleChange(event.target.value)
                         setFormError(null)
                         onChange()
                       }}
-                      disabled={
-                        pending || references.isPending || references.isError || items.length === 0
-                      }
-                    >
-                      <SelectTrigger id="measure-reference" className="min-w-0 flex-1">
-                        <SelectValue>
-                          {(value: string) => {
-                            const reference = items.find((item) => item.id === value)
+                      aria-invalid={isInvalid}
+                    />
+                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                  </Field>
+                )
+              }}
+            />
 
-                            if (reference) return referenceSummary(reference)
-                            if (references.isPending) return 'Loading References…'
-                            if (references.isError) return 'References Unavailable'
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => fileRef.current?.click()}
+            >
+              <ImagePlusIcon />
+              Browse
+            </Button>
 
-                            return 'No References'
-                          }}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {items.map((reference) => (
-                          <SelectItem key={reference.id} value={reference.id}>
-                            {referenceSummary(reference)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      aria-label="Add Reference"
-                      disabled={pending}
-                      onClick={() => setAddReferenceOpen(true)}
-                    >
-                      <PlusIcon />
-                    </Button>
-                  </div>
-                  {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-                </Field>
-              )
-            }}
-          />
-
-          <form.Field
-            name="prompt"
-            children={(field) => {
-              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
-
-              return (
-                <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor="measure-object">Object</FieldLabel>
-                  <Input
-                    id="measure-object"
-                    value={field.state.value}
-                    maxLength={80}
-                    placeholder="Cardboard Box"
-                    disabled={pending}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => {
-                      field.handleChange(event.target.value)
-                      setFormError(null)
-                      onChange()
-                    }}
-                    aria-invalid={isInvalid}
-                  />
-                  {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-                  <FieldDescription>short noun phrase, one concept</FieldDescription>
-                </Field>
-              )
-            }}
-          />
-
-          <form.Subscribe
-            selector={(state) => state.isSubmitting}
-            children={(isSubmitting) => (
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={!photo || pending || items.length === 0 || isSubmitting}
-              >
-                {isSubmitting || pending ? <Spinner /> : <RulerIcon />}
-                Measure
-              </Button>
-            )}
-          />
-        </FieldGroup>
+            <form.Subscribe
+              selector={(state) => state.isSubmitting}
+              children={(isSubmitting) => (
+                <Button
+                  type="submit"
+                  disabled={!photo || pending || items.length === 0 || isSubmitting}
+                >
+                  {isSubmitting || pending ? <Spinner /> : <RulerIcon />}
+                  Measure
+                </Button>
+              )}
+            />
+          </FieldGroup>
+        </div>
       </form>
 
       {addReferenceOpen ? (

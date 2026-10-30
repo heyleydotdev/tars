@@ -14,7 +14,7 @@ export default function MeasureGuideButton() {
   return (
     <Popover>
       <PopoverTrigger
-        render={<Button type="button" variant="ghost" size="icon-xs" aria-label="Guide" />}
+        render={<Button type="button" variant="outline" size="icon-sm" aria-label="Guide" />}
       >
         <InfoIcon />
       </PopoverTrigger>

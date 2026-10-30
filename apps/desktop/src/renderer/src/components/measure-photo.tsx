@@ -1,108 +1,102 @@
-import { useRef, useState } from 'react'
 import { CameraIcon } from 'lucide-react'
 
-import type { MeasureResultOutput } from '@tars/core/schemas/measure'
-import { ERRORS } from '@tars/core/errors'
 import { Button } from '@tars/ui/components/button'
 import { Spinner } from '@tars/ui/components/spinner'
+import { cn } from '@tars/ui/lib/utils'
 
-import type { PreparedMeasureImage } from '../lib/measure'
-import { prepareMeasureImage } from '../lib/measure'
-import { FormError } from './form-error'
+import type { MeasureBatchItem } from '../lib/measure'
+import EmptyState from './empty-state'
 import MeasureOverlay from './measure-overlay'
 
 export default function MeasurePhoto({
-  photo,
-  result,
+  items,
+  selectedId,
   pending,
-  onPhoto
+  onSelect,
+  onRemove
 }: {
-  photo: PreparedMeasureImage | null
-  result: MeasureResultOutput | null
+  items: Array<MeasureBatchItem>
+  selectedId: string | null
   pending: boolean
-  onPhoto: (photo: PreparedMeasureImage | null) => void
+  onSelect: (id: string) => void
+  onRemove: (id: string) => void
 }) {
-  const [error, setError] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  async function acceptFile(file: File | undefined): Promise<void> {
-    if (!file) return
-
-    setError(null)
-
-    try {
-      onPhoto(await prepareMeasureImage(file))
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : ERRORS.imageUnreadable)
-    }
+  if (items.length === 0) {
+    return (
+      <EmptyState title="No Photos Yet" hint="Browse from the measure bar." icon={CameraIcon} />
+    )
   }
+
+  const selected = items.find((item) => item.id === selectedId) ?? items[0]
 
   return (
     <div className="space-y-3 p-3">
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0]
-          event.target.value = ''
-          void acceptFile(file)
-        }}
-      />
-
-      <FormError message={error} />
-
-      {photo ? (
-        <>
-          <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="text-muted-foreground font-mono tabular-nums">
-              {photo.width}×{photo.height}px
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="xs"
-                disabled={pending}
-                onClick={() => fileRef.current?.click()}
-              >
-                Replace
-              </Button>
-              <Button variant="ghost" size="xs" disabled={pending} onClick={() => onPhoto(null)}>
-                Clear
-              </Button>
-            </div>
-          </div>
-
-          <div className="border-border relative border">
-            {result ? (
-              <MeasureOverlay image={photo.dataUrl} result={result} />
-            ) : (
-              <img src={photo.dataUrl} alt="Photo to measure" className="block w-full" />
+      <div className="flex scrollbar-none gap-2 overflow-x-auto pb-1">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={item.id === selected?.id}
+            aria-label={item.photo.name}
+            onClick={() => onSelect(item.id)}
+            className={cn(
+              'relative h-14 w-20 shrink-0 overflow-hidden border transition-opacity',
+              item.id === selected?.id ? 'border-emerald-400' : 'border-border opacity-70',
+              item.status === 'error' && 'border-destructive'
             )}
-            {pending ? (
+          >
+            <img src={item.photo.dataUrl} alt="" className="size-full object-cover" />
+            {item.status === 'measuring' ? (
+              <span className="bg-background/60 absolute inset-0 flex items-center justify-center">
+                <Spinner className="size-3" />
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="text-muted-foreground min-w-0 truncate" title={selected?.photo.name}>
+          {selected?.photo.name}
+        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-muted-foreground font-mono tabular-nums">
+            {selected?.photo.width}×{selected?.photo.height}px
+          </span>
+          <Button
+            variant="ghost"
+            size="xs"
+            disabled={pending || !selected}
+            onClick={() => {
+              if (selected) onRemove(selected.id)
+            }}
+          >
+            Remove
+          </Button>
+        </div>
+      </div>
+
+      {selected ? (
+        <>
+          <div className="border-border relative border">
+            {selected.result ? (
+              <MeasureOverlay image={selected.photo.dataUrl} result={selected.result} />
+            ) : (
+              <img
+                src={selected.photo.dataUrl}
+                alt={selected.photo.name}
+                className="block w-full"
+              />
+            )}
+            {selected.status === 'measuring' ? (
               <div className="bg-background/60 absolute inset-0 flex items-center justify-center">
                 <Spinner className="text-amber-300" />
               </div>
             ) : null}
           </div>
+          {selected.error ? <p className="text-destructive text-xs">{selected.error}</p> : null}
         </>
-      ) : (
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
-            event.preventDefault()
-            void acceptFile(event.dataTransfer.files[0])
-          }}
-          className="border-border hover:bg-muted/20 focus-visible:ring-ring/50 flex min-h-80 w-full flex-col items-center justify-center gap-3 border border-dashed p-6 text-center transition-colors focus-visible:ring-1 focus-visible:outline-none"
-        >
-          <CameraIcon className="text-muted-foreground size-6" />
-          <span className="text-foreground text-xs">Drop a Top-Down Photo</span>
-          <span className="text-muted-foreground text-xs">Click to Browse · Resized to 1600px</span>
-        </button>
-      )}
+      ) : null}
     </div>
   )
 }
