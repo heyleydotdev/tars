@@ -72,7 +72,7 @@ export const expense = sqliteTable(
     amountCents: integer('amount_cents').notNull(),
     currency: text('currency').notNull().default('USD'),
     category: text('category'),
-    occurredAt: integer('occurred_at', { mode: 'timestamp_ms' }),
+    occurredAt: integer('occurred_at', { mode: 'timestamp_ms' }).notNull(),
     createdAt
   },
   (table) => [
@@ -95,7 +95,7 @@ export const journalEntry = sqliteTable(
     content: text('content').notNull(),
     mood: text('mood'),
     tags: text('tags').notNull().default('[]'),
-    occurredAt: integer('occurred_at', { mode: 'timestamp_ms' }),
+    occurredAt: integer('occurred_at', { mode: 'timestamp_ms' }).notNull(),
     createdAt
   },
   (table) => [

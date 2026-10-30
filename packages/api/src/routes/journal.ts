@@ -3,7 +3,14 @@ import { ORPCError } from '@orpc/client'
 import type { JournalPageOutput, RecordDoneOutput } from '@tars/core/schemas/journal'
 import type { JournalEntrySelect, ReminderSelect, TodoSelect } from '@tars/db/schema'
 import { JOURNAL_ITEM_LIMIT } from '@tars/core/constants'
-import { recordDoneSchema } from '@tars/core/schemas/journal'
+import {
+  recordDoneSchema,
+  updateJournalSchema,
+  updateReminderSchema,
+  updateTodoSchema
+} from '@tars/core/schemas/journal'
+import { deleteRecordSchema } from '@tars/core/schemas/records'
+import { parseDate } from '@tars/core/utils/format'
 import { journalEntry, reminder, todo } from '@tars/db/schema'
 import { and, desc, eq } from '@tars/db/sql'
 
@@ -13,7 +20,7 @@ type TodoRow = Pick<TodoSelect, 'id' | 'title' | 'status' | 'dueAt' | 'priority'
 type ReminderRow = Pick<ReminderSelect, 'id' | 'title' | 'remindAt' | 'status' | 'createdAt'>
 type JournalRow = Pick<
   JournalEntrySelect,
-  'id' | 'title' | 'content' | 'mood' | 'tags' | 'occurredAt' | 'createdAt'
+  'id' | 'title' | 'content' | 'mood' | 'tags' | 'occurredAt'
 >
 
 const todoColumns = {
@@ -37,8 +44,7 @@ const journalColumns = {
   content: journalEntry.content,
   mood: journalEntry.mood,
   tags: journalEntry.tags,
-  occurredAt: journalEntry.occurredAt,
-  createdAt: journalEntry.createdAt
+  occurredAt: journalEntry.occurredAt
 }
 
 function parseTags(value: string): Array<string> {
@@ -86,8 +92,7 @@ function journalItem(row: JournalRow): JournalPageOutput['journals'][number] {
     content: row.content,
     mood: row.mood,
     tags: parseTags(row.tags),
-    occurredAt: row.occurredAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString()
+    occurredAt: row.occurredAt.toISOString()
   }
 }
 
@@ -106,7 +111,7 @@ function byJournalDate(
   left: JournalPageOutput['journals'][number],
   right: JournalPageOutput['journals'][number]
 ): number {
-  return (right.occurredAt ?? right.createdAt).localeCompare(left.occurredAt ?? left.createdAt)
+  return right.occurredAt.localeCompare(left.occurredAt)
 }
 
 export const journalRouter = {
@@ -128,7 +133,7 @@ export const journalRouter = {
         .select(journalColumns)
         .from(journalEntry)
         .where(eq(journalEntry.userId, userId))
-        .orderBy(desc(journalEntry.createdAt))
+        .orderBy(desc(journalEntry.occurredAt))
         .limit(JOURNAL_ITEM_LIMIT)
     ])
 
@@ -138,6 +143,112 @@ export const journalRouter = {
       journals: journals.map(journalItem).sort(byJournalDate)
     }
   }),
+
+  updateEntry: protectedProcedure
+    .input(updateJournalSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const updated: Array<{ id: string }> = await context.db
+        .update(journalEntry)
+        .set({
+          title: input.title,
+          content: input.content,
+          mood: input.mood,
+          tags: JSON.stringify(input.tags),
+          occurredAt: new Date(input.occurredAt)
+        })
+        .where(and(eq(journalEntry.id, input.id), eq(journalEntry.userId, context.session.user.id)))
+        .returning({ id: journalEntry.id })
+
+      if (updated.length === 0) {
+        throw new ORPCError('NOT_FOUND')
+      }
+
+      return { id: input.id }
+    }),
+
+  updateTodo: protectedProcedure
+    .input(updateTodoSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const updated: Array<{ id: string }> = await context.db
+        .update(todo)
+        .set({
+          title: input.title,
+          dueAt: parseDate(input.dueAt),
+          priority: input.priority
+        })
+        .where(and(eq(todo.id, input.id), eq(todo.userId, context.session.user.id)))
+        .returning({ id: todo.id })
+
+      if (updated.length === 0) {
+        throw new ORPCError('NOT_FOUND')
+      }
+
+      return { id: input.id }
+    }),
+
+  updateReminder: protectedProcedure
+    .input(updateReminderSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const updated: Array<{ id: string }> = await context.db
+        .update(reminder)
+        .set({
+          title: input.title,
+          remindAt: new Date(input.remindAt)
+        })
+        .where(and(eq(reminder.id, input.id), eq(reminder.userId, context.session.user.id)))
+        .returning({ id: reminder.id })
+
+      if (updated.length === 0) {
+        throw new ORPCError('NOT_FOUND')
+      }
+
+      return { id: input.id }
+    }),
+
+  deleteEntry: protectedProcedure
+    .input(deleteRecordSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const deleted: Array<{ id: string }> = await context.db
+        .delete(journalEntry)
+        .where(and(eq(journalEntry.id, input.id), eq(journalEntry.userId, context.session.user.id)))
+        .returning({ id: journalEntry.id })
+
+      if (deleted.length === 0) {
+        throw new ORPCError('NOT_FOUND')
+      }
+
+      return { id: input.id }
+    }),
+
+  deleteTodo: protectedProcedure
+    .input(deleteRecordSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const deleted: Array<{ id: string }> = await context.db
+        .delete(todo)
+        .where(and(eq(todo.id, input.id), eq(todo.userId, context.session.user.id)))
+        .returning({ id: todo.id })
+
+      if (deleted.length === 0) {
+        throw new ORPCError('NOT_FOUND')
+      }
+
+      return { id: input.id }
+    }),
+
+  deleteReminder: protectedProcedure
+    .input(deleteRecordSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const deleted: Array<{ id: string }> = await context.db
+        .delete(reminder)
+        .where(and(eq(reminder.id, input.id), eq(reminder.userId, context.session.user.id)))
+        .returning({ id: reminder.id })
+
+      if (deleted.length === 0) {
+        throw new ORPCError('NOT_FOUND')
+      }
+
+      return { id: input.id }
+    }),
 
   setTodoDone: protectedProcedure
     .input(recordDoneSchema)

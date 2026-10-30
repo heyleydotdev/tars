@@ -9,15 +9,29 @@ export const expenseItemSchema = z.object({
   amountCents: z.number(),
   currency: z.string().trim().min(1),
   category: z.enum(EXPENSE_CATEGORIES),
-  occurredAt: z.string().nullable(),
-  createdAt: z.string().min(1)
+  occurredAt: z.string().min(1)
 })
 
 export const expenseListSchema = z.object({
   items: z.array(expenseItemSchema)
 })
 
+export const updateExpenseSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().trim().min(1),
+  description: z.string().trim(),
+  amount: z.number().positive(),
+  currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{3}$/),
+  category: z.enum(EXPENSE_CATEGORIES),
+  occurredAt: z.string().datetime({ offset: true })
+})
+
 export type ExpenseItemInput = z.input<typeof expenseItemSchema>
 export type ExpenseItemOutput = z.output<typeof expenseItemSchema>
 export type ExpenseListInput = z.input<typeof expenseListSchema>
 export type ExpenseListOutput = z.output<typeof expenseListSchema>
+export type UpdateExpenseInput = z.input<typeof updateExpenseSchema>
+export type UpdateExpenseOutput = z.output<typeof updateExpenseSchema>

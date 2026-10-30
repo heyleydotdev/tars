@@ -71,7 +71,7 @@ function expenseValues(record: ExpenseRecordOutput) {
     amountCents: Math.round(record.amount * 100),
     currency: record.currency || 'USD',
     category: record.category,
-    occurredAt: parseDate(record.occurredAt)
+    occurredAt: parseDate(record.occurredAt) ?? new Date()
   }
 }
 
@@ -81,7 +81,7 @@ function journalValues(record: JournalRecordOutput) {
     content: record.content,
     mood: record.mood,
     tags: JSON.stringify(record.tags),
-    occurredAt: parseDate(record.occurredAt)
+    occurredAt: parseDate(record.occurredAt) ?? new Date()
   }
 }
 
@@ -250,7 +250,7 @@ export async function loadDeskContextRecords(
       amount: record.amountCents / 100,
       currency: record.currency,
       category: normalizeExpenseCategory(record.category),
-      occurredAt: record.occurredAt?.toISOString() ?? null,
+      occurredAt: record.occurredAt.toISOString(),
       savedAt: formatZonedIso(record.createdAt, timezone).value,
       minutesAgo: Math.max(0, Math.round((Date.now() - record.createdAt.getTime()) / 60_000))
     })),
@@ -261,7 +261,7 @@ export async function loadDeskContextRecords(
       content: record.content,
       mood: record.mood,
       tags: JSON.parse(record.tags) as Array<string>,
-      occurredAt: record.occurredAt?.toISOString() ?? null
+      occurredAt: record.occurredAt.toISOString()
     }))
   ]
 }

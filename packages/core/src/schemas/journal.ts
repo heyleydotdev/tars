@@ -25,14 +25,35 @@ export const journalItemSchema = z.object({
   content: z.string(),
   mood: z.string().nullable(),
   tags: z.array(z.string()),
-  occurredAt: z.string().nullable(),
-  createdAt: z.string()
+  occurredAt: z.string().min(1)
 })
 
 export const journalPageSchema = z.object({
   todos: z.array(todoItemSchema),
   reminders: z.array(reminderItemSchema),
   journals: z.array(journalItemSchema)
+})
+
+export const updateTodoSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().trim().min(1),
+  dueAt: z.string().datetime({ offset: true }).nullable(),
+  priority: z.enum(DESK_PRIORITIES).nullable()
+})
+
+export const updateReminderSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().trim().min(1),
+  remindAt: z.string().datetime({ offset: true })
+})
+
+export const updateJournalSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().trim().min(1).nullable(),
+  content: z.string().trim().min(1),
+  mood: z.string().trim().min(1).nullable(),
+  tags: z.array(z.string().trim().min(1)),
+  occurredAt: z.string().datetime({ offset: true })
 })
 
 export const recordDoneSchema = z.object({
@@ -48,5 +69,11 @@ export type JournalItemInput = z.input<typeof journalItemSchema>
 export type JournalItemOutput = z.output<typeof journalItemSchema>
 export type JournalPageInput = z.input<typeof journalPageSchema>
 export type JournalPageOutput = z.output<typeof journalPageSchema>
+export type UpdateTodoInput = z.input<typeof updateTodoSchema>
+export type UpdateTodoOutput = z.output<typeof updateTodoSchema>
+export type UpdateReminderInput = z.input<typeof updateReminderSchema>
+export type UpdateReminderOutput = z.output<typeof updateReminderSchema>
+export type UpdateJournalInput = z.input<typeof updateJournalSchema>
+export type UpdateJournalOutput = z.output<typeof updateJournalSchema>
 export type RecordDoneInput = z.input<typeof recordDoneSchema>
 export type RecordDoneOutput = z.output<typeof recordDoneSchema>

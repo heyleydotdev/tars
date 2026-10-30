@@ -50,6 +50,27 @@ export function toMonthKey(value: string | Date): string {
   return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}`
 }
 
+export function toDateTimeLocal(value: string | Date | null): string {
+  const date = value ? (typeof value === 'string' ? parseDate(value) : value) : null
+
+  if (!date || Number.isNaN(date.getTime())) return ''
+
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  const hours = `${date.getHours()}`.padStart(2, '0')
+  const minutes = `${date.getMinutes()}`.padStart(2, '0')
+
+  return `${date.getFullYear()}-${month}-${day}T${hours}:${minutes}`
+}
+
+export function fromDateTimeLocal(value: string): string | null {
+  if (!value) return null
+
+  const date = new Date(value)
+
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
 export function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }
