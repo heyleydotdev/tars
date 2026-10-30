@@ -1,3 +1,5 @@
+import { ERRORS } from '../errors'
+
 const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short'
@@ -69,6 +71,14 @@ export function fromDateTimeLocal(value: string): string | null {
   const date = new Date(value)
 
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+export function fromDateTimeLocalRequired(value: string): string {
+  const date = fromDateTimeLocal(value)
+
+  if (!date) throw new Error(ERRORS.dateInvalid)
+
+  return date
 }
 
 export function startOfMonth(date: Date): Date {

@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { ORPCError } from '@orpc/client'
 import { useForm } from '@tanstack/react-form'
+import * as z from 'zod'
 
 import type { ExpenseItemOutput } from '@tars/core/schemas/expenses'
 import { EXPENSE_CATEGORIES } from '@tars/core/constants'
-import { updateExpenseSchema } from '@tars/core/schemas/expenses'
-import { fromDateTimeLocal, toDateTimeLocal } from '@tars/core/utils/format'
+import { ERRORS } from '@tars/core/errors'
+import {
+  fromDateTimeLocal,
+  fromDateTimeLocalRequired,
+  toDateTimeLocal
+} from '@tars/core/utils/format'
 import { capitalize } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
 import {
@@ -16,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@tars/ui/components/dialog'
-import { Field, FieldGroup, FieldLabel } from '@tars/ui/components/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/field'
 import { Input } from '@tars/ui/components/input'
 import {
   Select,
@@ -30,6 +35,21 @@ import { Textarea } from '@tars/ui/components/textarea'
 
 import { useUpdateExpense } from '../lib/expenses'
 import { FormError } from './form-error'
+
+const expenseFormSchema = z.object({
+  title: z.string().trim().min(1, ERRORS.expenseTitleRequired),
+  description: z.string(),
+  amount: z.number().positive(ERRORS.amountPositive),
+  currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{3}$/, ERRORS.currencyInvalid),
+  category: z.enum(EXPENSE_CATEGORIES),
+  occurredAt: z
+    .string()
+    .min(1, ERRORS.dateInvalid)
+    .refine((value) => fromDateTimeLocal(value) !== null, ERRORS.dateInvalid)
+})
 
 export default function ExpenseEditDialog({
   expense,
@@ -51,29 +71,23 @@ export default function ExpenseEditDialog({
       category: expense.category,
       occurredAt: toDateTimeLocal(expense.occurredAt)
     },
+    validators: { onSubmit: expenseFormSchema },
     onSubmit: async ({ value }) => {
       setFormError(null)
 
-      const parsed = updateExpenseSchema.safeParse({
-        id: expense.id,
-        title: value.title.trim(),
-        description: value.description.trim(),
-        amount: value.amount,
-        currency: value.currency.toUpperCase(),
-        category: value.category,
-        occurredAt: fromDateTimeLocal(value.occurredAt)
-      })
-
-      if (!parsed.success) {
-        setFormError(parsed.error.issues[0]?.message ?? 'Check the form and try again.')
-        return
-      }
-
       try {
-        await updateExpense.mutateAsync(parsed.data)
+        await updateExpense.mutateAsync({
+          id: expense.id,
+          title: value.title.trim(),
+          description: value.description.trim(),
+          amount: value.amount,
+          currency: value.currency.toUpperCase(),
+          category: value.category,
+          occurredAt: fromDateTimeLocalRequired(value.occurredAt)
+        })
         onOpenChange(false)
       } catch (error) {
-        setFormError(error instanceof ORPCError ? error.message : 'Could not save. Try again.')
+        setFormError(error instanceof ORPCError ? error.message : ERRORS.saveFailed)
       }
     }
   })
@@ -96,18 +110,23 @@ export default function ExpenseEditDialog({
           <FieldGroup>
             <form.Field
               name="title"
-              children={(field) => (
-                <Field>
-                  <FieldLabel htmlFor={field.name}>Title</FieldLabel>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    required
-                  />
-                </Field>
-              )}
+              children={(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>Title</FieldLabel>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      aria-invalid={isInvalid}
+                    />
+                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                  </Field>
+                )
+              }}
             />
             <form.Field
               name="description"
@@ -127,42 +146,46 @@ export default function ExpenseEditDialog({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_7rem]">
               <form.Field
                 name="amount"
-                children={(field) => (
-                  <Field>
-                    <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
-                    <Input
-                      id={field.name}
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(
-                          Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber
-                        )
-                      }
-                      required
-                    />
-                  </Field>
-                )}
+                children={(field) => {
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
+                      <Input
+                        id={field.name}
+                        type="number"
+                        step="0.01"
+                        value={Number.isNaN(field.state.value) ? '' : field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.valueAsNumber)}
+                        aria-invalid={isInvalid}
+                      />
+                      {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                    </Field>
+                  )
+                }}
               />
               <form.Field
                 name="currency"
-                children={(field) => (
-                  <Field>
-                    <FieldLabel htmlFor={field.name}>Currency</FieldLabel>
-                    <Input
-                      id={field.name}
-                      value={field.state.value}
-                      maxLength={3}
-                      pattern="[A-Za-z]{3}"
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value.toUpperCase())}
-                      required
-                    />
-                  </Field>
-                )}
+                children={(field) => {
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Currency</FieldLabel>
+                      <Input
+                        id={field.name}
+                        value={field.state.value}
+                        maxLength={3}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value.toUpperCase())}
+                        aria-invalid={isInvalid}
+                      />
+                      {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                    </Field>
+                  )
+                }}
               />
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -197,19 +220,24 @@ export default function ExpenseEditDialog({
               />
               <form.Field
                 name="occurredAt"
-                children={(field) => (
-                  <Field>
-                    <FieldLabel htmlFor={field.name}>Occurred at</FieldLabel>
-                    <Input
-                      id={field.name}
-                      type="datetime-local"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      required
-                    />
-                  </Field>
-                )}
+                children={(field) => {
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Occurred at</FieldLabel>
+                      <Input
+                        id={field.name}
+                        type="datetime-local"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        aria-invalid={isInvalid}
+                      />
+                      {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                    </Field>
+                  )
+                }}
               />
             </div>
           </FieldGroup>

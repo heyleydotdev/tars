@@ -30,7 +30,8 @@
     "@tars/auth": "workspace:*",
     "@tars/core": "workspace:*",
     "@tars/ui": "workspace:*",
-    "electron-updater": "^6.8.11"
+    "electron-updater": "^6.8.11",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@orpc/server": "catalog:",

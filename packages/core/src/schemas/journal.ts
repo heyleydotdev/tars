@@ -1,6 +1,7 @@
 import * as z from 'zod'
 
 import { DESK_PRIORITIES } from '../constants'
+import { ERRORS } from '../errors'
 
 export const todoItemSchema = z.object({
   id: z.string(),
@@ -36,24 +37,24 @@ export const journalPageSchema = z.object({
 
 export const updateTodoSchema = z.object({
   id: z.string().min(1),
-  title: z.string().trim().min(1),
-  dueAt: z.string().datetime({ offset: true }).nullable(),
+  title: z.string().trim().min(1, ERRORS.titleRequired),
+  dueAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid }).nullable(),
   priority: z.enum(DESK_PRIORITIES).nullable()
 })
 
 export const updateReminderSchema = z.object({
   id: z.string().min(1),
-  title: z.string().trim().min(1),
-  remindAt: z.string().datetime({ offset: true })
+  title: z.string().trim().min(1, ERRORS.titleRequired),
+  remindAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid })
 })
 
 export const updateJournalSchema = z.object({
   id: z.string().min(1),
-  title: z.string().trim().min(1).nullable(),
-  content: z.string().trim().min(1),
-  mood: z.string().trim().min(1).nullable(),
-  tags: z.array(z.string().trim().min(1)),
-  occurredAt: z.string().datetime({ offset: true })
+  title: z.string().trim().min(1, ERRORS.titleRequired).nullable(),
+  content: z.string().trim().min(1, ERRORS.contentRequired),
+  mood: z.string().trim().min(1, ERRORS.titleRequired).nullable(),
+  tags: z.array(z.string().trim().min(1, ERRORS.tagRequired)),
+  occurredAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid })
 })
 
 export const recordDoneSchema = z.object({

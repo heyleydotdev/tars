@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { ORPCError } from '@orpc/client'
 import { useForm } from '@tanstack/react-form'
+import * as z from 'zod'
 
 import type { ReminderItemOutput } from '@tars/core/schemas/journal'
-import { updateReminderSchema } from '@tars/core/schemas/journal'
-import { fromDateTimeLocal, toDateTimeLocal } from '@tars/core/utils/format'
+import { ERRORS } from '@tars/core/errors'
+import {
+  fromDateTimeLocal,
+  fromDateTimeLocalRequired,
+  toDateTimeLocal
+} from '@tars/core/utils/format'
 import { Button } from '@tars/ui/components/button'
 import {
   Dialog,
@@ -14,12 +19,20 @@ import {
   DialogHeader,
   DialogTitle
 } from '@tars/ui/components/dialog'
-import { Field, FieldGroup, FieldLabel } from '@tars/ui/components/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/field'
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
 
 import { useUpdateReminder } from '../lib/journal'
 import { FormError } from './form-error'
+
+const reminderFormSchema = z.object({
+  title: z.string().trim().min(1, ERRORS.titleRequired),
+  remindAt: z
+    .string()
+    .min(1, ERRORS.dateInvalid)
+    .refine((value) => fromDateTimeLocal(value) !== null, ERRORS.dateInvalid)
+})
 
 export default function ReminderEditDialog({
   reminder,
@@ -37,25 +50,19 @@ export default function ReminderEditDialog({
       title: reminder.title,
       remindAt: toDateTimeLocal(reminder.remindAt)
     },
+    validators: { onSubmit: reminderFormSchema },
     onSubmit: async ({ value }) => {
       setFormError(null)
 
-      const parsed = updateReminderSchema.safeParse({
-        id: reminder.id,
-        title: value.title.trim(),
-        remindAt: fromDateTimeLocal(value.remindAt)
-      })
-
-      if (!parsed.success) {
-        setFormError(parsed.error.issues[0]?.message ?? 'Check the form and try again.')
-        return
-      }
-
       try {
-        await updateReminder.mutateAsync(parsed.data)
+        await updateReminder.mutateAsync({
+          id: reminder.id,
+          title: value.title.trim(),
+          remindAt: fromDateTimeLocalRequired(value.remindAt)
+        })
         onOpenChange(false)
       } catch (error) {
-        setFormError(error instanceof ORPCError ? error.message : 'Could not save. Try again.')
+        setFormError(error instanceof ORPCError ? error.message : ERRORS.saveFailed)
       }
     }
   })
@@ -78,34 +85,44 @@ export default function ReminderEditDialog({
           <FieldGroup>
             <form.Field
               name="title"
-              children={(field) => (
-                <Field>
-                  <FieldLabel htmlFor={field.name}>Title</FieldLabel>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    required
-                  />
-                </Field>
-              )}
+              children={(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>Title</FieldLabel>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      aria-invalid={isInvalid}
+                    />
+                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                  </Field>
+                )
+              }}
             />
             <form.Field
               name="remindAt"
-              children={(field) => (
-                <Field>
-                  <FieldLabel htmlFor={field.name}>Remind at</FieldLabel>
-                  <Input
-                    id={field.name}
-                    type="datetime-local"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    required
-                  />
-                </Field>
-              )}
+              children={(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>Remind at</FieldLabel>
+                    <Input
+                      id={field.name}
+                      type="datetime-local"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      aria-invalid={isInvalid}
+                    />
+                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                  </Field>
+                )
+              }}
             />
           </FieldGroup>
 

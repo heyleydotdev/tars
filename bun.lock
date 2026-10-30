@@ -25,6 +25,7 @@
         "@tars/core": "workspace:*",
         "@tars/ui": "workspace:*",
         "electron-updater": "^6.8.11",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@orpc/server": "catalog:",
@@ -120,7 +121,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@tars/db": "workspace:*",
-        "zod": "4.6.7",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@tars/eslint": "workspace:*",
@@ -237,6 +238,7 @@
     "typescript": "5.9.3",
     "vite": "8.3.5",
     "wrangler": "4.148.0",
+    "zod": "4.6.7",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],

@@ -1,6 +1,7 @@
 import * as z from 'zod'
 
 import { EXPENSE_CATEGORIES } from '../constants'
+import { ERRORS } from '../errors'
 
 export const expenseItemSchema = z.object({
   id: z.string().min(1),
@@ -18,15 +19,15 @@ export const expenseListSchema = z.object({
 
 export const updateExpenseSchema = z.object({
   id: z.string().min(1),
-  title: z.string().trim().min(1),
+  title: z.string().trim().min(1, ERRORS.expenseTitleRequired),
   description: z.string().trim(),
-  amount: z.number().positive(),
+  amount: z.number().positive(ERRORS.amountPositive),
   currency: z
     .string()
     .trim()
-    .regex(/^[A-Z]{3}$/),
+    .regex(/^[A-Z]{3}$/, ERRORS.currencyInvalid),
   category: z.enum(EXPENSE_CATEGORIES),
-  occurredAt: z.string().datetime({ offset: true })
+  occurredAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid })
 })
 
 export type ExpenseItemInput = z.input<typeof expenseItemSchema>
