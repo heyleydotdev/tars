@@ -63,7 +63,9 @@ export default function MessageDebugDialog(props: {
         <div className="-mx-4 flex max-h-[50vh] flex-col gap-2 overflow-y-auto px-4">
           {thinking.isPending ? (
             <p className="text-muted-foreground text-xs">Loading…</p>
-          ) : thinking.data?.length ? (
+          ) : thinking.isError ? (
+            <p className="text-destructive text-xs">// failed to load debug data</p>
+          ) : thinking.data.length ? (
             thinking.data.map((entry) => {
               const phase = entry.kind === 'observation' ? parseChatPhase(entry.content) : null
 

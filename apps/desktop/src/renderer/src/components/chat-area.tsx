@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -7,31 +9,29 @@ import {
   MessageScrollerViewport
 } from '@tars/ui/components/message-scroller'
 
-import type { ChatMessageView } from './message-bubble'
 import { useChatMessages } from '../lib/chat'
-import { useVoiceStore } from '../stores/voice'
+import { useShellAlertStore } from '../stores/alert'
 import MessageBubble from './message-bubble'
 import SayHello from './say-hello'
 
 export default function ChatArea() {
-  const { data: messages = [] } = useChatMessages()
-  const error = useVoiceStore((state) => state.error)
+  const { data: messages = [], isError } = useChatMessages()
+  const showAlert = useShellAlertStore((state) => state.showAlert)
 
-  const items: Array<ChatMessageView> = error
-    ? [
-        ...messages,
-        {
-          id: 'voice-error',
-          role: 'assistant',
-          content: error,
-          status: 'error',
-          records: [],
-          variant: 'error'
-        }
-      ]
-    : messages
+  useEffect(() => {
+    if (!isError) return
 
-  if (items.length === 0) {
+    showAlert({
+      title: 'Chat unavailable',
+      description:
+        messages.length > 0
+          ? 'Showing the last loaded conversation.'
+          : 'Could not load your conversation. Try again.',
+      variant: 'destructive'
+    })
+  }, [isError, messages.length, showAlert])
+
+  if (messages.length === 0) {
     return <SayHello />
   }
 
@@ -40,7 +40,7 @@ export default function ChatArea() {
       <MessageScroller className="min-h-0 flex-1">
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
-            {items.map((message) => (
+            {messages.map((message) => (
               <MessageScrollerItem key={message.id} messageId={message.id}>
                 <MessageBubble message={message} />
               </MessageScrollerItem>

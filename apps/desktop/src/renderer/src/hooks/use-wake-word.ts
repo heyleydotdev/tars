@@ -89,7 +89,7 @@ export function useWakeWord(onTranscript: (text: string) => void) {
       if (text === null) {
         failedTranscriptionsRef.current += 1
 
-        if (failedTranscriptionsRef.current >= 2) {
+        if (failedTranscriptionsRef.current === 2) {
           setError(ERRORS.transcriptionUnavailable)
         }
 

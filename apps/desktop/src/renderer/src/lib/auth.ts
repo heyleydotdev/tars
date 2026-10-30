@@ -1,12 +1,13 @@
 import type { RegisterInput } from '@tars/core/schemas/auth'
 
+import { useShellAlertStore } from '../stores/alert'
 import { useAuthStore } from '../stores/auth'
 
 export async function restoreSession(): Promise<void> {
   try {
-    useAuthStore.setState({ session: await window.getSession() })
+    useAuthStore.getState().setSession(await window.getSession())
   } catch {
-    useAuthStore.setState({ session: null })
+    useAuthStore.getState().setSession(null)
   }
 }
 
@@ -17,7 +18,7 @@ export async function signIn(email: string, password: string): Promise<void> {
     throw new Error(error)
   }
 
-  useAuthStore.setState({ session })
+  useAuthStore.getState().setSession(session)
 }
 
 export async function signUp(input: RegisterInput): Promise<void> {
@@ -27,16 +28,24 @@ export async function signUp(input: RegisterInput): Promise<void> {
     throw new Error(error)
   }
 
-  useAuthStore.setState({ session })
+  useAuthStore.getState().setSession(session)
 }
 
 export async function signOut(): Promise<void> {
-  if (!(await window.confirmSignOut())) {
-    return
-  }
+  try {
+    if (!(await window.confirmSignOut())) {
+      return
+    }
 
-  await window.signOut()
-  useAuthStore.setState({ session: null })
+    await window.signOut()
+    useAuthStore.getState().setSession(null)
+  } catch {
+    useShellAlertStore.getState().showAlert({
+      title: 'Sign out failed',
+      description: 'Try again.',
+      variant: 'destructive'
+    })
+  }
 }
 
 // Main-process auth changes (deep links, other windows) arrive as events; keep
@@ -45,8 +54,8 @@ export function watchSession(): () => void {
   const refresh = (): void => {
     window
       .getSession()
-      .then((session) => useAuthStore.setState({ session }))
-      .catch(() => useAuthStore.setState({ session: null }))
+      .then((session) => useAuthStore.getState().setSession(session))
+      .catch(() => useAuthStore.getState().setSession(null))
   }
 
   const stopUserUpdates = window.onUserUpdated(refresh)

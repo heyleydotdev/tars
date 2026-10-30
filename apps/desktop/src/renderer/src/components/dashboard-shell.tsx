@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BotIcon, LogOutIcon, NotebookPenIcon, SearchIcon, WalletIcon } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
@@ -32,8 +33,11 @@ import {
 import { TooltipProvider } from '@tars/ui/components/tooltip'
 
 import { signOut } from '../lib/auth'
+import { useShellAlertStore } from '../stores/alert'
 import { useUser } from '../stores/auth'
 import { useSidebarStore } from '../stores/sidebar'
+import { useVoiceStore } from '../stores/voice'
+import ShellAlert from './shell-alert'
 
 const destinations = [
   { title: 'Desk', to: '/', icon: BotIcon },
@@ -137,13 +141,28 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
   const { open, setOpen } = useSidebarStore(
     useShallow((state) => ({ open: state.open, setOpen: state.setOpen }))
   )
+  const voiceError = useVoiceStore((state) => state.error)
+  const setVoiceError = useVoiceStore((state) => state.setError)
+  const showAlert = useShellAlertStore((state) => state.showAlert)
   const active = destinations.find((item) => item.to === pathname)?.title ?? 'Desk'
+
+  useEffect(() => {
+    if (!voiceError) return
+
+    showAlert({
+      title: 'Voice unavailable',
+      description: voiceError,
+      variant: 'destructive'
+    })
+    setVoiceError(null)
+  }, [setVoiceError, showAlert, voiceError])
 
   return (
     <TooltipProvider>
       <SidebarProvider open={open} onOpenChange={setOpen} className="min-h-0 overflow-hidden">
         <AppSidebar active={active} onSelect={navigate} />
         <SidebarInset className="min-h-0">
+          <ShellAlert />
           <header className="bg-sidebar border-sidebar-border flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
             <SidebarTrigger />
             <span className="text-sm font-medium">{active}</span>

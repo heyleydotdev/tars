@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { JournalPageOutput } from '@tars/core/schemas/journal'
 import { toDateKey } from '@tars/core/utils/format'
@@ -12,6 +12,7 @@ import JournalStats from '../components/journal-stats'
 import LoadingScreen from '../components/loading-screen'
 import PageError from '../components/page-error'
 import { useJournal, useSetReminderDone, useSetTodoDone } from '../lib/journal'
+import { useShellAlertStore } from '../stores/alert'
 
 const EMPTY_TODOS: JournalPageOutput['todos'] = []
 const EMPTY_REMINDERS: JournalPageOutput['reminders'] = []
@@ -22,6 +23,7 @@ export default function Journal() {
   const journal = useJournal()
   const setTodoDone = useSetTodoDone()
   const setReminderDone = useSetReminderDone()
+  const showAlert = useShellAlertStore((state) => state.showAlert)
   const todos = journal.data?.todos ?? EMPTY_TODOS
   const reminders = journal.data?.reminders ?? EMPTY_REMINDERS
   const journals = journal.data?.journals ?? EMPTY_JOURNALS
@@ -51,6 +53,26 @@ export default function Journal() {
     }
   }, [reminders, todos, selected])
   const agendaCount = dayReminders.length + dayTodos.length
+
+  useEffect(() => {
+    if (!journal.isError || !journal.data) return
+
+    showAlert({
+      title: 'Refresh failed',
+      description: 'Showing the last loaded journal.',
+      variant: 'destructive'
+    })
+  }, [journal.data, journal.isError, showAlert])
+
+  useEffect(() => {
+    if (!setTodoDone.isError && !setReminderDone.isError) return
+
+    showAlert({
+      title: 'Update failed',
+      description: 'Your change was rolled back. Try again.',
+      variant: 'destructive'
+    })
+  }, [setReminderDone.isError, setTodoDone.isError, showAlert])
 
   return (
     <DashboardShell>
@@ -94,11 +116,6 @@ export default function Journal() {
                   accent="bg-violet-400"
                   className="lg:min-h-0 lg:flex-1"
                 >
-                  {setTodoDone.isError || setReminderDone.isError ? (
-                    <p role="status" className="text-destructive border-b px-3 py-1 text-xs">
-                      // update failed
-                    </p>
-                  ) : null}
                   <JournalAgenda
                     reminders={dayReminders}
                     todos={dayTodos}
