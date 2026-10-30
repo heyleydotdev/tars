@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { BotIcon, LogOutIcon, NotebookPenIcon, SearchIcon, WalletIcon } from 'lucide-react'
+import {
+  BotIcon,
+  ChartNoAxesColumnIcon,
+  LogOutIcon,
+  NotebookPenIcon,
+  SearchIcon,
+  WalletIcon
+} from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -43,7 +50,8 @@ import ShellAlert from './shell-alert'
 const destinations = [
   { title: 'Desk', to: '/', icon: BotIcon },
   { title: 'Journal', to: '/journal', icon: NotebookPenIcon },
-  { title: 'Expenses', to: '/expenses', icon: WalletIcon }
+  { title: 'Expenses', to: '/expenses', icon: WalletIcon },
+  { title: 'Stats', to: '/stats', icon: ChartNoAxesColumnIcon }
 ]
 
 function UserIdentity({ name, email }: { name: string; email: string }) {
