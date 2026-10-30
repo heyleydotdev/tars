@@ -32,7 +32,6 @@ declare global {
     getSession: () => Promise<Session | null>
     signIn: (email: string, password: string) => Promise<AuthResult>
     signUp: (input: RegisterInput) => Promise<AuthResult>
-    confirmSignOut: () => Promise<boolean>
     requestMicrophoneAccess: () => Promise<boolean>
     transcribeAudio: (audio: ArrayBuffer) => Promise<string | null>
     copyText: (text: string) => Promise<void>

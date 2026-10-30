@@ -33,10 +33,6 @@ export async function signUp(input: RegisterInput): Promise<void> {
 
 export async function signOut(): Promise<void> {
   try {
-    if (!(await window.confirmSignOut())) {
-      return
-    }
-
     await window.signOut()
     useAuthStore.getState().setSession(null)
   } catch {

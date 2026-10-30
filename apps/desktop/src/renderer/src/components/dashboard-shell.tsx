@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BotIcon, LogOutIcon, NotebookPenIcon, SearchIcon, WalletIcon } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
@@ -37,6 +37,7 @@ import { useShellAlertStore } from '../stores/alert'
 import { useUser } from '../stores/auth'
 import { useSidebarStore } from '../stores/sidebar'
 import { useVoiceStore } from '../stores/voice'
+import ConfirmDialog from './confirm-dialog'
 import ShellAlert from './shell-alert'
 
 const destinations = [
@@ -59,7 +60,15 @@ function UserIdentity({ name, email }: { name: string; email: string }) {
   )
 }
 
-function AppSidebar({ active, onSelect }: { active: string; onSelect: (to: string) => void }) {
+function AppSidebar({
+  active,
+  onSelect,
+  onSignOut
+}: {
+  active: string
+  onSelect: (to: string) => void
+  onSignOut: () => void
+}) {
   const { isMobile, setOpenMobile } = useSidebar()
   const user = useUser()
 
@@ -121,7 +130,7 @@ function AppSidebar({ active, onSelect }: { active: string; onSelect: (to: strin
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => void signOut()}>
+                <DropdownMenuItem onClick={onSignOut}>
                   <LogOutIcon />
                   Log out
                 </DropdownMenuItem>
@@ -144,7 +153,20 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
   const voiceError = useVoiceStore((state) => state.error)
   const setVoiceError = useVoiceStore((state) => state.setError)
   const showAlert = useShellAlertStore((state) => state.showAlert)
+  const [signOutOpen, setSignOutOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const active = destinations.find((item) => item.to === pathname)?.title ?? 'Desk'
+
+  async function confirmSignOut() {
+    setSigningOut(true)
+
+    try {
+      await signOut()
+      setSignOutOpen(false)
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   useEffect(() => {
     if (!voiceError) return
@@ -160,7 +182,7 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
   return (
     <TooltipProvider>
       <SidebarProvider open={open} onOpenChange={setOpen} className="min-h-0 overflow-hidden">
-        <AppSidebar active={active} onSelect={navigate} />
+        <AppSidebar active={active} onSelect={navigate} onSignOut={() => setSignOutOpen(true)} />
         <SidebarInset className="min-h-0">
           <ShellAlert />
           <header className="bg-sidebar border-sidebar-border flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
@@ -170,6 +192,17 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
           <div className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</div>
         </SidebarInset>
       </SidebarProvider>
+      <ConfirmDialog
+        open={signOutOpen}
+        pending={signingOut}
+        title="Log out?"
+        description="You can sign back in at any time."
+        confirmLabel="Log out"
+        onOpenChange={(open) => {
+          if (!open) setSignOutOpen(false)
+        }}
+        onConfirm={() => void confirmSignOut()}
+      />
     </TooltipProvider>
   )
 }

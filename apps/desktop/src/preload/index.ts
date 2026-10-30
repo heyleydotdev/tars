@@ -43,8 +43,7 @@ const auth = {
   getSession: (): Promise<Session | null> => ipcRenderer.invoke('auth:get-session'),
   signIn: (email: string, password: string): Promise<AuthResult> =>
     ipcRenderer.invoke('auth:sign-in', { email, password }),
-  signUp: (input: RegisterInput): Promise<AuthResult> => ipcRenderer.invoke('auth:sign-up', input),
-  confirmSignOut: (): Promise<boolean> => ipcRenderer.invoke('auth:confirm-sign-out')
+  signUp: (input: RegisterInput): Promise<AuthResult> => ipcRenderer.invoke('auth:sign-up', input)
 }
 
 const requestMicrophoneAccess = (): Promise<boolean> =>
@@ -64,7 +63,6 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('getSession', auth.getSession)
     contextBridge.exposeInMainWorld('signIn', auth.signIn)
     contextBridge.exposeInMainWorld('signUp', auth.signUp)
-    contextBridge.exposeInMainWorld('confirmSignOut', auth.confirmSignOut)
     contextBridge.exposeInMainWorld('requestMicrophoneAccess', requestMicrophoneAccess)
     contextBridge.exposeInMainWorld('transcribeAudio', transcribeAudio)
     contextBridge.exposeInMainWorld('copyText', copyText)
@@ -77,7 +75,6 @@ if (process.contextIsolated) {
   window.getSession = auth.getSession
   window.signIn = auth.signIn
   window.signUp = auth.signUp
-  window.confirmSignOut = auth.confirmSignOut
   window.requestMicrophoneAccess = requestMicrophoneAccess
   window.transcribeAudio = transcribeAudio
   window.copyText = copyText

@@ -17,7 +17,7 @@
 - Tray app: closing hides the window, `before-quit` calls `markQuitting`, and the tray menu owns Quit.
 - Dark-only: `nativeTheme.themeSource = 'dark'` in main, `class="dark"` on `<html>`, and `color-scheme: dark`.
 - ESM app: main builds to `out/main/index.js`, preload to `out/preload/index.mjs`; reference the `.mjs` preload, keep `sandbox: false` with `contextIsolation` on.
-- Auth runs in main (`src/lib/auth-client.ts`, `@better-auth/electron` + on-disk `storage()`): call `setupMain()` before ready; the renderer calls top-level bridges (`getSession`, `signIn`, `signUp`, `confirmSignOut`) and never sees cookies. The full session (user + session) crosses IPC; logout asks via native `dialog.showMessageBox`.
+- Auth runs in main (`src/lib/auth-client.ts`, `@better-auth/electron` + on-disk `storage()`): call `setupMain()` before ready; the renderer calls top-level bridges (`getSession`, `signIn`, `signUp`) and never sees cookies. The full session (user + session) crosses IPC; logout is confirmed in the renderer with the shared `ConfirmDialog`.
 - Deep links use the `com.tars.desktop` scheme (electron-builder `protocols` + worker trusted origins); `setupRenderer()` in preload exposes the plugin bridges (`signOut`, `onUserUpdated`, `onAuthenticated`).
 - Root `.env` feeds main/renderer through `envDir`; `VITE_BETTER_AUTH_URL` is baked at build time, so set it before packaging.
 - Keep the renderer CSP in `apps/desktop/src/renderer/index.html`.
@@ -81,7 +81,7 @@
 - Renderer routes live in `src/renderer/src/routes.tsx` (`createHashRouter`); Electron serves `file://`, so React Router framework/SPA history routing is unavailable.
 - Global state lives in `src/renderer/src/stores/*` (Zustand); select multiple fields with `useShallow`.
 - `stores/auth.ts` holds only the session; auth actions live in `src/renderer/src/lib/auth.ts`. Protected pages call `useUser()`, which reads the session from the `RequireAuth` outlet context — no null checks in pages.
-- Preload exposes top-level bridges (`getSession`, `signIn`, `signUp`, `confirmSignOut`); `window.api` is window controls only.
+- Preload exposes top-level bridges (`getSession`, `signIn`, `signUp`); `window.api` is window controls only.
 - IPC payloads use `@tars/core` schema types (`LoginInput`/`RegisterInput`) instead of re-validating in main.
 - Inline one-off parameter and prop types in the signature; no type alias unless reused.
 - Use `React.PropsWithChildren` for components that accept children.
