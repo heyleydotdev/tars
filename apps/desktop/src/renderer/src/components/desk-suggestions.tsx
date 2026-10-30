@@ -31,8 +31,8 @@ function buildSuggestions(records: Array<SavedRecordOutput>): Array<string> {
       ]
     case 'expense':
       return [
-        `Change the ${record.description} expense to $15.`,
-        `Remove the ${record.description} expense.`,
+        `Change the ${record.title} expense to $15.`,
+        `Remove the ${record.title} expense.`,
         ...STARTERS
       ]
     default:

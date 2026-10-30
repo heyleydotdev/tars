@@ -1,6 +1,7 @@
 import type { ExpenseListOutput } from '@tars/core/schemas/expenses'
 import type { ExpenseSelect } from '@tars/db/schema'
 import { EXPENSE_ITEM_LIMIT } from '@tars/core/constants'
+import { normalizeExpenseCategory, resolveExpenseTitle } from '@tars/core/utils/expense'
 import { expense } from '@tars/db/schema'
 import { desc, eq, sql } from '@tars/db/sql'
 
@@ -8,11 +9,19 @@ import { protectedProcedure } from '../context'
 
 type ExpenseRow = Pick<
   ExpenseSelect,
-  'id' | 'description' | 'amountCents' | 'currency' | 'category' | 'occurredAt' | 'createdAt'
+  | 'id'
+  | 'title'
+  | 'description'
+  | 'amountCents'
+  | 'currency'
+  | 'category'
+  | 'occurredAt'
+  | 'createdAt'
 >
 
 const expenseColumns = {
   id: expense.id,
+  title: expense.title,
   description: expense.description,
   amountCents: expense.amountCents,
   currency: expense.currency,
@@ -24,10 +33,11 @@ const expenseColumns = {
 function expenseItem(row: ExpenseRow): ExpenseListOutput['items'][number] {
   return {
     id: row.id,
+    title: resolveExpenseTitle(row.title, row.description),
     description: row.description,
     amountCents: row.amountCents,
     currency: row.currency,
-    category: row.category,
+    category: normalizeExpenseCategory(row.category),
     occurredAt: row.occurredAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString()
   }

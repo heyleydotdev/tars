@@ -21,6 +21,7 @@ import type {
   SavedRecordOutput,
   TodoRecordOutput
 } from '../schemas/chat'
+import { normalizeExpenseCategory, resolveExpenseTitle } from '../utils/expense'
 import { formatZonedIso, parseDate } from '../utils/format'
 
 type TodoRecord = Pick<TodoSelect, 'id' | 'messageId' | 'title' | 'status' | 'dueAt' | 'priority'>
@@ -29,7 +30,7 @@ type ReminderRecord = Pick<ReminderSelect, 'id' | 'messageId' | 'title' | 'remin
 
 type ExpenseRecord = Pick<
   ExpenseSelect,
-  'id' | 'messageId' | 'description' | 'amountCents' | 'currency' | 'category'
+  'id' | 'messageId' | 'title' | 'description' | 'amountCents' | 'currency' | 'category'
 >
 
 type JournalRecord = Pick<JournalEntrySelect, 'id' | 'messageId' | 'title' | 'content' | 'mood'>
@@ -65,7 +66,8 @@ function expenseValues(record: ExpenseRecordOutput) {
   if (!Number.isFinite(record.amount)) return null
 
   return {
-    description: record.description,
+    title: resolveExpenseTitle(record.title, record.description),
+    description: record.description.trim(),
     amountCents: Math.round(record.amount * 100),
     currency: record.currency || 'USD',
     category: record.category,
@@ -107,10 +109,11 @@ function savedExpense(record: ExpenseRecord): SavedRecordOutput {
   return {
     type: 'expense',
     id: record.id,
+    title: resolveExpenseTitle(record.title, record.description),
     description: record.description,
     amountCents: record.amountCents,
     currency: record.currency,
-    category: record.category
+    category: normalizeExpenseCategory(record.category)
   }
 }
 
@@ -242,10 +245,11 @@ export async function loadDeskContextRecords(
     ...expenses.map((record): DeskContextRecord => ({
       type: 'expense',
       id: record.id,
+      title: resolveExpenseTitle(record.title, record.description),
       description: record.description,
       amount: record.amountCents / 100,
       currency: record.currency,
-      category: record.category,
+      category: normalizeExpenseCategory(record.category),
       occurredAt: record.occurredAt?.toISOString() ?? null,
       savedAt: formatZonedIso(record.createdAt, timezone).value,
       minutesAgo: Math.max(0, Math.round((Date.now() - record.createdAt.getTime()) / 60_000))

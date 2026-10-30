@@ -12,6 +12,19 @@ export const DESK_HISTORY_CHARS = 6_000
 export const JOURNAL_ITEM_LIMIT = 100
 export const EXPENSE_ITEM_LIMIT = 500
 
+export const EXPENSE_CATEGORIES = [
+  'food',
+  'transport',
+  'shopping',
+  'bills',
+  'health',
+  'entertainment',
+  'travel',
+  'home',
+  'education',
+  'other'
+] as const
+
 export const DESK_PRIORITIES = ['low', 'medium', 'high'] as const
 
 export const VOICE_MIN_SEGMENT_MS = 2_000

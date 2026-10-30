@@ -4,9 +4,8 @@ import { XIcon } from 'lucide-react'
 import type { ExpenseItemOutput } from '@tars/core/schemas/expenses'
 import { formatCurrency, formatTime, toDateKey } from '@tars/core/utils/format'
 import { Button } from '@tars/ui/components/button'
-import { cn } from '@tars/ui/lib/utils'
 
-import { categoryColor, categoryLabel, expenseAt } from '../lib/expenses'
+import { categoryColor, expenseAt } from '../lib/expenses'
 import { ConsoleEmpty } from './console-panel'
 
 function ExpenseRow({ item }: { item: ExpenseItemOutput }) {
@@ -19,13 +18,11 @@ function ExpenseRow({ item }: { item: ExpenseItemOutput }) {
         {formatTime(at)}
       </time>
       <div className="min-w-0">
-        <p className="text-foreground text-[13px] leading-5 wrap-break-word">{item.description}</p>
-        {item.category ? (
-          <span className={cn('mt-0.5 flex items-center gap-1.5 text-xs', color.text)}>
-            <span aria-hidden className={cn('size-1', color.dot)} />
-            {`#${categoryLabel(item.category)}`}
-          </span>
+        <p className="text-foreground text-[13px] leading-5 wrap-break-word">{item.title}</p>
+        {item.description && item.description !== item.title ? (
+          <p className="text-muted-foreground mt-0.5 text-xs wrap-break-word">{item.description}</p>
         ) : null}
+        <span className="mt-0.5 block text-xs" style={{ color }}>{`#${item.category}`}</span>
       </div>
       <span className="text-foreground text-right text-[13px] tabular-nums">
         {formatCurrency(item.amountCents, item.currency)}

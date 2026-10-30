@@ -8,7 +8,7 @@ function escapeMarkdown(value: string): string {
 function recordLine(record: SavedRecordOutput): string {
   switch (record.type) {
     case 'todo':
-      return `- **${escapeMarkdown(record.title)}** — todo${
+      return `- **${escapeMarkdown(record.title || 'Untitled')}** — todo${
         record.done
           ? ' · done'
           : record.dueAt
@@ -18,14 +18,14 @@ function recordLine(record: SavedRecordOutput): string {
               : ''
       }`
     case 'reminder':
-      return `- **${escapeMarkdown(record.title)}** — reminder · ${formatDateTime(record.remindAt)}`
+      return `- **${escapeMarkdown(record.title || 'Untitled')}** — reminder · ${formatDateTime(record.remindAt)}`
     case 'expense':
-      return `- **${escapeMarkdown(record.description)}** — expense · ${formatCurrency(
+      return `- **${escapeMarkdown(record.title || record.description || 'Expense')}** — expense · ${formatCurrency(
         record.amountCents,
         record.currency
       )}`
     case 'journal':
-      return `- **${escapeMarkdown(record.title ?? record.content)}** — journal${
+      return `- **${escapeMarkdown(record.title || record.content || 'Journal')}** — journal${
         record.mood ? ` · ${escapeMarkdown(record.mood)}` : ''
       }`
   }

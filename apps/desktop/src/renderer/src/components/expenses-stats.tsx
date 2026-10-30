@@ -1,6 +1,7 @@
 import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
+import { categoryColor } from '../lib/expenses'
 import ConsoleHeader from './console-header'
 import ConsoleStat from './console-stat'
 
@@ -8,7 +9,6 @@ export default function ExpensesStats({
   period,
   total,
   entries,
-  average,
   top,
   month,
   currency,
@@ -18,13 +18,14 @@ export default function ExpensesStats({
   period: 'day' | 'month'
   total: string
   entries: number
-  average: string
   top: string
   month: string
   currency: string
   currencies: Array<string>
   onCurrencyChange: (currency: string) => void
 }) {
+  const topColor = top === '—' ? undefined : categoryColor(top)
+
   return (
     <ConsoleHeader
       title="expenses"
@@ -64,8 +65,12 @@ export default function ExpensesStats({
           tone="text-emerald-400"
         />
         <ConsoleStat label="entries" value={String(entries).padStart(2, '0')} tone="text-sky-400" />
-        <ConsoleStat label="avg.tx" value={average} tone="text-amber-300" />
-        <ConsoleStat label="top" value={top} className="max-w-36 truncate" title={top} />
+        <ConsoleStat
+          label="top"
+          value={<span style={topColor ? { color: topColor } : undefined}>{top}</span>}
+          className="max-w-36 truncate"
+          title={top}
+        />
       </dl>
     </ConsoleHeader>
   )

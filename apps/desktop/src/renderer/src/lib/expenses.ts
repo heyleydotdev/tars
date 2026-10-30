@@ -4,19 +4,26 @@ import type { ExpenseItemOutput } from '@tars/core/schemas/expenses'
 
 import { orpc } from './orpc'
 
-const CATEGORY_COLORS = [
-  { text: 'text-sky-400', dot: 'bg-sky-400', bar: 'bg-sky-400' },
-  { text: 'text-emerald-400', dot: 'bg-emerald-400', bar: 'bg-emerald-400' },
-  { text: 'text-amber-300', dot: 'bg-amber-400', bar: 'bg-amber-400' },
-  { text: 'text-violet-400', dot: 'bg-violet-400', bar: 'bg-violet-400' },
-  { text: 'text-rose-400', dot: 'bg-rose-400', bar: 'bg-rose-400' },
-  { text: 'text-teal-400', dot: 'bg-teal-400', bar: 'bg-teal-400' }
-] as const
+const CATEGORY_HASH_SEED = 2166136261
+const CATEGORY_HASH_PRIME = 16777619
 
-const UNCATEGORIZED_COLOR = {
-  text: 'text-muted-foreground',
-  dot: 'bg-muted-foreground',
-  bar: 'bg-muted-foreground'
+function hashCategory(category: string): number {
+  let hash = CATEGORY_HASH_SEED
+
+  for (let index = 0; index < category.length; index += 1) {
+    hash ^= category.charCodeAt(index)
+    hash = Math.imul(hash, CATEGORY_HASH_PRIME)
+  }
+
+  return hash >>> 0
+}
+
+export function categoryColor(category: string): string {
+  const hash = hashCategory(category)
+  const hue = hash % 360
+  const lightness = 64 + (hash % 7)
+
+  return `hsl(${hue} 86% ${lightness}%)`
 }
 
 export function useExpenses() {
@@ -31,24 +38,6 @@ export function sumExpenses(items: Array<ExpenseItemOutput>): number {
   return items.reduce((total, item) => total + item.amountCents, 0)
 }
 
-export function categoryLabel(category: string | null): string {
-  return category?.trim() || 'uncategorized'
-}
-
-export function categoryColor(category: string | null) {
-  const label = categoryLabel(category)
-
-  if (label === 'uncategorized') return UNCATEGORIZED_COLOR
-
-  let hash = 0
-
-  for (let index = 0; index < label.length; index += 1) {
-    hash = (hash * 31 + label.charCodeAt(index)) | 0
-  }
-
-  return CATEGORY_COLORS[Math.abs(hash) % CATEGORY_COLORS.length] ?? UNCATEGORIZED_COLOR
-}
-
 export type ExpenseCategory = {
   label: string
   amountCents: number
@@ -59,12 +48,11 @@ export function summarizeCategories(items: Array<ExpenseItemOutput>): Array<Expe
   const totals = new Map<string, { amountCents: number; count: number }>()
 
   for (const item of items) {
-    const label = categoryLabel(item.category)
-    const current = totals.get(label) ?? { amountCents: 0, count: 0 }
+    const current = totals.get(item.category) ?? { amountCents: 0, count: 0 }
 
     current.amountCents += item.amountCents
     current.count += 1
-    totals.set(label, current)
+    totals.set(item.category, current)
   }
 
   return [...totals.entries()]

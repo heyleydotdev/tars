@@ -67,6 +67,7 @@ export const expense = sqliteTable(
     messageId: text('message_id')
       .notNull()
       .references(() => chatMessage.id, { onDelete: 'cascade' }),
+    title: text('title'),
     description: text('description').notNull(),
     amountCents: integer('amount_cents').notNull(),
     currency: text('currency').notNull().default('USD'),

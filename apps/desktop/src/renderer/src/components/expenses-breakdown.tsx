@@ -1,5 +1,4 @@
 import { formatCurrency } from '@tars/core/utils/format'
-import { cn } from '@tars/ui/lib/utils'
 
 import type { ExpenseCategory } from '../lib/expenses'
 import { categoryColor } from '../lib/expenses'
@@ -29,15 +28,17 @@ export default function ExpensesBreakdown({
           <div key={category.label} className="px-3 py-2">
             <div className="flex items-baseline justify-between gap-3 text-xs">
               <span className="flex min-w-0 items-center gap-2">
-                <span aria-hidden className={cn('size-1.5', color.dot)} />
-                <span className="text-foreground truncate">{category.label}</span>
+                <span aria-hidden className="size-1.5" style={{ backgroundColor: color }} />
+                <span className="truncate" style={{ color }}>
+                  {category.label}
+                </span>
               </span>
               <span className="text-foreground tabular-nums">
                 {formatCurrency(category.amountCents, currency)}
               </span>
             </div>
             <div className="bg-muted mt-1.5 h-1">
-              <div className={cn('h-full', color.bar)} style={{ width: `${width}%` }} />
+              <div className="h-full" style={{ width: `${width}%`, backgroundColor: color }} />
             </div>
             <div className="text-muted-foreground mt-1 flex items-center justify-between text-xs tabular-nums">
               <span>{share}%</span>

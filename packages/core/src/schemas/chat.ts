@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { CHAT_MESSAGE_MAX_LENGTH, DESK_PRIORITIES } from '../constants'
+import { CHAT_MESSAGE_MAX_LENGTH, DESK_PRIORITIES, EXPENSE_CATEGORIES } from '../constants'
 import { ERRORS } from '../errors'
 
 const recordIdSchema = z
@@ -10,7 +10,7 @@ const recordIdSchema = z
 
 const todoRecordSchema = z.strictObject({
   id: recordIdSchema,
-  title: z.string(),
+  title: z.string().trim().min(1),
   done: z.boolean().describe('True when the todo is finished'),
   notes: z.string().nullable(),
   dueAt: z.string().nullable(),
@@ -19,31 +19,32 @@ const todoRecordSchema = z.strictObject({
 
 const reminderRecordSchema = z.strictObject({
   id: recordIdSchema,
-  title: z.string(),
-  remindAt: z.string(),
+  title: z.string().trim().min(1),
+  remindAt: z.string().trim().min(1),
   notes: z.string().nullable()
 })
 
 const expenseRecordSchema = z.strictObject({
   id: recordIdSchema,
-  description: z.string(),
+  title: z.string().trim().min(1),
+  description: z.string().trim(),
   amount: z.number(),
-  currency: z.string(),
-  category: z.string().nullable(),
+  currency: z.string().trim().min(1),
+  category: z.enum(EXPENSE_CATEGORIES),
   occurredAt: z.string().nullable()
 })
 
 const journalRecordSchema = z.strictObject({
   id: recordIdSchema,
-  title: z.string().nullable(),
-  content: z.string(),
+  title: z.string().trim().min(1).nullable(),
+  content: z.string().trim().min(1),
   mood: z.string().nullable(),
   tags: z.array(z.string()),
   occurredAt: z.string().nullable()
 })
 
 export const deskResultSchema = z.strictObject({
-  reply: z.string(),
+  reply: z.string().trim().min(1),
   clarification: z
     .boolean()
     .describe('True only when asking a question instead of saving; arrays must be empty'),
@@ -55,7 +56,7 @@ export const deskResultSchema = z.strictObject({
     .array(
       z.object({
         type: z.enum(['todo', 'reminder', 'expense', 'journal']),
-        id: z.string()
+        id: z.string().min(1)
       })
     )
     .describe('Existing records to remove')
@@ -66,31 +67,32 @@ export const deskResultJsonSchema = z.toJSONSchema(deskResultSchema, { target: '
 export const savedRecordSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('todo'),
-    id: z.string(),
-    title: z.string(),
+    id: z.string().min(1),
+    title: z.string().trim().min(1),
     done: z.boolean(),
     dueAt: z.string().nullable(),
     priority: z.enum(DESK_PRIORITIES).nullable()
   }),
   z.object({
     type: z.literal('reminder'),
-    id: z.string(),
-    title: z.string(),
-    remindAt: z.string()
+    id: z.string().min(1),
+    title: z.string().trim().min(1),
+    remindAt: z.string().trim().min(1)
   }),
   z.object({
     type: z.literal('expense'),
-    id: z.string(),
+    id: z.string().min(1),
+    title: z.string().trim().min(1),
     description: z.string(),
     amountCents: z.number(),
-    currency: z.string(),
-    category: z.string().nullable()
+    currency: z.string().trim().min(1),
+    category: z.enum(EXPENSE_CATEGORIES)
   }),
   z.object({
     type: z.literal('journal'),
-    id: z.string(),
-    title: z.string().nullable(),
-    content: z.string(),
+    id: z.string().min(1),
+    title: z.string().trim().min(1).nullable(),
+    content: z.string().trim().min(1),
     mood: z.string().nullable()
   })
 ])

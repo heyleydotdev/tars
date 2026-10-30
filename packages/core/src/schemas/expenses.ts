@@ -1,13 +1,16 @@
 import * as z from 'zod'
 
+import { EXPENSE_CATEGORIES } from '../constants'
+
 export const expenseItemSchema = z.object({
-  id: z.string(),
-  description: z.string(),
+  id: z.string().min(1),
+  title: z.string().trim().min(1),
+  description: z.string().trim(),
   amountCents: z.number(),
-  currency: z.string(),
-  category: z.string().nullable(),
+  currency: z.string().trim().min(1),
+  category: z.enum(EXPENSE_CATEGORIES),
   occurredAt: z.string().nullable(),
-  createdAt: z.string()
+  createdAt: z.string().min(1)
 })
 
 export const expenseListSchema = z.object({

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { ExpenseListOutput } from '@tars/core/schemas/expenses'
 import { formatCurrency, startOfMonth, toDateKey, toMonthKey } from '@tars/core/utils/format'
@@ -12,6 +12,7 @@ import ExpensesStats from '../components/expenses-stats'
 import LoadingScreen from '../components/loading-screen'
 import PageError from '../components/page-error'
 import { expenseAt, sumExpenses, summarizeCategories, useExpenses } from '../lib/expenses'
+import { useShellAlertStore } from '../stores/alert'
 
 const EMPTY_EXPENSES: ExpenseListOutput['items'] = []
 
@@ -21,6 +22,7 @@ export default function Expenses() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [currency, setCurrency] = useState<string | null>(null)
+  const showAlert = useShellAlertStore((state) => state.showAlert)
   const monthKey = toMonthKey(month)
 
   const { currencies, monthCurrency } = useMemo(() => {
@@ -78,10 +80,18 @@ export default function Expenses() {
   }, [monthItems, selectedDay])
 
   const entries = periodItems.length
-  const averageCents = entries > 0 ? Math.round(totalCents / entries) : 0
-  const topCategory =
-    categories.find((category) => category.label.toLowerCase() !== 'uncategorized')?.label ?? '—'
+  const topCategory = categories[0]?.label ?? '—'
   const daysWithSpend = dailyTotals.size
+
+  useEffect(() => {
+    if (!expenses.isError || !expenses.data) return
+
+    showAlert({
+      title: 'Refresh failed',
+      description: 'Showing the last loaded expenses.',
+      variant: 'destructive'
+    })
+  }, [expenses.data, expenses.isError, showAlert])
 
   function selectDay(date: Date) {
     const key = toDateKey(date)
@@ -114,7 +124,6 @@ export default function Expenses() {
             period={selectedDay ? 'day' : 'month'}
             total={formatCurrency(totalCents, activeCurrency)}
             entries={entries}
-            average={formatCurrency(averageCents, activeCurrency)}
             top={topCategory}
             month={monthKey.replace('-', '.')}
             currency={activeCurrency}
