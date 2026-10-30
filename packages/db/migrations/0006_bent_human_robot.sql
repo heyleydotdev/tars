@@ -1,0 +1,1 @@
+ALTER TABLE `measure_reference` ADD `user_id` text REFERENCES user(id);
