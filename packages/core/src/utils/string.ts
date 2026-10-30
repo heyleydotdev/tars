@@ -2,6 +2,12 @@ export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
+export function titleCase(value: string): string {
+  return value.replace(/(^|[\s(])(\p{L})/gu, (_match, prefix: string, letter: string) => {
+    return `${prefix}${letter.toUpperCase()}`
+  })
+}
+
 export function getInitials(name: string): string {
   return (
     name
