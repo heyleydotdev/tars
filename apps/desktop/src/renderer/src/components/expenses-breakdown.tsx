@@ -3,7 +3,7 @@ import { capitalize } from '@tars/core/utils/string'
 
 import type { ExpenseCategory } from '../lib/expenses'
 import { categoryColor } from '../lib/expenses'
-import { ConsoleEmpty } from './console-panel'
+import EmptyState from './empty-state'
 
 export default function ExpensesBreakdown({
   categories,
@@ -15,7 +15,7 @@ export default function ExpensesBreakdown({
   currency: string
 }) {
   if (categories.length === 0) {
-    return <ConsoleEmpty title="no categories" hint="no spending in this period" />
+    return <EmptyState title="No Categories" hint="No spending in this period." />
   }
 
   return (

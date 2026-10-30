@@ -2,6 +2,7 @@ import { cn } from '@tars/ui/lib/utils'
 
 import type { ActivitySummary } from '../lib/stats'
 import { dayLabel } from '../lib/stats'
+import EmptyState from './empty-state'
 import StatsMetric from './stats-metric'
 import StatsSwatch from './stats-swatch'
 
@@ -25,6 +26,15 @@ function level(count: number): number {
 }
 
 export default function StatsHeatmap({ activity }: { activity: ActivitySummary }) {
+  if (activity.total === 0) {
+    return (
+      <EmptyState
+        title="No Activity Yet"
+        hint="Journal, tasks, reminders, and expenses will appear here."
+      />
+    )
+  }
+
   const start = activity.cells[0]?.date
   const end = [...activity.cells].reverse().find((cell) => !cell.future)?.date
 

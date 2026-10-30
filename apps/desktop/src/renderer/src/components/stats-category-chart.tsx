@@ -3,7 +3,7 @@ import { capitalize } from '@tars/core/utils/string'
 
 import type { ExpenseCategory } from '../lib/expenses'
 import { categoryColor } from '../lib/expenses'
-import { ConsoleEmpty } from './console-panel'
+import EmptyState from './empty-state'
 import StatsRing from './stats-ring'
 import StatsSwatch from './stats-swatch'
 
@@ -38,7 +38,7 @@ export default function StatsCategoryChart({
   currency: string
 }) {
   if (categories.length === 0) {
-    return <ConsoleEmpty title="no categories" hint="log an expense to split it up" />
+    return <EmptyState title="No Categories" hint="Log an expense to split it up." />
   }
 
   const entries = categories.reduce((total, category) => total + category.count, 0)

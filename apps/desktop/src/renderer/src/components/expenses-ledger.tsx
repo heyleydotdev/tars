@@ -13,7 +13,7 @@ import {
 
 import { categoryColor, expenseAt } from '../lib/expenses'
 import ConsoleEnd from './console-end'
-import { ConsoleEmpty } from './console-panel'
+import EmptyState from './empty-state'
 
 function ExpenseRow({
   item,
@@ -118,9 +118,9 @@ export default function ExpensesLedger({
 
       {groups.length === 0 ? (
         <div className="flex-1">
-          <ConsoleEmpty
-            title="no expenses"
-            hint={selectedDay ? 'this day is clear' : 'tell tars what you spent'}
+          <EmptyState
+            title="No Expenses"
+            hint={selectedDay ? 'This day is clear.' : 'Tell TARS what you spent.'}
           />
         </div>
       ) : (

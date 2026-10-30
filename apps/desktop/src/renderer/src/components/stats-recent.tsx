@@ -4,7 +4,7 @@ import { cn } from '@tars/ui/lib/utils'
 
 import type { ActivityEvent, ActivityKind, ActivityState } from '../lib/stats'
 import { ACTIVITY_STATE_TONES } from '../lib/stats-tones'
-import { ConsoleEmpty } from './console-panel'
+import EmptyState from './empty-state'
 
 const KIND_LABELS: Record<ActivityKind, string> = {
   note: 'NOTE',
@@ -36,7 +36,7 @@ function timeLabel(at: string, todayKey: string): string {
 
 export default function StatsRecent({ events }: { events: Array<ActivityEvent> }) {
   if (events.length === 0) {
-    return <ConsoleEmpty title="no activity" hint="records will show up here" />
+    return <EmptyState title="No Activity" hint="Records will show up here." />
   }
 
   const todayKey = toDateKey(new Date())

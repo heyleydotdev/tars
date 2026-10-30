@@ -1,7 +1,7 @@
+import { BotIcon } from 'lucide-react'
+
+import EmptyState from './empty-state'
+
 export default function SayHello() {
-  return (
-    <div className="flex size-full items-center justify-center text-center">
-      <h1 className="text-4xl font-bold tracking-tighter">Say Hello, TARS!</h1>
-    </div>
-  )
+  return <EmptyState title="Say Hello, TARS!" hint="Ask anything to get started." icon={BotIcon} />
 }

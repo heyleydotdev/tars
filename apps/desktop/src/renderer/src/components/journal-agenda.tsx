@@ -11,7 +11,7 @@ import {
 import { cn } from '@tars/ui/lib/utils'
 
 import ConsoleEnd from './console-end'
-import { ConsoleEmpty } from './console-panel'
+import EmptyState from './empty-state'
 
 export default function JournalAgenda({
   reminders,
@@ -61,7 +61,7 @@ export default function JournalAgenda({
   )
 
   if (items.length === 0) {
-    return <ConsoleEmpty title="nothing scheduled" hint="select a marked day" />
+    return <EmptyState title="Nothing Scheduled" hint="Select a marked day." />
   }
 
   return (

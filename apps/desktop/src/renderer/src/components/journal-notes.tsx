@@ -10,7 +10,7 @@ import {
 } from '@tars/ui/components/context-menu'
 
 import ConsoleEnd from './console-end'
-import { ConsoleEmpty } from './console-panel'
+import EmptyState from './empty-state'
 
 export default function JournalNotes({
   journals,
@@ -22,7 +22,7 @@ export default function JournalNotes({
   onDelete: (entry: JournalItemOutput) => void
 }) {
   if (journals.length === 0) {
-    return <ConsoleEmpty title="no entries" hint="tell tars about your day" />
+    return <EmptyState title="No Entries" hint="Tell TARS about your day." />
   }
 
   return (

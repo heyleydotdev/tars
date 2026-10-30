@@ -1,7 +1,7 @@
 import { formatCurrency } from '@tars/core/utils/format'
 
 import type { SpendPoint } from '../lib/stats'
-import { ConsoleEmpty } from './console-panel'
+import EmptyState from './empty-state'
 
 const WIDTH = 320
 const HEIGHT = 96
@@ -22,9 +22,9 @@ export default function StatsSpendChart({
 }) {
   if (maxCents === 0) {
     return (
-      <ConsoleEmpty
-        title="no recent spend"
-        hint={`no expenses in the last ${points.length} months`}
+      <EmptyState
+        title="No Recent Spend"
+        hint={`No expenses in the last ${points.length} months.`}
       />
     )
   }
