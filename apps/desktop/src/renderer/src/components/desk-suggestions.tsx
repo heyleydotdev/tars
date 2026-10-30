@@ -4,8 +4,8 @@ import { Button } from '@tars/ui/components/button'
 import { useChatMessages } from '../lib/chat'
 
 const STARTERS = [
-  'Remind me to call mom tomorrow at 5pm, buy milk, and log $12.50 for lunch.',
-  'I felt proud after shipping the demo — save that.'
+  'Remind me to review the PR tomorrow at 10am, fix the flaky test, and log $6 for coffee.',
+  'Shipped the migration today — journal how it went.'
 ]
 
 function buildSuggestions(records: Array<SavedRecordOutput>): Array<string> {
