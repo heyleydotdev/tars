@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import type { ExpenseListOutput } from '@tars/core/schemas/expenses'
+import type { ExpenseItemOutput, ExpenseListOutput } from '@tars/core/schemas/expenses'
 import { formatCurrency, startOfMonth, toDateKey, toMonthKey } from '@tars/core/utils/format'
 
+import ConfirmDialog from '../components/confirm-dialog'
 import ConsolePanel from '../components/console-panel'
 import DashboardShell from '../components/dashboard-shell'
+import ExpenseEditDialog from '../components/expense-edit-dialog'
 import ExpensesBreakdown from '../components/expenses-breakdown'
 import ExpensesCalendar from '../components/expenses-calendar'
 import ExpensesLedger from '../components/expenses-ledger'
 import ExpensesStats from '../components/expenses-stats'
 import LoadingScreen from '../components/loading-screen'
 import PageError from '../components/page-error'
-import { expenseAt, sumExpenses, summarizeCategories, useExpenses } from '../lib/expenses'
+import {
+  expenseAt,
+  sumExpenses,
+  summarizeCategories,
+  useDeleteExpense,
+  useExpenses
+} from '../lib/expenses'
 import { useShellAlertStore } from '../stores/alert'
 
 const EMPTY_EXPENSES: ExpenseListOutput['items'] = []
@@ -22,6 +30,9 @@ export default function Expenses() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [currency, setCurrency] = useState<string | null>(null)
+  const [editingExpense, setEditingExpense] = useState<ExpenseItemOutput | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ExpenseItemOutput | null>(null)
+  const deleteExpense = useDeleteExpense()
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const monthKey = toMonthKey(month)
 
@@ -105,6 +116,21 @@ export default function Expenses() {
     setSelectedDay(null)
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return
+
+    try {
+      await deleteExpense.mutateAsync({ id: deleteTarget.id })
+      setDeleteTarget(null)
+    } catch {
+      showAlert({
+        title: 'Delete failed',
+        description: 'Nothing was removed. Try again.',
+        variant: 'destructive'
+      })
+    }
+  }
+
   function goToday() {
     const today = new Date()
 
@@ -148,6 +174,8 @@ export default function Expenses() {
                   currency={activeCurrency}
                   selectedDay={selectedDay}
                   onClearDay={() => setSelectedDay(null)}
+                  onEdit={setEditingExpense}
+                  onDelete={setDeleteTarget}
                 />
               </ConsolePanel>
 
@@ -186,6 +214,30 @@ export default function Expenses() {
           )}
         </div>
       )}
+
+      {editingExpense ? (
+        <ExpenseEditDialog
+          key={editingExpense.id}
+          expense={editingExpense}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingExpense(null)
+          }}
+        />
+      ) : null}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        pending={deleteExpense.isPending}
+        title="Delete expense?"
+        confirmLabel="Delete"
+        destructive
+        description={`"${deleteTarget?.title ?? ''}" will be permanently removed.`}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </DashboardShell>
   )
 }

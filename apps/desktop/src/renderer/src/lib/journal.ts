@@ -3,8 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   JournalPageOutput,
   RecordDoneInput,
-  RecordDoneOutput
+  RecordDoneOutput,
+  UpdateJournalInput,
+  UpdateReminderInput,
+  UpdateTodoInput
 } from '@tars/core/schemas/journal'
+import type { DeleteRecordInput, DeleteRecordOutput } from '@tars/core/schemas/records'
 
 import { orpc } from './orpc'
 
@@ -39,6 +43,54 @@ function useDoneMutation(options: {
 
 export function useJournal() {
   return useQuery(orpc.journal.list.queryOptions())
+}
+
+export function useUpdateJournalEntry() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: UpdateJournalInput) => orpc.journal.updateEntry.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+  })
+}
+
+export function useUpdateTodo() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: UpdateTodoInput) => orpc.journal.updateTodo.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+  })
+}
+
+export function useUpdateReminder() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: UpdateReminderInput) => orpc.journal.updateReminder.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+  })
+}
+
+function useDeleteRecord(mutate: (input: DeleteRecordInput) => Promise<DeleteRecordOutput>) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: mutate,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+  })
+}
+
+export function useDeleteJournalEntry() {
+  return useDeleteRecord((input) => orpc.journal.deleteEntry.call(input))
+}
+
+export function useDeleteTodo() {
+  return useDeleteRecord((input) => orpc.journal.deleteTodo.call(input))
+}
+
+export function useDeleteReminder() {
+  return useDeleteRecord((input) => orpc.journal.deleteReminder.call(input))
 }
 
 export function useSetTodoDone() {

@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import type { ExpenseItemOutput } from '@tars/core/schemas/expenses'
+import type { ExpenseItemOutput, UpdateExpenseInput } from '@tars/core/schemas/expenses'
+import type { DeleteRecordInput, DeleteRecordOutput } from '@tars/core/schemas/records'
 
 import { orpc } from './orpc'
 
@@ -26,12 +27,33 @@ export function categoryColor(category: string): string {
   return `hsl(${hue} 86% ${lightness}%)`
 }
 
+const expensesKey = orpc.expenses.list.queryKey()
+
 export function useExpenses() {
   return useQuery(orpc.expenses.list.queryOptions())
 }
 
+export function useUpdateExpense() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: UpdateExpenseInput) => orpc.expenses.update.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: expensesKey })
+  })
+}
+
+export function useDeleteExpense() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: DeleteRecordInput): Promise<DeleteRecordOutput> =>
+      orpc.expenses.delete.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: expensesKey })
+  })
+}
+
 export function expenseAt(item: ExpenseItemOutput): string {
-  return item.occurredAt ?? item.createdAt
+  return item.occurredAt
 }
 
 export function sumExpenses(items: Array<ExpenseItemOutput>): number {

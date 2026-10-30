@@ -1,3 +1,4 @@
+import { capitalize } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
@@ -67,9 +68,9 @@ export default function ExpensesStats({
         <ConsoleStat label="entries" value={String(entries).padStart(2, '0')} tone="text-sky-400" />
         <ConsoleStat
           label="top"
-          value={<span style={topColor ? { color: topColor } : undefined}>{top}</span>}
+          value={<span style={topColor ? { color: topColor } : undefined}>{capitalize(top)}</span>}
           className="max-w-36 truncate"
-          title={top}
+          title={capitalize(top)}
         />
       </dl>
     </ConsoleHeader>

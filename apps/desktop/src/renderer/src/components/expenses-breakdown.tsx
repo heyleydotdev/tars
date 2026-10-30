@@ -1,4 +1,5 @@
 import { formatCurrency } from '@tars/core/utils/format'
+import { capitalize } from '@tars/core/utils/string'
 
 import type { ExpenseCategory } from '../lib/expenses'
 import { categoryColor } from '../lib/expenses'
@@ -25,12 +26,12 @@ export default function ExpensesBreakdown({
         const width = category.amountCents > 0 ? Math.max(share, 2) : 0
 
         return (
-          <div key={category.label} className="px-3 py-2">
+          <div key={capitalize(category.label)} className="px-3 py-2">
             <div className="flex items-baseline justify-between gap-3 text-xs">
               <span className="flex min-w-0 items-center gap-2">
                 <span aria-hidden className="size-1.5" style={{ backgroundColor: color }} />
                 <span className="truncate" style={{ color }}>
-                  {category.label}
+                  {capitalize(category.label)}
                 </span>
               </span>
               <span className="text-foreground tabular-nums">
