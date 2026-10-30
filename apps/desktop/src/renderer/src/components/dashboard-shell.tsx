@@ -42,9 +42,11 @@ import { TooltipProvider } from '@tars/ui/components/tooltip'
 import { signOut } from '../lib/auth'
 import { useShellAlertStore } from '../stores/alert'
 import { useUser } from '../stores/auth'
+import { useDeskChatStore } from '../stores/desk-chat'
 import { useSidebarStore } from '../stores/sidebar'
 import { useVoiceStore } from '../stores/voice'
 import ConfirmDialog from './confirm-dialog'
+import DeskChatPanel from './desk-chat-panel'
 import ShellAlert from './shell-alert'
 
 const destinations = [
@@ -163,6 +165,7 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const setDeskChatOpen = useDeskChatStore((state) => state.setOpen)
   const active = destinations.find((item) => item.to === pathname)?.title ?? 'Desk'
 
   async function confirmSignOut() {
@@ -175,6 +178,8 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
       setSigningOut(false)
     }
   }
+
+  useEffect(() => () => setDeskChatOpen(false), [setDeskChatOpen])
 
   useEffect(() => {
     if (!voiceError) return
@@ -200,6 +205,7 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
           <div className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</div>
         </SidebarInset>
       </SidebarProvider>
+      <DeskChatPanel />
       <ConfirmDialog
         open={signOutOpen}
         pending={signingOut}

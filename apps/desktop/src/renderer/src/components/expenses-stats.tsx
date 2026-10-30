@@ -4,6 +4,7 @@ import { Button } from '@tars/ui/components/button'
 import { categoryColor } from '../lib/expenses'
 import ConsoleHeader from './console-header'
 import ConsoleStat from './console-stat'
+import DeskChatButton from './desk-chat-button'
 
 export default function ExpensesStats({
   period,
@@ -50,6 +51,7 @@ export default function ExpensesStats({
           ) : (
             <span className="text-muted-foreground">{currency}</span>
           )}
+          <DeskChatButton />
         </>
       }
     >

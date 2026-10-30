@@ -2,6 +2,7 @@ import { toDateKey } from '@tars/core/utils/format'
 
 import ConsoleHeader from './console-header'
 import ConsoleStat from './console-stat'
+import DeskChatButton from './desk-chat-button'
 
 export default function JournalStats({
   notes,
@@ -17,7 +18,12 @@ export default function JournalStats({
   return (
     <ConsoleHeader
       title="journal"
-      right={<span className="text-muted-foreground tabular-nums">{toDateKey(new Date())}</span>}
+      right={
+        <>
+          <span className="text-muted-foreground tabular-nums">{toDateKey(new Date())}</span>
+          <DeskChatButton />
+        </>
+      }
     >
       <dl className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <ConsoleStat label="notes" value={String(notes).padStart(2, '0')} tone="text-sky-400" />
