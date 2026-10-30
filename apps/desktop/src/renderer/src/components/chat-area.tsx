@@ -11,11 +11,12 @@ import {
 
 import { useChatMessages } from '../lib/chat'
 import { useShellAlertStore } from '../stores/alert'
+import LoadingScreen from './loading-screen'
 import MessageBubble from './message-bubble'
 import SayHello from './say-hello'
 
 export default function ChatArea() {
-  const { data: messages = [], isError } = useChatMessages()
+  const { data: messages = [], isError, isPending } = useChatMessages()
   const showAlert = useShellAlertStore((state) => state.showAlert)
 
   useEffect(() => {
@@ -30,6 +31,10 @@ export default function ChatArea() {
       variant: 'destructive'
     })
   }, [isError, messages.length, showAlert])
+
+  if (isPending) {
+    return <LoadingScreen />
+  }
 
   if (messages.length === 0) {
     return <SayHello />
