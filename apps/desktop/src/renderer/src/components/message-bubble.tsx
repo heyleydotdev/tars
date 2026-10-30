@@ -58,7 +58,7 @@ export default function MessageBubble({ message }: { message: ChatMessageView })
       <Message align="end">
         <MessageContent className="gap-2">
           <Bubble align="end" variant="muted">
-            <BubbleContent>{message.content}</BubbleContent>
+            <BubbleContent className="whitespace-pre-wrap">{message.content}</BubbleContent>
           </Bubble>
           <MessageFooter>
             <MessageAction
