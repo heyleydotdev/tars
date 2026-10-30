@@ -12,6 +12,7 @@ import {
 } from '@tars/ui/components/context-menu'
 
 import { categoryColor, expenseAt } from '../lib/expenses'
+import ConsoleEnd from './console-end'
 import { ConsoleEmpty } from './console-panel'
 
 function ExpenseRow({
@@ -123,21 +124,24 @@ export default function ExpensesLedger({
           />
         </div>
       ) : (
-        <div>
-          {groups.map((group) => (
-            <section key={group.key}>
-              <div className="bg-muted/20 flex items-center justify-between border-b px-3 py-1.5 text-xs backdrop-blur lg:sticky lg:top-0 lg:z-10">
-                <span className="text-foreground tabular-nums">{group.key}</span>
-                <span className="text-muted-foreground tabular-nums">
-                  {group.items.length} · {formatCurrency(group.total, currency)}
-                </span>
-              </div>
-              {group.items.map((item) => (
-                <ExpenseRow key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} />
-              ))}
-            </section>
-          ))}
-        </div>
+        <>
+          <div>
+            {groups.map((group) => (
+              <section key={group.key}>
+                <div className="bg-muted/20 flex items-center justify-between border-b px-3 py-1.5 text-xs backdrop-blur lg:sticky lg:top-0 lg:z-10">
+                  <span className="text-foreground tabular-nums">{group.key}</span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {group.items.length} · {formatCurrency(group.total, currency)}
+                  </span>
+                </div>
+                {group.items.map((item) => (
+                  <ExpenseRow key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} />
+                ))}
+              </section>
+            ))}
+          </div>
+          <ConsoleEnd />
+        </>
       )}
     </div>
   )

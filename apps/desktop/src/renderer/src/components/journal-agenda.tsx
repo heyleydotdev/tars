@@ -10,6 +10,7 @@ import {
 } from '@tars/ui/components/context-menu'
 import { cn } from '@tars/ui/lib/utils'
 
+import ConsoleEnd from './console-end'
 import { ConsoleEmpty } from './console-panel'
 
 export default function JournalAgenda({
@@ -64,82 +65,89 @@ export default function JournalAgenda({
   }
 
   return (
-    <div className="divide-border divide-y">
-      {items.map((item) => (
-        <ContextMenu key={item.id}>
-          <ContextMenuTrigger
-            render={
-              <button
-                type="button"
-                onClick={() => {
-                  const done = !item.done
+    <>
+      <div className="divide-border divide-y">
+        {items.map((item) => (
+          <ContextMenu key={item.id}>
+            <ContextMenuTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => {
+                    const done = !item.done
 
-                  if (item.kind === 'rem') {
-                    onToggleReminder(item.recordId, done)
-                  } else {
-                    onToggleTodo(item.recordId, done)
-                  }
-                }}
-                aria-pressed={item.done}
-                aria-label={`${item.done ? 'Mark as not done' : 'Mark as done'}: ${item.title} (${item.kind === 'rem' ? 'reminder' : 'task'})`}
-                className="group hover:bg-muted focus-visible:bg-muted/30 flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors focus-visible:outline-none"
-              />
-            }
-          >
-            <span
-              className={cn(
-                'mt-px text-xs tabular-nums',
-                item.done ? 'text-emerald-400' : 'text-muted-foreground group-hover:text-foreground'
-              )}
+                    if (item.kind === 'rem') {
+                      onToggleReminder(item.recordId, done)
+                    } else {
+                      onToggleTodo(item.recordId, done)
+                    }
+                  }}
+                  aria-pressed={item.done}
+                  aria-label={`${item.done ? 'Mark as not done' : 'Mark as done'}: ${item.title} (${item.kind === 'rem' ? 'reminder' : 'task'})`}
+                  className="group hover:bg-muted focus-visible:bg-muted/30 flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors focus-visible:outline-none"
+                />
+              }
             >
-              {item.done ? '[x]' : '[ ]'}
-            </span>
-            <span className="text-muted-foreground mt-0.5 w-10 shrink-0 text-xs tabular-nums">
-              {formatTime(item.at)}
-            </span>
-            <span className="min-w-0 flex-1">
               <span
                 className={cn(
-                  'text-foreground block font-sans text-[0.8rem]/6 leading-5 wrap-break-word',
-                  item.done && 'text-muted-foreground line-through'
+                  'mt-px text-xs tabular-nums',
+                  item.done
+                    ? 'text-emerald-400'
+                    : 'text-muted-foreground group-hover:text-foreground'
                 )}
               >
-                {item.title}
+                {item.done ? '[x]' : '[ ]'}
               </span>
-              {item.meta ? (
-                <span className="text-muted-foreground mt-0.5 block text-xs">{item.meta}</span>
-              ) : null}
-            </span>
-            <span
-              className={cn(
-                'pt-0.5 text-xs tracking-widest uppercase',
-                item.kind === 'rem' ? 'text-amber-300' : 'text-sky-400'
-              )}
-            >
-              {item.kind}
-            </span>
-          </ContextMenuTrigger>
-          <ContextMenuContent>
-            <ContextMenuItem
-              onClick={() =>
-                item.kind === 'rem' ? onEditReminder(item.recordId) : onEditTodo(item.recordId)
-              }
-            >
-              <PencilIcon />
-              {item.kind === 'rem' ? 'Edit reminder' : 'Edit task'}
-            </ContextMenuItem>
-            <ContextMenuItem
-              variant="destructive"
-              onClick={() =>
-                item.kind === 'rem' ? onDeleteReminder(item.recordId) : onDeleteTodo(item.recordId)
-              }
-            >
-              <Trash2Icon />
-              {item.kind === 'rem' ? 'Delete reminder' : 'Delete task'}
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-      ))}
-    </div>
+              <span className="text-muted-foreground mt-0.5 w-10 shrink-0 text-xs tabular-nums">
+                {formatTime(item.at)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className={cn(
+                    'text-foreground block font-sans text-[0.8rem]/6 wrap-break-word',
+                    item.done && 'text-muted-foreground line-through'
+                  )}
+                >
+                  {item.title}
+                </span>
+                {item.meta ? (
+                  <span className="text-muted-foreground mt-0.5 block text-xs">{item.meta}</span>
+                ) : null}
+              </span>
+              <span
+                className={cn(
+                  'pt-0.5 text-xs tracking-widest uppercase',
+                  item.kind === 'rem' ? 'text-amber-300' : 'text-sky-400'
+                )}
+              >
+                {item.kind}
+              </span>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem
+                onClick={() =>
+                  item.kind === 'rem' ? onEditReminder(item.recordId) : onEditTodo(item.recordId)
+                }
+              >
+                <PencilIcon />
+                {item.kind === 'rem' ? 'Edit reminder' : 'Edit task'}
+              </ContextMenuItem>
+              <ContextMenuItem
+                variant="destructive"
+                onClick={() =>
+                  item.kind === 'rem'
+                    ? onDeleteReminder(item.recordId)
+                    : onDeleteTodo(item.recordId)
+                }
+              >
+                <Trash2Icon />
+                {item.kind === 'rem' ? 'Delete reminder' : 'Delete task'}
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+        ))}
+      </div>
+      <ConsoleEnd />
+    </>
   )
 }
