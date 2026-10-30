@@ -55,7 +55,7 @@ export default function StatsSpendChart({
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
         aria-label={`Monthly spend, ${formatCurrency(totalCents, currency)} total`}
-        className="mt-2 h-auto w-full"
+        className="mt-2 w-full"
       >
         {[0.25, 0.5, 0.75].map((fraction) => {
           const y = PADDING_TOP + innerHeight * (1 - fraction)

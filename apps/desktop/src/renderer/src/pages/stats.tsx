@@ -6,6 +6,7 @@ import type {
   ReminderItemOutput,
   TodoItemOutput
 } from '@tars/core/schemas/journal'
+import { ERRORS } from '@tars/core/errors'
 import { toDateKey } from '@tars/core/utils/format'
 
 import ConsoleEnd from '../components/console-end'
@@ -74,8 +75,8 @@ export default function Stats() {
     if (!ready || !stale) return
 
     showAlert({
-      title: 'Refresh failed',
-      description: 'Showing the last loaded stats.',
+      title: ERRORS.refreshFailed,
+      description: ERRORS.lastLoadedStats,
       variant: 'destructive'
     })
   }, [expenses.data, expenses.isError, journal.data, journal.isError, ready, showAlert])
@@ -85,11 +86,13 @@ export default function Stats() {
       {journal.isPending || expenses.isPending ? (
         <LoadingScreen />
       ) : (
-        <div className="flex min-h-full flex-col font-mono">
+        <div className="flex min-h-full flex-col">
           <ConsoleHeader
             title="stats"
             right={
-              <span className="text-muted-foreground tabular-nums">{toDateKey(new Date())}</span>
+              <span className="text-muted-foreground font-mono tabular-nums">
+                {toDateKey(new Date())}
+              </span>
             }
           />
 
@@ -105,7 +108,7 @@ export default function Stats() {
 
           {ready ? (
             <>
-              <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:grid-cols-3">
+              <div className="bg-border grid flex-1 grid-cols-1 gap-px font-mono lg:grid-cols-3">
                 <StatsPanel
                   title="activity.map"
                   count={String(activity.total)}
