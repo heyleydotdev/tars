@@ -1,18 +1,25 @@
-import type { JournalPageOutput, RecordDoneOutput } from '@tars/core/schemas/journal'
+import type {
+  JournalActivityPageOutput,
+  JournalNotesPageOutput,
+  JournalPageOutput,
+  RecordDoneOutput
+} from '@tars/core/schemas/journal'
 import type { JournalEntrySelect, ReminderSelect, TodoSelect } from '@tars/db/schema'
 import { JOURNAL_ITEM_LIMIT } from '@tars/core/constants'
 import {
-  logMeasurementsSchema,
+  journalActivitySchema,
+  logActivitySchema,
   recordDoneSchema,
+  removeTaskActivitySchema,
   updateJournalSchema,
   updateReminderSchema,
   updateTodoSchema
 } from '@tars/core/schemas/journal'
 import { deleteRecordSchema } from '@tars/core/schemas/records'
 import { parseDate } from '@tars/core/utils/format'
-import { appendJournalContent, formatMeasurementJournalBlock } from '@tars/core/utils/journal'
+import { activityContent, activityId, activityTags, activityTitle } from '@tars/core/utils/journal'
 import { journalEntry, reminder, todo } from '@tars/db/schema'
-import { and, desc, eq } from '@tars/db/sql'
+import { and, desc, eq, gte, like, lte, notLike } from '@tars/db/sql'
 
 import { protectedProcedure } from '../context'
 import { NotFoundError } from '../errors'
@@ -23,8 +30,6 @@ type JournalRow = Pick<
   JournalEntrySelect,
   'id' | 'title' | 'content' | 'mood' | 'tags' | 'occurredAt'
 >
-
-const measurementTags = JSON.stringify(['measure'])
 
 const todoColumns = {
   id: todo.id,
@@ -135,7 +140,7 @@ export const journalRouter = {
       context.db
         .select(journalColumns)
         .from(journalEntry)
-        .where(eq(journalEntry.userId, userId))
+        .where(and(eq(journalEntry.userId, userId), notLike(journalEntry.tags, '%"activity"%')))
         .orderBy(desc(journalEntry.occurredAt))
         .limit(JOURNAL_ITEM_LIMIT)
     ])
@@ -147,42 +152,99 @@ export const journalRouter = {
     }
   }),
 
-  logMeasurements: protectedProcedure
-    .input(logMeasurementsSchema)
+  notes: protectedProcedure
+    .input(journalActivitySchema)
+    .handler(async ({ input, context }): Promise<JournalNotesPageOutput> => {
+      const from = parseDate(input.from)
+      const to = parseDate(input.to)
+
+      if (!from || !to) return { items: [] }
+
+      const rows = await context.db
+        .select(journalColumns)
+        .from(journalEntry)
+        .where(
+          and(
+            eq(journalEntry.userId, context.session.user.id),
+            notLike(journalEntry.id, 'activity-%'),
+            gte(journalEntry.occurredAt, from),
+            lte(journalEntry.occurredAt, to)
+          )
+        )
+        .orderBy(desc(journalEntry.occurredAt))
+        .limit(JOURNAL_ITEM_LIMIT)
+
+      return { items: rows.map(journalItem) }
+    }),
+
+  activity: protectedProcedure
+    .input(journalActivitySchema)
+    .handler(async ({ input, context }): Promise<JournalActivityPageOutput> => {
+      const from = parseDate(input.from)
+      const to = parseDate(input.to)
+
+      if (!from || !to) return { items: [] }
+
+      const rows = await context.db
+        .select(journalColumns)
+        .from(journalEntry)
+        .where(
+          and(
+            eq(journalEntry.userId, context.session.user.id),
+            like(journalEntry.id, 'activity-%'),
+            gte(journalEntry.occurredAt, from),
+            lte(journalEntry.occurredAt, to)
+          )
+        )
+        .orderBy(desc(journalEntry.occurredAt))
+        .limit(JOURNAL_ITEM_LIMIT)
+
+      return { items: rows.map(journalItem) }
+    }),
+
+  logActivity: protectedProcedure
+    .input(logActivitySchema)
     .handler(async ({ input, context }): Promise<void> => {
       const userId = context.session.user.id
-      const id = `measure-${userId}-${input.dayKey}`
-      const occurredAt = new Date()
-      const block = formatMeasurementJournalBlock(input.items, input.unit)
-      const [existing] = await context.db
-        .select({ content: journalEntry.content })
+      const events = new Map(input.events.map((event) => [activityId(event), event]))
+
+      await context.db
+        .insert(journalEntry)
+        .values(
+          [...events.entries()].map(([id, event]) => ({
+            id,
+            userId,
+            messageId: null,
+            title: activityTitle(event),
+            content: activityContent(event),
+            mood: null,
+            tags: JSON.stringify(activityTags(event)),
+            occurredAt: parseDate(event.occurredAt) ?? new Date()
+          }))
+        )
+        .onConflictDoNothing()
+    }),
+
+  removeTaskActivity: protectedProcedure
+    .input(removeTaskActivitySchema)
+    .handler(async ({ input, context }): Promise<void> => {
+      const rows = await context.db
+        .select({ id: journalEntry.id })
         .from(journalEntry)
-        .where(and(eq(journalEntry.id, id), eq(journalEntry.userId, userId)))
-        .limit(1)
+        .where(
+          and(
+            eq(journalEntry.userId, context.session.user.id),
+            like(journalEntry.id, 'activity-task-%')
+          )
+        )
+        .orderBy(desc(journalEntry.occurredAt))
 
-      if (existing) {
-        await context.db
-          .update(journalEntry)
-          .set({
-            content: appendJournalContent(existing.content, block),
-            occurredAt,
-            tags: measurementTags
-          })
-          .where(and(eq(journalEntry.id, id), eq(journalEntry.userId, userId)))
+      const prefix = `activity-task-${input.todoId}-`
+      const latest = rows.find((row) => row.id.startsWith(prefix))
 
-        return
+      if (latest) {
+        await context.db.delete(journalEntry).where(eq(journalEntry.id, latest.id))
       }
-
-      await context.db.insert(journalEntry).values({
-        id,
-        userId,
-        messageId: null,
-        title: 'Measurements',
-        content: block,
-        mood: null,
-        tags: measurementTags,
-        occurredAt
-      })
     }),
 
   updateEntry: protectedProcedure
