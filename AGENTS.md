@@ -99,6 +99,9 @@
 - Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.
 - Import icons directly from `lucide-react`; no icon barrels, so tree-shaking survives.
 - Never use interface text smaller than `text-xs` (`0.75rem`); if it needs to be smaller, it is too small to read. Measurement frame labels are user-controlled and exempt.
+- Pending buttons with an icon swap only the icon for a spinner; the label stays.
+- Pending buttons with text only put a spinner before the label; the label stays.
+- Exception: long setup runs may replace the label with step progress (`(3/7) Building...`), as `IncidentDemoButton` does; the user must still know what is running.
 - Packages ship TypeScript source (`@tars/tsconfig/source-package.json`); no build step.
 - Workspaces depend on shared tooling via `workspace:*` and set `"prettier": "@tars/prettier"`.
 - ESLint configs (`eslint.config.js` or `.mjs`) list every tsconfig in `parserOptions.project`; `apps/desktop` includes node, preload, and web.
