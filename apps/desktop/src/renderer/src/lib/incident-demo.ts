@@ -79,6 +79,19 @@ export async function seedIncidentDemo(
 ): Promise<string> {
   const created = await orpc.incident.create.call({ title: 'Checkout latency spike' })
   const incidentId = created.incident.id
+
+  void orpc.journal.logActivity
+    .call({
+      events: [
+        {
+          type: 'incident.opened',
+          incidentId,
+          title: created.incident.title,
+          occurredAt: new Date().toISOString()
+        }
+      ]
+    })
+    .catch(() => undefined)
   const total = DEMO_EVIDENCE.length + 3
   let done = 0
   const tick = (): void => {

@@ -11,7 +11,6 @@ import {
   MEASURE_RATE_LIMIT_RETRIES
 } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
-import { toDateKey } from '@tars/core/utils/format'
 import { sleep } from '@tars/core/utils/time'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
@@ -31,7 +30,7 @@ import MeasureGuideButton from '../components/measure-guide-button'
 import MeasureHistorySheet from '../components/measure-history-sheet'
 import MeasurePhoto from '../components/measure-photo'
 import MeasureSaveButton from '../components/measure-save-button'
-import { useLogMeasurements } from '../lib/journal'
+import { useLogActivity } from '../lib/journal'
 import {
   exportMeasure,
   hasResult,
@@ -86,7 +85,7 @@ export default function Measure() {
     skipMeasured: boolean
   } | null>(null)
   const measure = useMeasure()
-  const logMeasurements = useLogMeasurements()
+  const logActivity = useLogActivity()
   const unit = useMeasurePreferences((state) => state.unit)
   const includeDetails = useMeasurePreferences((state) => state.includeDetails)
   const annotations = useMeasureAnnotations()
@@ -141,23 +140,24 @@ export default function Measure() {
   )
 
   const logCompleted = useCallback(
-    async (completed: Array<MeasureBatchItem>): Promise<void> => {
+    async (completed: Array<MeasureBatchItem>, runId: string): Promise<void> => {
       const measured = completed.filter(hasResult)
 
       if (measured.length === 0) return
 
+      const objectCount = measured.reduce((sum, item) => sum + item.result.objects.length, 0)
+
       try {
-        await logMeasurements.mutateAsync({
-          dayKey: toDateKey(new Date()),
-          unit,
-          items: measured.map((item) => ({
-            name: item.photo.name,
-            objects: item.result.objects.map((object) => ({
-              prompt: object.prompt,
-              widthMm: object.widthMm,
-              heightMm: object.heightMm
-            }))
-          }))
+        await logActivity.mutateAsync({
+          events: [
+            {
+              type: 'measure.completed',
+              runId,
+              photoCount: measured.length,
+              objectCount,
+              occurredAt: new Date().toISOString()
+            }
+          ]
         })
       } catch {
         showAlert({
@@ -167,7 +167,7 @@ export default function Measure() {
         })
       }
     },
-    [logMeasurements, showAlert, unit]
+    [logActivity, showAlert]
   )
 
   async function measureBatch(
@@ -177,6 +177,7 @@ export default function Measure() {
     if (targets.length === 0) return ERRORS.photoRequired
 
     const completed: Array<MeasureBatchItem> = []
+    const runId = crypto.randomUUID()
     measure.reset()
     setRunning(true)
     clearResults(targets.map((item) => item.id))
@@ -196,7 +197,7 @@ export default function Measure() {
       setRunning(false)
     }
 
-    await logCompleted(completed)
+    await logCompleted(completed, runId)
 
     return null
   }
@@ -221,7 +222,7 @@ export default function Measure() {
       try {
         const result = await measurePhoto(item, item.request)
 
-        if (result) await logCompleted([{ ...item, result }])
+        if (result) await logCompleted([{ ...item, result }], crypto.randomUUID())
       } finally {
         setRunning(false)
       }

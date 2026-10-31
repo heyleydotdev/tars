@@ -15,6 +15,8 @@ import {
   useRebuildIncidentTimeline,
   useSaveIncidentPostmortem
 } from '../lib/incident'
+import { useLogActivity } from '../lib/journal'
+import { useShellAlertStore } from '../stores/alert'
 
 function outcomeLabel(outcome: 'proposed' | 'inconclusive'): string {
   return outcome === 'proposed' ? 'likely cause' : 'inconclusive'
@@ -37,11 +39,36 @@ export default function IncidentAnalysisPanel({
   const rebuild = useRebuildIncidentTimeline()
   const savePostmortem = useSaveIncidentPostmortem()
   const approve = useApproveIncidentPostmortem()
+  const logActivity = useLogActivity()
+  const showAlert = useShellAlertStore((state) => state.showAlert)
   const [draft, setDraft] = useState<{ text: string; version: string } | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const serverPostmortem = analysis?.postmortem ?? ''
   const serverVersion = analysis?.updatedAt ?? ''
   const postmortem = draft?.version === serverVersion ? draft.text : serverPostmortem
+
+  async function approvePostmortem(): Promise<void> {
+    try {
+      const detail = await approve.mutateAsync({ incidentId, postmortem })
+
+      logActivity.mutate({
+        events: [
+          {
+            type: 'incident.approved',
+            incidentId: detail.incident.id,
+            title: detail.incident.title,
+            occurredAt: new Date().toISOString()
+          }
+        ]
+      })
+    } catch {
+      showAlert({
+        title: ERRORS.saveFailedTitle,
+        description: ERRORS.incidentAnalysisFailed,
+        variant: 'destructive'
+      })
+    }
+  }
 
   async function submitAnswer(questionId: string): Promise<void> {
     const answer = (answers[questionId] ?? '').trim()
@@ -190,7 +217,7 @@ export default function IncidentAnalysisPanel({
                   analysis.status === 'approved' ||
                   postmortem.trim().length === 0
                 }
-                onClick={() => approve.mutate({ incidentId, postmortem })}
+                onClick={() => void approvePostmortem()}
               >
                 {approve.isPending ? <Spinner className="size-3.5" /> : <CheckIcon />}
                 Approve

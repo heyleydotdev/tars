@@ -24,6 +24,7 @@ import EmptyState from '../components/empty-state'
 import IncidentDayHeader from '../components/incident-day-header'
 import IncidentDemoButton from '../components/incident-demo-button'
 import { useCreateIncident, useDeleteIncident, useIncidents } from '../lib/incident'
+import { useLogActivity } from '../lib/journal'
 import { useShellAlertStore } from '../stores/alert'
 import { useIncidentDemoStore } from '../stores/incident-demo'
 
@@ -52,6 +53,7 @@ export default function Incidents() {
   const incidents = useIncidents(initial)
   const create = useCreateIncident()
   const remove = useDeleteIncident()
+  const logActivity = useLogActivity()
   const navigate = useNavigate()
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const [title, setTitle] = useState('')
@@ -79,6 +81,17 @@ export default function Incidents() {
 
     try {
       const detail = await create.mutateAsync({ title: value })
+
+      logActivity.mutate({
+        events: [
+          {
+            type: 'incident.opened',
+            incidentId: detail.incident.id,
+            title: detail.incident.title,
+            occurredAt: new Date().toISOString()
+          }
+        ]
+      })
 
       setTitle('')
       navigate(`/incidents/${detail.incident.id}`)
