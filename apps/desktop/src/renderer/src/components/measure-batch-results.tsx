@@ -114,8 +114,8 @@ export default function MeasureBatchResults({
       await window.copyText(measureSummary(item, unit))
     } catch {
       showAlert({
-        title: 'Copy failed',
-        description: 'Could not copy the measurement to the clipboard.',
+        title: ERRORS.copyFailedTitle,
+        description: ERRORS.copyFailedDetail,
         variant: 'destructive'
       })
     }
@@ -162,7 +162,7 @@ export default function MeasureBatchResults({
         </TabsList>
 
         <TabsContent value="selected" className="space-y-3">
-          <MeasurePreview item={selected} unit={unit} className="aspect-[4/3]">
+          <MeasurePreview item={selected} unit={unit} className="aspect-4/3">
             <div className="absolute top-2 right-2 z-20 flex gap-1">
               {selected.request && selected.status !== 'measuring' && selected.status !== 'idle' ? (
                 <Button

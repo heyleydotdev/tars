@@ -70,7 +70,7 @@ export default function MeasureHistorySheet({
       onOpenChange(false)
     } catch (error) {
       showAlert({
-        title: 'History',
+        title: ERRORS.historyTitle,
         description: error instanceof Error ? error.message : ERRORS.historyLoadFailed,
         variant: 'destructive'
       })
@@ -90,7 +90,7 @@ export default function MeasureHistorySheet({
       setDeleting(null)
     } catch (error) {
       showAlert({
-        title: 'Delete failed',
+        title: ERRORS.deleteFailed,
         description: error instanceof Error ? error.message : ERRORS.historyDeleteFailed,
         variant: 'destructive'
       })

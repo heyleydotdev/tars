@@ -27,7 +27,7 @@ export default function MeasureExportAllButton({ items }: { items: Array<Measure
 
   function reportError(error: unknown): void {
     showAlert({
-      title: 'Export failed',
+      title: ERRORS.exportFailedTitle,
       description: error instanceof Error ? error.message : ERRORS.exportFailed,
       variant: 'destructive'
     })

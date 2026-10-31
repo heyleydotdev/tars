@@ -33,7 +33,7 @@ export default function MeasureSaveButton({ items }: { items: Array<MeasureBatch
       setSavedItems(items)
     } catch (error) {
       showAlert({
-        title: 'Save failed',
+        title: ERRORS.saveFailedTitle,
         description: error instanceof Error ? error.message : ERRORS.historySaveFailed,
         variant: 'destructive'
       })
