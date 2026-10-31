@@ -13,6 +13,7 @@ import ConsoleEnd from '../components/console-end'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import DashboardShell from '../components/dashboard-shell'
+import ErrorTestButton from '../components/error-test-button'
 import MeasureAnnotationSettings from '../components/measure-annotation-settings'
 import MeasureBatchResults from '../components/measure-batch-results'
 import MeasureExportAllButton from '../components/measure-export-all-button'
@@ -317,6 +318,7 @@ export default function Measure() {
                 <HistoryIcon />
               </Button>
               <MeasureGuideButton />
+              <ErrorTestButton />
             </ButtonGroup>
           }
         />
