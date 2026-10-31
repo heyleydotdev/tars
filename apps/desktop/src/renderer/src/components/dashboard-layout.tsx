@@ -74,6 +74,16 @@ const navigation = [
 
 const destinations = navigation.flatMap((group) => group.items)
 
+function activeDestination(pathname: string): string {
+  const exact = destinations.find((item) => item.to === pathname)
+
+  if (exact) return exact.title
+
+  const nested = destinations.find((item) => item.to !== '/' && pathname.startsWith(item.to))
+
+  return nested?.title ?? 'Desk'
+}
+
 function UserIdentity({ name, email }: { name: string; email: string }) {
   return (
     <>
@@ -188,7 +198,7 @@ export default function DashboardLayout() {
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const setDeskChatOpen = useDeskChatStore((state) => state.setOpen)
-  const active = destinations.find((item) => item.to === pathname)?.title ?? 'Desk'
+  const active = activeDestination(pathname)
 
   async function confirmSignOut() {
     setSigningOut(true)
