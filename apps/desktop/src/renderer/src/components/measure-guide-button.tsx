@@ -1,6 +1,7 @@
 import { InfoIcon } from 'lucide-react'
 
 import { Button } from '@tars/ui/components/button'
+import { Kbd, KbdGroup } from '@tars/ui/components/kbd'
 import {
   Popover,
   PopoverContent,
@@ -9,6 +10,19 @@ import {
   PopoverTitle,
   PopoverTrigger
 } from '@tars/ui/components/popover'
+
+function Shortcut({ label, keys }: { label: string; keys: Array<string> }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <KbdGroup>
+        {keys.map((key) => (
+          <Kbd key={key}>{key}</Kbd>
+        ))}
+      </KbdGroup>
+    </div>
+  )
+}
 
 export default function MeasureGuideButton() {
   return (
@@ -33,9 +47,14 @@ export default function MeasureGuideButton() {
         <p className="text-muted-foreground text-xs">
           Tilt and perspective reduce accuracy. Use a contrasting surface for white paper.
         </p>
-        <p className="text-muted-foreground font-mono text-xs">
-          Arrows switch photos · R retry · E export · C copy · Delete remove
-        </p>
+        <div className="border-border space-y-2 border-t pt-3">
+          <p className="text-foreground text-xs font-medium">Shortcuts</p>
+          <Shortcut label="Switch photos" keys={['↑', '↓']} />
+          <Shortcut label="Retry" keys={['R']} />
+          <Shortcut label="Export" keys={['E']} />
+          <Shortcut label="Copy" keys={['C']} />
+          <Shortcut label="Remove" keys={['Delete']} />
+        </div>
       </PopoverContent>
     </Popover>
   )
