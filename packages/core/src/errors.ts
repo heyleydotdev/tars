@@ -68,6 +68,7 @@ export const ERRORS = {
   referenceMissing: 'That measurement reference does not exist.',
   referenceSaveFailed: 'Could not save that reference.',
   segmentationFailed: 'Segmentation failed. Try again.',
+  segmentationRateLimited: 'Segmentation is rate limited. Wait a moment and try again.',
   referenceTooSmall: 'Reference box is too small to measure.',
   referenceNotFound: (label: string) =>
     `No ${label} found. Keep the full reference visible on a contrasting surface.`,

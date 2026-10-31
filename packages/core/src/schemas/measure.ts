@@ -72,6 +72,10 @@ export const measureRequestSchema = z
     prompts: 'prompts' in input ? input.prompts : [input.prompt]
   }))
 
+export const measureRateLimitSchema = z.object({
+  retryAfterMs: z.number().int().nonnegative()
+})
+
 export const measureFormSchema = z.object({
   referenceId: z.string().min(1, ERRORS.referenceRequired),
   prompts: z
@@ -119,6 +123,8 @@ export type CreateMeasureReferenceInput = z.input<typeof createMeasureReferenceS
 export type CreateMeasureReferenceOutput = z.output<typeof createMeasureReferenceSchema>
 export type MeasureRequestInput = z.input<typeof measureRequestSchema>
 export type MeasureRequestOutput = z.output<typeof measureRequestSchema>
+export type MeasureRateLimitInput = z.input<typeof measureRateLimitSchema>
+export type MeasureRateLimitOutput = z.output<typeof measureRateLimitSchema>
 export type MeasureFormInput = z.input<typeof measureFormSchema>
 export type MeasureFormOutput = z.output<typeof measureFormSchema>
 export type MeasureBoxInput = z.input<typeof measureBoxSchema>

@@ -1,4 +1,5 @@
 import type OpenAI from 'openai'
+import { APIConnectionError, APIError } from 'openai'
 
 import type {
   MeasureReferenceItemOutput,
@@ -6,16 +7,21 @@ import type {
   MeasureResultOutput
 } from '@tars/core/schemas/measure'
 import type { MeasurePromptObjects, SamDetection } from '@tars/core/utils/measure'
-import { META_SAM_MODEL } from '@tars/core/constants'
+import { MEASURE_RATE_LIMIT_FALLBACK_MS, META_SAM_MODEL } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { createMeasureReferenceSchema, measureRequestSchema } from '@tars/core/schemas/measure'
 import { buildMeasureResult, parseSamBoxes, pickLargestDetection } from '@tars/core/utils/measure'
+import { sleep } from '@tars/core/utils/time'
 import { measureReference } from '@tars/db/schema'
 import { and, asc, eq, isNull, or } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
-import { BadRequestError, GatewayError, InternalServerError } from '../errors'
+import { BadRequestError, GatewayError, InternalServerError, RateLimitedError } from '../errors'
 import { measureHistoryRouter } from './measure-history'
+
+const SAM_RETRY_LIMIT = 2
+const SAM_RETRY_BASE_MS = 1_000
+const SAM_RETRY_MAX_MS = 15_000
 
 const referenceColumns = {
   id: measureReference.id,
@@ -29,27 +35,67 @@ function visibleReference(userId: string) {
   return or(isNull(measureReference.userId), eq(measureReference.userId, userId))
 }
 
+function rateLimitRetryAfterMs(error: unknown): number | null {
+  if (!(error instanceof APIError) || error.status !== 429) return null
+
+  const seconds = Number(error.headers?.get('retry-after'))
+
+  return Number.isFinite(seconds) && seconds > 0
+    ? Math.round(seconds * 1_000)
+    : MEASURE_RATE_LIMIT_FALLBACK_MS
+}
+
+function retryDelayMs(error: unknown, attempt: number): number | null {
+  if (error instanceof APIConnectionError) {
+    return Math.min(SAM_RETRY_MAX_MS, SAM_RETRY_BASE_MS * 2 ** attempt)
+  }
+
+  if (!(error instanceof APIError)) return null
+
+  const status = error.status
+  const retryable = status === 429 || (typeof status === 'number' && status >= 500)
+
+  if (!retryable) return null
+
+  const base = rateLimitRetryAfterMs(error) ?? SAM_RETRY_BASE_MS * 2 ** attempt
+
+  return Math.min(SAM_RETRY_MAX_MS, base * (1 + Math.random() * 0.3))
+}
+
 async function segment(
   openAi: OpenAI,
   image: string,
   prompt: string
 ): Promise<Array<SamDetection>> {
-  const response = await openAi.responses.create({
-    model: META_SAM_MODEL,
-    input: [
-      {
-        type: 'message',
-        role: 'user',
-        content: [
-          { type: 'input_text', text: prompt },
-          { type: 'input_image', image_url: image, detail: 'auto' }
-        ]
-      }
-    ],
-    metadata: { mask_encoding: 'one_bit' }
-  })
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await openAi.responses.create(
+        {
+          model: META_SAM_MODEL,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [
+                { type: 'input_text', text: prompt },
+                { type: 'input_image', image_url: image, detail: 'auto' }
+              ]
+            }
+          ],
+          metadata: { mask_encoding: 'one_bit' }
+        },
+        { maxRetries: 0 }
+      )
 
-  return parseSamBoxes(response.output_text)
+      return parseSamBoxes(response.output_text)
+    } catch (error) {
+      const delay = retryDelayMs(error, attempt)
+
+      if (delay === null || attempt >= SAM_RETRY_LIMIT) throw error
+
+      await sleep(delay)
+    }
+  }
 }
 
 async function segmentPrompts(
@@ -124,7 +170,11 @@ export const measureRouter = {
     }),
 
   run: protectedProcedure
-    .errors({ BAD_GATEWAY: GatewayError, BAD_REQUEST: BadRequestError })
+    .errors({
+      BAD_GATEWAY: GatewayError,
+      BAD_REQUEST: BadRequestError,
+      RATE_LIMITED: RateLimitedError
+    })
     .input(measureRequestSchema)
     .use(openAiMiddleware)
     .handler(async ({ input, context, errors }): Promise<MeasureResultOutput> => {
@@ -140,12 +190,27 @@ export const measureRouter = {
         throw errors.BAD_REQUEST({ message: ERRORS.referenceMissing })
       }
 
-      const [referenceDetections, promptObjects] = await Promise.all([
-        segment(context.openAi, input.image, reference.prompt),
-        segmentPrompts(context.openAi, input.image, input.prompts)
-      ]).catch(() => {
+      let segmented: [Array<SamDetection>, Array<MeasurePromptObjects>]
+
+      try {
+        segmented = await Promise.all([
+          segment(context.openAi, input.image, reference.prompt),
+          segmentPrompts(context.openAi, input.image, input.prompts)
+        ])
+      } catch (error) {
+        const retryAfterMs = rateLimitRetryAfterMs(error)
+
+        if (retryAfterMs !== null) {
+          throw errors.RATE_LIMITED({
+            message: ERRORS.segmentationRateLimited,
+            data: { retryAfterMs }
+          })
+        }
+
         throw errors.BAD_GATEWAY({ message: ERRORS.segmentationFailed })
-      })
+      }
+
+      const [referenceDetections, promptObjects] = segmented
 
       const referenceBox = pickLargestDetection(referenceDetections)
 
