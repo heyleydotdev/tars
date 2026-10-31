@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type {
   JournalPageOutput,
-  LogMeasurementsInput,
+  LogActivityInput,
   RecordDoneInput,
   RecordDoneOutput,
+  RemoveTaskActivityInput,
   UpdateJournalInput,
   UpdateReminderInput,
   UpdateTodoInput
@@ -14,6 +15,16 @@ import type { DeleteRecordInput, DeleteRecordOutput } from '@tars/core/schemas/r
 import { orpc } from './orpc'
 
 const journalKey = orpc.journal.list.queryKey()
+
+function invalidateJournal(queryClient: ReturnType<typeof useQueryClient>): void {
+  void queryClient.invalidateQueries({
+    predicate: (query) => {
+      const path = query.queryKey[0]
+
+      return Array.isArray(path) && path[0] === 'journal'
+    }
+  })
+}
 
 function useDoneMutation(options: {
   mutate: (input: RecordDoneInput) => Promise<RecordDoneOutput>
@@ -46,12 +57,33 @@ export function useJournal(initialData?: JournalPageOutput) {
   return useQuery({ ...orpc.journal.list.queryOptions(), initialData })
 }
 
-export function useLogMeasurements() {
+export function useJournalActivity(from: string, to: string, enabled = true) {
+  return useQuery({
+    ...orpc.journal.activity.queryOptions({ input: { from, to } }),
+    enabled,
+    staleTime: 0
+  })
+}
+
+export function useJournalNotes(from: string, to: string) {
+  return useQuery({ ...orpc.journal.notes.queryOptions({ input: { from, to } }), staleTime: 0 })
+}
+
+export function useLogActivity() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: LogMeasurementsInput) => orpc.journal.logMeasurements.call(input),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+    mutationFn: (input: LogActivityInput) => orpc.journal.logActivity.call(input),
+    onSuccess: () => invalidateJournal(queryClient)
+  })
+}
+
+export function useRemoveTaskActivity() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: RemoveTaskActivityInput) => orpc.journal.removeTaskActivity.call(input),
+    onSuccess: () => invalidateJournal(queryClient)
   })
 }
 
@@ -60,7 +92,7 @@ export function useUpdateJournalEntry() {
 
   return useMutation({
     mutationFn: (input: UpdateJournalInput) => orpc.journal.updateEntry.call(input),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+    onSuccess: () => invalidateJournal(queryClient)
   })
 }
 
@@ -87,7 +119,7 @@ function useDeleteRecord(mutate: (input: DeleteRecordInput) => Promise<DeleteRec
 
   return useMutation({
     mutationFn: mutate,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+    onSuccess: () => invalidateJournal(queryClient)
   })
 }
 

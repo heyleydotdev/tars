@@ -6,6 +6,7 @@ export default function ConsolePanel({
   accent,
   className,
   footer,
+  headerRight,
   children
 }: React.PropsWithChildren<{
   title: string
@@ -13,6 +14,7 @@ export default function ConsolePanel({
   accent: string
   className?: string
   footer?: React.ReactNode
+  headerRight?: React.ReactNode
 }>) {
   return (
     <section className={cn('bg-background flex min-h-0 flex-col lg:h-auto', className)}>
@@ -22,7 +24,11 @@ export default function ConsolePanel({
         {count ? (
           <span className="text-muted-foreground font-mono text-xs tabular-nums">[{count}]</span>
         ) : null}
-        <span aria-hidden className="bg-border ml-auto h-px w-8" />
+        {headerRight ? (
+          <div className="ml-auto flex items-center gap-2">{headerRight}</div>
+        ) : (
+          <span aria-hidden className="bg-border ml-auto h-px w-8" />
+        )}
       </header>
       <div className="console-scroll min-h-0 flex-1 lg:overflow-y-auto">{children}</div>
       {footer ? (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLoaderData } from 'react-router'
 
 import type {
@@ -9,14 +9,17 @@ import type {
 } from '@tars/core/schemas/journal'
 import { ERRORS } from '@tars/core/errors'
 import { toDateKey } from '@tars/core/utils/format'
+import { Button } from '@tars/ui/components/button'
+import { ButtonGroup } from '@tars/ui/components/button-group'
 
+import type { JournalFeedMode } from '../components/journal-feed'
 import type { JournalLoaderData } from '../lib/loaders'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsolePanel from '../components/console-panel'
 import JournalAgenda from '../components/journal-agenda'
 import JournalCalendar from '../components/journal-calendar'
 import JournalEditDialog from '../components/journal-edit-dialog'
-import JournalNotes from '../components/journal-notes'
+import JournalFeed from '../components/journal-feed'
 import JournalStats from '../components/journal-stats'
 import ReminderEditDialog from '../components/reminder-edit-dialog'
 import TodoEditDialog from '../components/todo-edit-dialog'
@@ -25,6 +28,10 @@ import {
   useDeleteReminder,
   useDeleteTodo,
   useJournal,
+  useJournalActivity,
+  useJournalNotes,
+  useLogActivity,
+  useRemoveTaskActivity,
   useSetReminderDone,
   useSetTodoDone
 } from '../lib/journal'
@@ -33,10 +40,13 @@ import { useShellAlertStore } from '../stores/alert'
 const EMPTY_TODOS: JournalPageOutput['todos'] = []
 const EMPTY_REMINDERS: JournalPageOutput['reminders'] = []
 const EMPTY_JOURNALS: JournalPageOutput['journals'] = []
+const EMPTY_ACTIVITIES: JournalPageOutput['journals'] = []
 
 export default function Journal() {
   const initial = useLoaderData<JournalLoaderData>()
   const [selected, setSelected] = useState(() => new Date())
+  const [filter, setFilter] = useState<JournalFeedMode>('all')
+  const taskQueue = useRef(new Map<string, Promise<void>>())
   const [editingJournal, setEditingJournal] = useState<JournalItemOutput | null>(null)
   const [editingTodo, setEditingTodo] = useState<TodoItemOutput | null>(null)
   const [editingReminder, setEditingReminder] = useState<ReminderItemOutput | null>(null)
@@ -45,6 +55,21 @@ export default function Journal() {
     id: string
   } | null>(null)
   const journal = useJournal(initial)
+  const dayRange = useMemo(() => {
+    const start = new Date(selected)
+
+    start.setHours(0, 0, 0, 0)
+
+    const end = new Date(start)
+
+    end.setDate(end.getDate() + 1)
+
+    return { from: start.toISOString(), to: new Date(end.getTime() - 1).toISOString() }
+  }, [selected])
+  const activity = useJournalActivity(dayRange.from, dayRange.to, filter !== 'notes')
+  const notes = useJournalNotes(dayRange.from, dayRange.to)
+  const logActivity = useLogActivity()
+  const removeTaskActivity = useRemoveTaskActivity()
   const setTodoDone = useSetTodoDone()
   const setReminderDone = useSetReminderDone()
   const deleteJournal = useDeleteJournalEntry()
@@ -54,6 +79,14 @@ export default function Journal() {
   const todos = journal.data?.todos ?? EMPTY_TODOS
   const reminders = journal.data?.reminders ?? EMPTY_REMINDERS
   const journals = journal.data?.journals ?? EMPTY_JOURNALS
+  const dayNotes = notes.data?.items ?? EMPTY_JOURNALS
+  const activities = activity.data?.items ?? EMPTY_ACTIVITIES
+  const visibleCount =
+    filter === 'notes'
+      ? dayNotes.length
+      : filter === 'activities'
+        ? activities.length
+        : dayNotes.length + activities.length
   const { openTasks, doneTasks, pendingReminders, dayReminders, dayTodos } = useMemo(() => {
     const key = toDateKey(selected)
     const dayReminders: JournalPageOutput['reminders'] = []
@@ -128,6 +161,44 @@ export default function Journal() {
 
   const deletePending = deleteJournal.isPending || deleteTodo.isPending || deleteReminder.isPending
 
+  async function persistTodoToggle(id: string, done: boolean): Promise<void> {
+    try {
+      await setTodoDone.mutateAsync({ id, done })
+    } catch {
+      return
+    }
+
+    if (!done) {
+      await removeTaskActivity.mutateAsync({ todoId: id }).catch(() => undefined)
+      return
+    }
+
+    const todo = todos.find((item) => item.id === id)
+
+    if (!todo) return
+
+    await logActivity
+      .mutateAsync({
+        events: [
+          {
+            type: 'task.done',
+            todoId: id,
+            title: todo.title,
+            dayKey: toDateKey(new Date()),
+            occurredAt: new Date().toISOString()
+          }
+        ]
+      })
+      .catch(() => undefined)
+  }
+
+  function toggleTodo(id: string, done: boolean): void {
+    const previous = taskQueue.current.get(id) ?? Promise.resolve()
+    const next = previous.then(() => persistTodoToggle(id, done)).catch(() => undefined)
+
+    taskQueue.current.set(id, next)
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return
 
@@ -161,9 +232,30 @@ export default function Journal() {
         />
 
         <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
-          <ConsolePanel title="notes.md" count={String(journals.length)} accent="bg-sky-400">
-            <JournalNotes
-              journals={journals}
+          <ConsolePanel
+            title="notes.md"
+            count={String(visibleCount)}
+            accent="bg-sky-400"
+            headerRight={
+              <ButtonGroup>
+                {(['all', 'notes', 'activities'] as const).map((mode) => (
+                  <Button
+                    key={mode}
+                    type="button"
+                    size="xs"
+                    variant={filter === mode ? 'default' : 'outline'}
+                    onClick={() => setFilter(mode)}
+                  >
+                    {mode === 'all' ? 'All' : mode === 'notes' ? 'Notes' : 'Activities'}
+                  </Button>
+                ))}
+              </ButtonGroup>
+            }
+          >
+            <JournalFeed
+              mode={filter}
+              notes={dayNotes}
+              activities={activities}
               onEdit={setEditingJournal}
               onDelete={(entry) => setDeleteTarget({ kind: 'journal', id: entry.id })}
             />
@@ -194,7 +286,7 @@ export default function Journal() {
                 reminders={dayReminders}
                 todos={dayTodos}
                 onToggleReminder={(id, done) => setReminderDone.mutate({ id, done })}
-                onToggleTodo={(id, done) => setTodoDone.mutate({ id, done })}
+                onToggleTodo={toggleTodo}
                 onEditReminder={editReminder}
                 onEditTodo={editTodo}
                 onDeleteReminder={(id) => setDeleteTarget({ kind: 'reminder', id })}
