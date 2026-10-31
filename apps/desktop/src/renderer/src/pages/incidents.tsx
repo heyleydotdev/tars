@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PlusIcon, SirenIcon } from 'lucide-react'
 import { Link, useLoaderData, useNavigate } from 'react-router'
 
@@ -16,6 +16,7 @@ import EmptyState from '../components/empty-state'
 import IncidentDemoButton from '../components/incident-demo-button'
 import { useCreateIncident, useIncidents } from '../lib/incident'
 import { useShellAlertStore } from '../stores/alert'
+import { useIncidentDemoStore } from '../stores/incident-demo'
 
 export default function Incidents() {
   const initial = useLoaderData<IncidentsLoaderData>()
@@ -25,6 +26,16 @@ export default function Incidents() {
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const [title, setTitle] = useState('')
   const items = incidents.data?.items ?? []
+  const demoRunning = useIncidentDemoStore((state) => state.running)
+  const consumeIncidentId = useIncidentDemoStore((state) => state.consumeIncidentId)
+
+  useEffect(() => {
+    if (demoRunning) return
+
+    const incidentId = consumeIncidentId()
+
+    if (incidentId) navigate(`/incidents/${incidentId}`)
+  }, [consumeIncidentId, demoRunning, navigate])
 
   async function submit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
@@ -49,10 +60,7 @@ export default function Incidents() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <ConsoleHeader
-        title="incidents"
-        right={<IncidentDemoButton onDone={(id) => navigate(`/incidents/${id}`)} />}
-      />
+      <ConsoleHeader title="incidents" right={<IncidentDemoButton />} />
 
       <div className="bg-border grid flex-1 grid-cols-1 gap-px">
         <ConsolePanel
@@ -90,7 +98,7 @@ export default function Incidents() {
                 <li key={incident.id}>
                   <Link
                     to={`/incidents/${incident.id}`}
-                    className="hover:bg-muted/20 flex items-start gap-3 p-3"
+                    className="hover:bg-muted flex items-start gap-3 p-3"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">

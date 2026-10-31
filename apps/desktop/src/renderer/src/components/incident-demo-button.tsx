@@ -1,59 +1,56 @@
-import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { SparklesIcon } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 
 import { ERRORS } from '@tars/core/errors'
 import { Button } from '@tars/ui/components/button'
 import { Spinner } from '@tars/ui/components/spinner'
 
-import { seedIncidentDemo } from '../lib/incident-demo'
-import { orpc } from '../lib/orpc'
 import { useShellAlertStore } from '../stores/alert'
+import { useIncidentDemoStore } from '../stores/incident-demo'
 
-export default function IncidentDemoButton({ onDone }: { onDone: (incidentId: string) => void }) {
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+export default function IncidentDemoButton() {
+  const { running, done, total } = useIncidentDemoStore(
+    useShallow((state) => ({
+      running: state.running,
+      done: state.done,
+      total: state.total
+    }))
+  )
+  const start = useIncidentDemoStore((state) => state.start)
   const queryClient = useQueryClient()
   const showAlert = useShellAlertStore((state) => state.showAlert)
-  const pending = progress !== null
+
+  const label = running
+    ? total > 0
+      ? `(${done}/${total}) Building...`
+      : 'Building...'
+    : 'Load demo incident'
 
   async function load(): Promise<void> {
-    if (pending) return
-
-    setProgress({ done: 0, total: 0 })
+    if (running) return
 
     try {
-      const incidentId = await seedIncidentDemo(setProgress)
-
-      onDone(incidentId)
+      await start(queryClient)
     } catch (error) {
       console.error(error)
       showAlert({
         title: ERRORS.saveFailedTitle,
-        description: ERRORS.incidentExtractionFailed,
+        description: ERRORS.incidentDemoFailed,
         variant: 'destructive'
       })
-    } finally {
-      setProgress(null)
-      void queryClient.invalidateQueries({ queryKey: orpc.incident.list.queryKey() })
     }
   }
-
-  const label =
-    progress && progress.total > 0
-      ? `(${progress.done}/${progress.total}) Building...`
-      : pending
-        ? 'Building...'
-        : 'Load demo incident'
 
   return (
     <Button
       type="button"
       size="sm"
       variant="outline"
-      disabled={pending}
+      disabled={running}
       onClick={() => void load()}
     >
-      {pending ? <Spinner className="size-3.5" /> : <SparklesIcon />}
+      {running ? <Spinner className="size-3.5" /> : <SparklesIcon />}
       {label}
     </Button>
   )

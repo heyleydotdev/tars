@@ -75,7 +75,7 @@ async function svgToPng(svg: string, width: number, height: number): Promise<str
 }
 
 export async function seedIncidentDemo(
-  onProgress?: (progress: { done: number; total: number }) => void
+  onProgress?: (progress: { done: number; total: number; incidentId: string }) => void
 ): Promise<string> {
   const created = await orpc.incident.create.call({ title: 'Checkout latency spike' })
   const incidentId = created.incident.id
@@ -83,8 +83,10 @@ export async function seedIncidentDemo(
   let done = 0
   const tick = (): void => {
     done += 1
-    onProgress?.({ done, total })
+    onProgress?.({ done, total, incidentId })
   }
+
+  onProgress?.({ done, total, incidentId })
 
   for (const item of DEMO_EVIDENCE) {
     await orpc.incident.addEvidence.call({
