@@ -63,6 +63,16 @@
 - `packages/ui` needs `vite.config.ts` so the shadcn CLI detects a Vite project.
 - Apps importing `@tars/ui/globals.css` must add `@source` for `packages/ui/src`, or Tailwind drops the package's classes.
 
+## Review
+
+- Audit Tailwind utilities: drop classes that do not affect layout or state, and consolidate repeated styling.
+- When the same element or structure appears more than once, extract a component or reuse an existing one instead of cloning markup.
+- Keep user-facing error text in `packages/core/src/errors.ts`; components and routes should reference it.
+- If logic belongs on the server and can be reused, place it in `packages/core/src/services/*`.
+- Keep reusable pure helpers in `packages/core/src/utils/*`, organized by concern.
+- Avoid speculative abstractions, copy-paste logic, and unnecessary layers.
+- Fit changes into the existing module boundaries; split files when responsibilities diverge.
+
 ## Core Package
 
 - `@tars/core` is the shared point; apps and packages import from it instead of growing their own service/util layers.
