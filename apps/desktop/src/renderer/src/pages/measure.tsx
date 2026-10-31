@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ORPCError } from '@orpc/client'
 import { HistoryIcon } from 'lucide-react'
+import { useLoaderData } from 'react-router'
 
 import type { MeasureFormOutput } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
 
+import type { MeasureLoaderData } from '../lib/loaders'
 import type { MeasureBatchItem, MeasureRequest, PreparedMeasureImage } from '../lib/measure'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleEnd from '../components/console-end'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
-import DashboardShell from '../components/dashboard-shell'
-import ErrorTestButton from '../components/error-test-button'
 import MeasureAnnotationSettings from '../components/measure-annotation-settings'
 import MeasureBatchResults from '../components/measure-batch-results'
 import MeasureExportAllButton from '../components/measure-export-all-button'
@@ -28,6 +28,7 @@ import { useMeasureAnnotations } from '../stores/measure-annotations'
 import { useMeasurePreferences } from '../stores/measure-preferences'
 
 export default function Measure() {
+  const initialReferences = useLoaderData<MeasureLoaderData>()
   const [items, setItems] = useState<Array<MeasureBatchItem>>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
@@ -255,8 +256,8 @@ export default function Measure() {
         event.preventDefault()
         void window.copyText(measureSummary(selected, unit)).catch(() => {
           showAlert({
-            title: 'Copy failed',
-            description: 'Could not copy the measurement to the clipboard.',
+            title: ERRORS.copyFailedTitle,
+            description: ERRORS.copyFailedDetail,
             variant: 'destructive'
           })
         })
@@ -273,7 +274,7 @@ export default function Measure() {
           includeDetails
         ).catch((error: unknown) => {
           showAlert({
-            title: 'Export failed',
+            title: ERRORS.exportFailedTitle,
             description: error instanceof Error ? error.message : ERRORS.exportFailed,
             variant: 'destructive'
           })
@@ -297,98 +298,96 @@ export default function Measure() {
   ])
 
   return (
-    <DashboardShell>
-      <div className="flex min-h-full flex-col">
-        <ConsoleHeader
-          title="measure"
-          right={
-            <ButtonGroup>
-              <MeasureAnnotationSettings objectCount={selected?.result?.objects.length ?? 0} />
-              <MeasureExportAllButton items={items} />
-              <MeasureSaveButton items={items} />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                aria-label="Measurement history"
-                title="Measurement history"
-                disabled={running}
-                onClick={() => setHistoryOpen(true)}
-              >
-                <HistoryIcon />
-              </Button>
-              <MeasureGuideButton />
-              <ErrorTestButton />
-            </ButtonGroup>
-          }
-        />
+    <div className="flex min-h-full flex-col">
+      <ConsoleHeader
+        title="measure"
+        right={
+          <ButtonGroup>
+            <MeasureAnnotationSettings objectCount={selected?.result?.objects.length ?? 0} />
+            <MeasureExportAllButton items={items} />
+            <MeasureSaveButton items={items} />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Measurement history"
+              title="Measurement history"
+              disabled={running}
+              onClick={() => setHistoryOpen(true)}
+            >
+              <HistoryIcon />
+            </Button>
+            <MeasureGuideButton />
+          </ButtonGroup>
+        }
+      />
 
-        <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:grid-cols-12">
-          <ConsolePanel
-            title="photo.input"
-            count={String(items.length)}
-            accent="bg-sky-400"
-            className="lg:col-span-7"
-          >
-            <MeasurePhoto
-              items={items}
-              selectedId={selected?.id ?? null}
-              unit={unit}
-              pending={running}
-              onSelect={setSelectedId}
-              onRemove={removePhoto}
-            />
-          </ConsolePanel>
+      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:grid-cols-12">
+        <ConsolePanel
+          title="photo.input"
+          count={String(items.length)}
+          accent="bg-sky-400"
+          className="lg:col-span-7"
+        >
+          <MeasurePhoto
+            items={items}
+            selectedId={selected?.id ?? null}
+            unit={unit}
+            pending={running}
+            onSelect={setSelectedId}
+            onRemove={removePhoto}
+          />
+        </ConsolePanel>
 
-          <ConsolePanel
-            title="measure.result"
-            count={String(items.length)}
-            accent="bg-emerald-400"
-            className="lg:col-span-5"
-          >
-            <MeasureBatchResults
-              items={items}
-              selectedId={selected?.id ?? null}
-              unit={unit}
-              pending={running}
-              onSelect={setSelectedId}
-              onRetry={retryPhoto}
-              onPromptsChange={setPhotoPrompts}
-              onResultChange={setPhotoResult}
-            />
-          </ConsolePanel>
-        </div>
-
-        <ConsoleEnd />
-
-        <MeasureForm
-          photo={items.length > 0}
-          pending={running}
-          onPhotos={addPhotos}
-          onMeasure={measureBatch}
-          onChange={resetResults}
-        />
-
-        <MeasureHistorySheet
-          open={historyOpen}
-          onOpenChange={setHistoryOpen}
-          onRestore={requestRestore}
-        />
-
-        <ConfirmDialog
-          title="Replace current batch?"
-          description="Opening this run replaces the photos and results currently in Measure."
-          confirmLabel="Open run"
-          open={Boolean(pendingRestore)}
-          pending={false}
-          onOpenChange={(next) => {
-            if (!next) setPendingRestore(null)
-          }}
-          onConfirm={() => {
-            if (pendingRestore) applyRestore(pendingRestore)
-          }}
-        />
+        <ConsolePanel
+          title="measure.result"
+          count={String(items.length)}
+          accent="bg-emerald-400"
+          className="lg:col-span-5"
+        >
+          <MeasureBatchResults
+            items={items}
+            selectedId={selected?.id ?? null}
+            unit={unit}
+            pending={running}
+            onSelect={setSelectedId}
+            onRetry={retryPhoto}
+            onPromptsChange={setPhotoPrompts}
+            onResultChange={setPhotoResult}
+          />
+        </ConsolePanel>
       </div>
-    </DashboardShell>
+
+      <ConsoleEnd />
+
+      <MeasureForm
+        initialReferences={initialReferences}
+        photo={items.length > 0}
+        pending={running}
+        onPhotos={addPhotos}
+        onMeasure={measureBatch}
+        onChange={resetResults}
+      />
+
+      <MeasureHistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        onRestore={requestRestore}
+      />
+
+      <ConfirmDialog
+        title="Replace current batch?"
+        description="Opening this run replaces the photos and results currently in Measure."
+        confirmLabel="Open run"
+        open={Boolean(pendingRestore)}
+        pending={false}
+        onOpenChange={(next) => {
+          if (!next) setPendingRestore(null)
+        }}
+        onConfirm={() => {
+          if (pendingRestore) applyRestore(pendingRestore)
+        }}
+      />
+    </div>
   )
 }

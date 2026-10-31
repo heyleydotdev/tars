@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import { useLoaderData } from 'react-router'
 
 import type { ExpenseItemOutput } from '@tars/core/schemas/expenses'
 import type {
@@ -9,11 +10,9 @@ import type {
 import { ERRORS } from '@tars/core/errors'
 import { toDateKey } from '@tars/core/utils/format'
 
+import type { StatsLoaderData } from '../lib/loaders'
 import ConsoleEnd from '../components/console-end'
 import ConsoleHeader from '../components/console-header'
-import DashboardShell from '../components/dashboard-shell'
-import LoadingScreen from '../components/loading-screen'
-import PageError from '../components/page-error'
 import StatsCategoryChart from '../components/stats-category-chart'
 import StatsHeatmap from '../components/stats-heatmap'
 import StatsPanel from '../components/stats-panel'
@@ -37,8 +36,9 @@ const EMPTY_JOURNALS: JournalPageOutput['journals'] = []
 const EMPTY_EXPENSES: Array<ExpenseItemOutput> = []
 
 export default function Stats() {
-  const journal = useJournal()
-  const expenses = useExpenses()
+  const initial = useLoaderData<StatsLoaderData>()
+  const journal = useJournal(initial.journal)
+  const expenses = useExpenses(initial.expenses)
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const todos: Array<TodoItemOutput> = journal.data?.todos ?? EMPTY_TODOS
   const reminders: Array<ReminderItemOutput> = journal.data?.reminders ?? EMPTY_REMINDERS
@@ -65,115 +65,91 @@ export default function Stats() {
     () => countRecordStates(todos, reminders),
     [reminders, todos]
   )
-  const missingJournal = journal.isError && !journal.data
-  const missingExpenses = expenses.isError && !expenses.data
-  const ready = !missingJournal && !missingExpenses
-
   useEffect(() => {
     const stale = (journal.isError && journal.data) || (expenses.isError && expenses.data)
 
-    if (!ready || !stale) return
+    if (!stale) return
 
     showAlert({
       title: ERRORS.refreshFailed,
       description: ERRORS.lastLoadedStats,
       variant: 'destructive'
     })
-  }, [expenses.data, expenses.isError, journal.data, journal.isError, ready, showAlert])
+  }, [expenses.data, expenses.isError, journal.data, journal.isError, showAlert])
 
   return (
-    <DashboardShell>
-      {journal.isPending || expenses.isPending ? (
-        <LoadingScreen />
-      ) : (
-        <div className="flex min-h-full flex-col">
-          <ConsoleHeader
-            title="stats"
-            right={
-              <span className="text-muted-foreground font-mono tabular-nums">
-                {toDateKey(new Date())}
-              </span>
-            }
+    <div className="flex min-h-full flex-col">
+      <ConsoleHeader
+        title="stats"
+        right={
+          <span className="text-muted-foreground font-mono tabular-nums">
+            {toDateKey(new Date())}
+          </span>
+        }
+      />
+
+      <div className="bg-border grid flex-1 grid-cols-1 gap-px font-mono lg:grid-cols-3">
+        <StatsPanel
+          title="activity.map"
+          count={String(activity.total)}
+          accent="bg-emerald-400"
+          className="lg:col-span-2"
+        >
+          <StatsHeatmap activity={activity} />
+        </StatsPanel>
+
+        <StatsPanel
+          title="category.split"
+          count={String(categories.length)}
+          accent="bg-sky-400"
+          className="lg:col-span-1"
+        >
+          <StatsCategoryChart
+            categories={categories}
+            totalCents={categoryTotal}
+            currency={currency}
           />
+        </StatsPanel>
 
-          {(missingJournal || missingExpenses) && (
-            <PageError
-              title="failed to load stats"
-              onRetry={() => {
-                void journal.refetch()
-                void expenses.refetch()
-              }}
-            />
-          )}
+        <StatsPanel
+          title="spend.trend"
+          count={currency}
+          accent="bg-emerald-400"
+          className="lg:col-span-2"
+        >
+          <StatsSpendChart
+            points={spend.points}
+            totalCents={spend.totalCents}
+            maxCents={spend.maxCents}
+            currency={currency}
+          />
+        </StatsPanel>
 
-          {ready ? (
-            <>
-              <div className="bg-border grid flex-1 grid-cols-1 gap-px font-mono lg:grid-cols-3">
-                <StatsPanel
-                  title="activity.map"
-                  count={String(activity.total)}
-                  accent="bg-emerald-400"
-                  className="lg:col-span-2"
-                >
-                  <StatsHeatmap activity={activity} />
-                </StatsPanel>
+        <StatsPanel
+          title="task.ratio"
+          count={String(todos.length)}
+          accent="bg-violet-400"
+          className="lg:col-span-1"
+        >
+          <StatsProgress
+            openTasks={openTasks}
+            doneTasks={doneTasks}
+            pendingReminders={pendingReminders}
+            sentReminders={sentReminders}
+            dismissedReminders={dismissedReminders}
+          />
+        </StatsPanel>
 
-                <StatsPanel
-                  title="category.split"
-                  count={String(categories.length)}
-                  accent="bg-sky-400"
-                  className="lg:col-span-1"
-                >
-                  <StatsCategoryChart
-                    categories={categories}
-                    totalCents={categoryTotal}
-                    currency={currency}
-                  />
-                </StatsPanel>
-
-                <StatsPanel
-                  title="spend.trend"
-                  count={currency}
-                  accent="bg-emerald-400"
-                  className="lg:col-span-2"
-                >
-                  <StatsSpendChart
-                    points={spend.points}
-                    totalCents={spend.totalCents}
-                    maxCents={spend.maxCents}
-                    currency={currency}
-                  />
-                </StatsPanel>
-
-                <StatsPanel
-                  title="task.ratio"
-                  count={String(todos.length)}
-                  accent="bg-violet-400"
-                  className="lg:col-span-1"
-                >
-                  <StatsProgress
-                    openTasks={openTasks}
-                    doneTasks={doneTasks}
-                    pendingReminders={pendingReminders}
-                    sentReminders={sentReminders}
-                    dismissedReminders={dismissedReminders}
-                  />
-                </StatsPanel>
-
-                <StatsPanel
-                  title="activity.log"
-                  count={String(recent.length)}
-                  accent="bg-sky-400"
-                  className="lg:col-span-3"
-                >
-                  <StatsRecent events={recent} />
-                </StatsPanel>
-              </div>
-              <ConsoleEnd />
-            </>
-          ) : null}
-        </div>
-      )}
-    </DashboardShell>
+        <StatsPanel
+          title="activity.log"
+          count={String(recent.length)}
+          accent="bg-sky-400"
+          className="lg:col-span-3"
+        >
+          <StatsRecent events={recent} />
+        </StatsPanel>
+      </div>
+      <ConsoleEnd />
+    </div>
   )
 }

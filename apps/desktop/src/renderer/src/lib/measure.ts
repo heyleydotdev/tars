@@ -496,8 +496,8 @@ export async function prepareMeasureImage(file: File): Promise<PreparedMeasureIm
 
 const measureReferencesKey = orpc.measure.references.queryKey()
 
-export function useMeasureReferences() {
-  return useQuery(orpc.measure.references.queryOptions())
+export function useMeasureReferences(initialData?: MeasureReferenceListOutput) {
+  return useQuery({ ...orpc.measure.references.queryOptions(), initialData })
 }
 
 export function useCreateMeasureReference() {

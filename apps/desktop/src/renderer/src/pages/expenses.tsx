@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLoaderData } from 'react-router'
 
 import type { ExpenseItemOutput, ExpenseListOutput } from '@tars/core/schemas/expenses'
 import { ERRORS } from '@tars/core/errors'
 import { formatCurrency, startOfMonth, toDateKey, toMonthKey } from '@tars/core/utils/format'
 
+import type { ExpensesLoaderData } from '../lib/loaders'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsolePanel from '../components/console-panel'
-import DashboardShell from '../components/dashboard-shell'
 import ExpenseEditDialog from '../components/expense-edit-dialog'
 import ExpensesBreakdown from '../components/expenses-breakdown'
 import ExpensesCalendar from '../components/expenses-calendar'
 import ExpensesLedger from '../components/expenses-ledger'
 import ExpensesStats from '../components/expenses-stats'
-import LoadingScreen from '../components/loading-screen'
-import PageError from '../components/page-error'
 import {
   expenseAt,
   sumExpenses,
@@ -26,7 +25,8 @@ import { useShellAlertStore } from '../stores/alert'
 const EMPTY_EXPENSES: ExpenseListOutput['items'] = []
 
 export default function Expenses() {
-  const expenses = useExpenses()
+  const initial = useLoaderData<ExpensesLoaderData>()
+  const expenses = useExpenses(initial)
   const items = expenses.data?.items ?? EMPTY_EXPENSES
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
@@ -142,79 +142,71 @@ export default function Expenses() {
   }
 
   return (
-    <DashboardShell>
-      {expenses.isPending ? (
-        <LoadingScreen />
-      ) : (
-        <div className="flex min-h-full flex-col font-mono lg:h-full lg:min-h-0 lg:overflow-hidden">
-          <ExpensesStats
-            period={selectedDay ? 'day' : 'month'}
-            total={formatCurrency(totalCents, activeCurrency)}
-            entries={entries}
-            top={topCategory}
-            month={monthKey.replace('-', '.')}
-            currency={activeCurrency}
-            currencies={currencies}
-            onCurrencyChange={(next) => {
-              setCurrency(next)
-              setSelectedDay(null)
-            }}
-          />
+    <>
+      <div className="flex min-h-full flex-col font-mono lg:h-full lg:min-h-0 lg:overflow-hidden">
+        <ExpensesStats
+          period={selectedDay ? 'day' : 'month'}
+          total={formatCurrency(totalCents, activeCurrency)}
+          entries={entries}
+          top={topCategory}
+          month={monthKey.replace('-', '.')}
+          currency={activeCurrency}
+          currencies={currencies}
+          onCurrencyChange={(next) => {
+            setCurrency(next)
+            setSelectedDay(null)
+          }}
+        />
 
-          {expenses.isError && !expenses.data ? (
-            <PageError title="failed to load expenses" onRetry={() => void expenses.refetch()} />
-          ) : (
-            <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)]">
-              <ConsolePanel
-                title="ledger.log"
-                count={String(periodItems.length)}
-                accent="bg-emerald-400"
-              >
-                <ExpensesLedger
-                  items={periodItems}
-                  currency={activeCurrency}
-                  selectedDay={selectedDay}
-                  onClearDay={() => setSelectedDay(null)}
-                  onEdit={setEditingExpense}
-                  onDelete={setDeleteTarget}
-                />
-              </ConsolePanel>
+        <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)]">
+          <ConsolePanel
+            title="ledger.log"
+            count={String(periodItems.length)}
+            accent="bg-emerald-400"
+          >
+            <ExpensesLedger
+              items={periodItems}
+              currency={activeCurrency}
+              selectedDay={selectedDay}
+              onClearDay={() => setSelectedDay(null)}
+              onEdit={setEditingExpense}
+              onDelete={setDeleteTarget}
+            />
+          </ConsolePanel>
 
-              <div className="bg-border flex flex-col gap-px lg:min-h-0">
-                <ConsolePanel
-                  title="spend.cal"
-                  count={String(daysWithSpend)}
-                  accent="bg-amber-400"
-                  className="lg:flex-none"
-                >
-                  <ExpensesCalendar
-                    month={month}
-                    selected={selectedDay}
-                    dailyTotals={dailyTotals}
-                    currency={activeCurrency}
-                    onMonthChange={changeMonth}
-                    onSelect={selectDay}
-                    onToday={goToday}
-                  />
-                </ConsolePanel>
+          <div className="bg-border flex flex-col gap-px lg:min-h-0">
+            <ConsolePanel
+              title="spend.cal"
+              count={String(daysWithSpend)}
+              accent="bg-amber-400"
+              className="lg:flex-none"
+            >
+              <ExpensesCalendar
+                month={month}
+                selected={selectedDay}
+                dailyTotals={dailyTotals}
+                currency={activeCurrency}
+                onMonthChange={changeMonth}
+                onSelect={selectDay}
+                onToday={goToday}
+              />
+            </ConsolePanel>
 
-                <ConsolePanel
-                  title="breakdown.cat"
-                  count={String(categories.length)}
-                  accent="bg-sky-400"
-                  className="lg:min-h-0 lg:flex-1"
-                >
-                  <ExpensesBreakdown
-                    categories={categories}
-                    totalCents={totalCents}
-                    currency={activeCurrency}
-                  />
-                </ConsolePanel>
-              </div>
-            </div>
-          )}
+            <ConsolePanel
+              title="breakdown.cat"
+              count={String(categories.length)}
+              accent="bg-sky-400"
+              className="lg:min-h-0 lg:flex-1"
+            >
+              <ExpensesBreakdown
+                categories={categories}
+                totalCents={totalCents}
+                currency={activeCurrency}
+              />
+            </ConsolePanel>
+          </div>
         </div>
-      )}
+      </div>
 
       {editingExpense ? (
         <ExpenseEditDialog
@@ -239,6 +231,6 @@ export default function Expenses() {
         }}
         onConfirm={() => void confirmDelete()}
       />
-    </DashboardShell>
+    </>
   )
 }

@@ -41,8 +41,8 @@ function useDoneMutation(options: {
   })
 }
 
-export function useJournal() {
-  return useQuery(orpc.journal.list.queryOptions())
+export function useJournal(initialData?: JournalPageOutput) {
+  return useQuery({ ...orpc.journal.list.queryOptions(), initialData })
 }
 
 export function useUpdateJournalEntry() {

@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { ImagePlusIcon, PlusIcon, RulerIcon } from 'lucide-react'
 
-import type { MeasureFormOutput, MeasureReferenceItemOutput } from '@tars/core/schemas/measure'
+import type {
+  MeasureFormOutput,
+  MeasureReferenceItemOutput,
+  MeasureReferenceListOutput
+} from '@tars/core/schemas/measure'
 import { MEASURE_PROMPT_LIMIT } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { measureFormSchema } from '@tars/core/schemas/measure'
@@ -33,12 +37,14 @@ function referenceSummary(reference: MeasureReferenceItemOutput): string {
 }
 
 export default function MeasureForm({
+  initialReferences,
   photo,
   pending,
   onPhotos,
   onMeasure,
   onChange
 }: {
+  initialReferences: MeasureReferenceListOutput
   photo: boolean
   pending: boolean
   onPhotos: (photos: Array<PreparedMeasureImage>) => void
@@ -50,7 +56,7 @@ export default function MeasureForm({
   const [promptVersion, setPromptVersion] = useState(0)
   const [addReferenceOpen, setAddReferenceOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const references = useMeasureReferences()
+  const references = useMeasureReferences(initialReferences)
   const items = references.data?.items ?? EMPTY_REFERENCES
   const form = useForm({
     defaultValues: {

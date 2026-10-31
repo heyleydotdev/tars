@@ -4,12 +4,24 @@ import { ERRORS } from '@tars/core/errors'
 import { useShellAlertStore } from '../stores/alert'
 import { useAuthStore } from '../stores/auth'
 
+let restorePromise: Promise<void> | null = null
+
 export async function restoreSession(): Promise<void> {
   try {
     useAuthStore.getState().setSession(await window.getSession())
   } catch {
     useAuthStore.getState().setSession(null)
   }
+}
+
+export function ensureSession(): Promise<void> {
+  if (useAuthStore.getState().session !== undefined) return Promise.resolve()
+
+  restorePromise ??= restoreSession().finally(() => {
+    restorePromise = null
+  })
+
+  return restorePromise
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

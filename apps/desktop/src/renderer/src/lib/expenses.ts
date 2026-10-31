@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import type { ExpenseItemOutput, UpdateExpenseInput } from '@tars/core/schemas/expenses'
+import type {
+  ExpenseItemOutput,
+  ExpenseListOutput,
+  UpdateExpenseInput
+} from '@tars/core/schemas/expenses'
 import type { DeleteRecordInput, DeleteRecordOutput } from '@tars/core/schemas/records'
 
 import { orpc } from './orpc'
@@ -29,8 +33,8 @@ export function categoryColor(category: string): string {
 
 const expensesKey = orpc.expenses.list.queryKey()
 
-export function useExpenses() {
-  return useQuery(orpc.expenses.list.queryOptions())
+export function useExpenses(initialData?: ExpenseListOutput) {
+  return useQuery({ ...orpc.expenses.list.queryOptions(), initialData })
 }
 
 export function useUpdateExpense() {

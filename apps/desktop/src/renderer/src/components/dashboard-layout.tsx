@@ -8,9 +8,10 @@ import {
   SearchIcon,
   WalletIcon
 } from 'lucide-react'
-import { useLocation, useNavigate } from 'react-router'
+import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
+import { ERRORS } from '@tars/core/errors'
 import { getInitials } from '@tars/core/utils/string'
 import { Avatar, AvatarFallback } from '@tars/ui/components/avatar'
 import {
@@ -48,6 +49,7 @@ import { useSidebarStore } from '../stores/sidebar'
 import { useVoiceStore } from '../stores/voice'
 import ConfirmDialog from './confirm-dialog'
 import DeskChatPanel from './desk-chat-panel'
+import LoadingScreen from './loading-screen'
 import ShellAlert from './shell-alert'
 
 const navigation = [
@@ -168,9 +170,11 @@ function AppSidebar({
   )
 }
 
-export default function DashboardShell({ children }: React.PropsWithChildren) {
+export default function DashboardLayout() {
   const navigate = useNavigate()
+  const navigationState = useNavigation()
   const { pathname } = useLocation()
+  const isNavigating = navigationState.state === 'loading' && Boolean(navigationState.location)
   const { open, setOpen } = useSidebarStore(
     useShallow((state) => ({ open: state.open, setOpen: state.setOpen }))
   )
@@ -199,7 +203,7 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
     if (!voiceError) return
 
     showAlert({
-      title: 'Voice unavailable',
+      title: ERRORS.voiceUnavailableTitle,
       description: voiceError,
       variant: 'destructive'
     })
@@ -216,7 +220,14 @@ export default function DashboardShell({ children }: React.PropsWithChildren) {
             <SidebarTrigger />
             <span className="text-sm font-medium">{active}</span>
           </header>
-          <div className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</div>
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-auto">
+            <Outlet />
+            {isNavigating ? (
+              <div className="bg-background absolute inset-0 z-30">
+                <LoadingScreen />
+              </div>
+            ) : null}
+          </div>
         </SidebarInset>
       </SidebarProvider>
       <DeskChatPanel />

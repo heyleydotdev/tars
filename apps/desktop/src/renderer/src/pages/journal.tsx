@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLoaderData } from 'react-router'
 
 import type {
   JournalItemOutput,
@@ -9,16 +10,14 @@ import type {
 import { ERRORS } from '@tars/core/errors'
 import { toDateKey } from '@tars/core/utils/format'
 
+import type { JournalLoaderData } from '../lib/loaders'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsolePanel from '../components/console-panel'
-import DashboardShell from '../components/dashboard-shell'
 import JournalAgenda from '../components/journal-agenda'
 import JournalCalendar from '../components/journal-calendar'
 import JournalEditDialog from '../components/journal-edit-dialog'
 import JournalNotes from '../components/journal-notes'
 import JournalStats from '../components/journal-stats'
-import LoadingScreen from '../components/loading-screen'
-import PageError from '../components/page-error'
 import ReminderEditDialog from '../components/reminder-edit-dialog'
 import TodoEditDialog from '../components/todo-edit-dialog'
 import {
@@ -36,6 +35,7 @@ const EMPTY_REMINDERS: JournalPageOutput['reminders'] = []
 const EMPTY_JOURNALS: JournalPageOutput['journals'] = []
 
 export default function Journal() {
+  const initial = useLoaderData<JournalLoaderData>()
   const [selected, setSelected] = useState(() => new Date())
   const [editingJournal, setEditingJournal] = useState<JournalItemOutput | null>(null)
   const [editingTodo, setEditingTodo] = useState<TodoItemOutput | null>(null)
@@ -44,7 +44,7 @@ export default function Journal() {
     kind: 'journal' | 'todo' | 'reminder'
     id: string
   } | null>(null)
-  const journal = useJournal()
+  const journal = useJournal(initial)
   const setTodoDone = useSetTodoDone()
   const setReminderDone = useSetReminderDone()
   const deleteJournal = useDeleteJournalEntry()
@@ -151,67 +151,59 @@ export default function Journal() {
   }
 
   return (
-    <DashboardShell>
-      {journal.isPending ? (
-        <LoadingScreen />
-      ) : (
-        <div className="flex min-h-full flex-col font-mono lg:h-full lg:min-h-0 lg:overflow-hidden">
-          <JournalStats
-            notes={journals.length}
-            openTasks={openTasks}
-            doneTasks={doneTasks}
-            reminders={pendingReminders}
-          />
+    <>
+      <div className="flex min-h-full flex-col font-mono lg:h-full lg:min-h-0 lg:overflow-hidden">
+        <JournalStats
+          notes={journals.length}
+          openTasks={openTasks}
+          doneTasks={doneTasks}
+          reminders={pendingReminders}
+        />
 
-          {journal.isError && !journal.data ? (
-            <PageError onRetry={() => void journal.refetch()} />
-          ) : (
-            <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
-              <ConsolePanel title="notes.md" count={String(journals.length)} accent="bg-sky-400">
-                <JournalNotes
-                  journals={journals}
-                  onEdit={setEditingJournal}
-                  onDelete={(entry) => setDeleteTarget({ kind: 'journal', id: entry.id })}
-                />
-              </ConsolePanel>
+        <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
+          <ConsolePanel title="notes.md" count={String(journals.length)} accent="bg-sky-400">
+            <JournalNotes
+              journals={journals}
+              onEdit={setEditingJournal}
+              onDelete={(entry) => setDeleteTarget({ kind: 'journal', id: entry.id })}
+            />
+          </ConsolePanel>
 
-              <div className="bg-border flex flex-col gap-px lg:min-h-0">
-                <ConsolePanel
-                  title="reminders.cal"
-                  count={String(reminders.length)}
-                  accent="bg-amber-400"
-                  className="lg:flex-none"
-                >
-                  <JournalCalendar
-                    selected={selected}
-                    onSelect={setSelected}
-                    reminders={reminders}
-                    todos={todos}
-                  />
-                </ConsolePanel>
+          <div className="bg-border flex flex-col gap-px lg:min-h-0">
+            <ConsolePanel
+              title="reminders.cal"
+              count={String(reminders.length)}
+              accent="bg-amber-400"
+              className="lg:flex-none"
+            >
+              <JournalCalendar
+                selected={selected}
+                onSelect={setSelected}
+                reminders={reminders}
+                todos={todos}
+              />
+            </ConsolePanel>
 
-                <ConsolePanel
-                  title="agenda.log"
-                  count={String(agendaCount)}
-                  accent="bg-violet-400"
-                  className="lg:min-h-0 lg:flex-1"
-                >
-                  <JournalAgenda
-                    reminders={dayReminders}
-                    todos={dayTodos}
-                    onToggleReminder={(id, done) => setReminderDone.mutate({ id, done })}
-                    onToggleTodo={(id, done) => setTodoDone.mutate({ id, done })}
-                    onEditReminder={editReminder}
-                    onEditTodo={editTodo}
-                    onDeleteReminder={(id) => setDeleteTarget({ kind: 'reminder', id })}
-                    onDeleteTodo={(id) => setDeleteTarget({ kind: 'todo', id })}
-                  />
-                </ConsolePanel>
-              </div>
-            </div>
-          )}
+            <ConsolePanel
+              title="agenda.log"
+              count={String(agendaCount)}
+              accent="bg-violet-400"
+              className="lg:min-h-0 lg:flex-1"
+            >
+              <JournalAgenda
+                reminders={dayReminders}
+                todos={dayTodos}
+                onToggleReminder={(id, done) => setReminderDone.mutate({ id, done })}
+                onToggleTodo={(id, done) => setTodoDone.mutate({ id, done })}
+                onEditReminder={editReminder}
+                onEditTodo={editTodo}
+                onDeleteReminder={(id) => setDeleteTarget({ kind: 'reminder', id })}
+                onDeleteTodo={(id) => setDeleteTarget({ kind: 'todo', id })}
+              />
+            </ConsolePanel>
+          </div>
         </div>
-      )}
+      </div>
 
       {editingJournal ? (
         <JournalEditDialog
@@ -264,6 +256,6 @@ export default function Journal() {
         }}
         onConfirm={() => void confirmDelete()}
       />
-    </DashboardShell>
+    </>
   )
 }
