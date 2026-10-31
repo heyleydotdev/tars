@@ -3,8 +3,9 @@ import { ORPCError } from '@orpc/client'
 import { HistoryIcon } from 'lucide-react'
 import { useLoaderData } from 'react-router'
 
-import type { MeasureFormOutput } from '@tars/core/schemas/measure'
+import type { MeasureFormOutput, MeasureResultOutput } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
+import { toDateKey } from '@tars/core/utils/format'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
 
@@ -22,6 +23,7 @@ import MeasureGuideButton from '../components/measure-guide-button'
 import MeasureHistorySheet from '../components/measure-history-sheet'
 import MeasurePhoto from '../components/measure-photo'
 import MeasureSaveButton from '../components/measure-save-button'
+import { useLogMeasurements } from '../lib/journal'
 import { exportMeasure, measureSummary, useMeasure } from '../lib/measure'
 import { useShellAlertStore } from '../stores/alert'
 import { useMeasureAnnotations } from '../stores/measure-annotations'
@@ -35,6 +37,7 @@ export default function Measure() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [pendingRestore, setPendingRestore] = useState<Array<MeasureBatchItem> | null>(null)
   const measure = useMeasure()
+  const logMeasurements = useLogMeasurements()
   const unit = useMeasurePreferences((state) => state.unit)
   const includeDetails = useMeasurePreferences((state) => state.includeDetails)
   const annotations = useMeasureAnnotations()
@@ -123,7 +126,10 @@ export default function Measure() {
   }
 
   const measurePhoto = useCallback(
-    async (item: MeasureBatchItem, request: MeasureRequest): Promise<void> => {
+    async (
+      item: MeasureBatchItem,
+      request: MeasureRequest
+    ): Promise<MeasureResultOutput | null> => {
       setItems((current) =>
         current.map((entry) =>
           entry.id === item.id
@@ -152,6 +158,8 @@ export default function Measure() {
               : entry
           )
         )
+
+        return result
       } catch (error) {
         setItems((current) =>
           current.map((entry) =>
@@ -166,29 +174,68 @@ export default function Measure() {
               : entry
           )
         )
+
+        return null
       }
     },
     [measure]
+  )
+
+  const logCompleted = useCallback(
+    async (completed: Array<MeasureBatchItem>): Promise<void> => {
+      const measured = completed.filter(
+        (item): item is MeasureBatchItem & { result: MeasureResultOutput } => item.result !== null
+      )
+
+      if (measured.length === 0) return
+
+      try {
+        await logMeasurements.mutateAsync({
+          dayKey: toDateKey(new Date()),
+          unit,
+          items: measured.map((item) => ({
+            name: item.photo.name,
+            objects: item.result.objects.map((object) => ({
+              prompt: object.prompt,
+              widthMm: object.widthMm,
+              heightMm: object.heightMm
+            }))
+          }))
+        })
+      } catch {
+        showAlert({
+          title: ERRORS.saveFailedTitle,
+          description: ERRORS.journalLogFailed,
+          variant: 'destructive'
+        })
+      }
+    },
+    [logMeasurements, showAlert, unit]
   )
 
   async function measureBatch(values: MeasureFormOutput): Promise<string | null> {
     if (items.length === 0) return ERRORS.photoRequired
 
     const batch = items
+    const completed: Array<MeasureBatchItem> = []
     measure.reset()
     setRunning(true)
     resetResults()
 
     try {
       for (const item of batch) {
-        await measurePhoto(item, {
+        const result = await measurePhoto(item, {
           referenceId: values.referenceId,
           prompts: item.prompts ?? values.prompts
         })
+
+        if (result) completed.push({ ...item, result })
       }
     } finally {
       setRunning(false)
     }
+
+    await logCompleted(completed)
 
     return null
   }
@@ -203,12 +250,14 @@ export default function Measure() {
       setRunning(true)
 
       try {
-        await measurePhoto(item, item.request)
+        const result = await measurePhoto(item, item.request)
+
+        if (result) await logCompleted([{ ...item, result }])
       } finally {
         setRunning(false)
       }
     },
-    [items, measure, measurePhoto, running]
+    [items, logCompleted, measure, measurePhoto, running]
   )
 
   useEffect(() => {

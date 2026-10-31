@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type {
   JournalPageOutput,
+  LogMeasurementsInput,
   RecordDoneInput,
   RecordDoneOutput,
   UpdateJournalInput,
@@ -43,6 +44,15 @@ function useDoneMutation(options: {
 
 export function useJournal(initialData?: JournalPageOutput) {
   return useQuery({ ...orpc.journal.list.queryOptions(), initialData })
+}
+
+export function useLogMeasurements() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: LogMeasurementsInput) => orpc.journal.logMeasurements.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+  })
 }
 
 export function useUpdateJournalEntry() {
