@@ -25,11 +25,12 @@ app.use(
     credentials: true,
     allowHeaders: ['content-type', 'authorization'],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
+    exposeHeaders: ['Content-Disposition', 'Standard-Server'],
     maxAge: 600
   })
 )
 
-app.use('/api/*', bodyLimit({ maxSize: 1024 * 1024 }))
+app.use('/api/auth/*', bodyLimit({ maxSize: 1024 * 1024 }))
 
 app.use('/api/*', async (c, next) => {
   const db = createDb(c.env.DB)
@@ -71,7 +72,8 @@ app.get('/api/ws', (c) => {
     context: {
       db: c.get('db'),
       auth: c.get('auth'),
-      metaAiApiKey: c.env.META_AI_API
+      metaAiApiKey: c.env.META_AI_API,
+      measureImages: c.env.MEASURE_IMAGES
     }
   })
 
@@ -84,7 +86,8 @@ app.use('/api/rpc/*', async (c, next) => {
     context: {
       db: c.get('db'),
       auth: c.get('auth'),
-      metaAiApiKey: c.env.META_AI_API
+      metaAiApiKey: c.env.META_AI_API,
+      measureImages: c.env.MEASURE_IMAGES
     }
   })
 

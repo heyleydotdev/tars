@@ -1,12 +1,11 @@
 import type OpenAI from 'openai'
-import { ORPCError } from '@orpc/client'
 
 import type {
   MeasureReferenceItemOutput,
   MeasureReferenceListOutput,
   MeasureResultOutput
 } from '@tars/core/schemas/measure'
-import type { SamDetection } from '@tars/core/utils/measure'
+import type { MeasurePromptObjects, SamDetection } from '@tars/core/utils/measure'
 import { META_SAM_MODEL } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { createMeasureReferenceSchema, measureRequestSchema } from '@tars/core/schemas/measure'
@@ -15,6 +14,8 @@ import { measureReference } from '@tars/db/schema'
 import { and, asc, eq, isNull, or } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
+import { BadRequestError, GatewayError, InternalServerError } from '../errors'
+import { measureHistoryRouter } from './measure-history'
 
 const referenceColumns = {
   id: measureReference.id,
@@ -51,7 +52,39 @@ async function segment(
   return parseSamBoxes(response.output_text)
 }
 
+async function segmentPrompts(
+  openAi: OpenAI,
+  image: string,
+  prompts: Array<string>
+): Promise<Array<MeasurePromptObjects>> {
+  const results = new Array<MeasurePromptObjects>(prompts.length)
+  const concurrency = Math.min(2, prompts.length)
+  let next = 0
+
+  async function worker(): Promise<void> {
+    while (next < prompts.length) {
+      const index = next
+      const prompt = prompts[index]
+
+      next += 1
+
+      if (prompt === undefined) return
+
+      results[index] = {
+        prompt,
+        objects: await segment(openAi, image, prompt)
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()))
+
+  return results
+}
+
 export const measureRouter = {
+  history: measureHistoryRouter,
+
   references: protectedProcedure.handler(
     async ({ context }): Promise<MeasureReferenceListOutput> => {
       const rows = await context.db
@@ -65,8 +98,9 @@ export const measureRouter = {
   ),
 
   createReference: protectedProcedure
+    .errors({ INTERNAL_SERVER_ERROR: InternalServerError })
     .input(createMeasureReferenceSchema)
-    .handler(async ({ input, context }): Promise<MeasureReferenceItemOutput> => {
+    .handler(async ({ input, context, errors }): Promise<MeasureReferenceItemOutput> => {
       const [reference] = await context.db
         .insert(measureReference)
         .values({
@@ -81,7 +115,7 @@ export const measureRouter = {
         .returning(referenceColumns)
 
       if (!reference) {
-        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+        throw errors.INTERNAL_SERVER_ERROR({
           message: ERRORS.referenceSaveFailed
         })
       }
@@ -90,9 +124,10 @@ export const measureRouter = {
     }),
 
   run: protectedProcedure
+    .errors({ BAD_GATEWAY: GatewayError, BAD_REQUEST: BadRequestError })
     .input(measureRequestSchema)
     .use(openAiMiddleware)
-    .handler(async ({ input, context }): Promise<MeasureResultOutput> => {
+    .handler(async ({ input, context, errors }): Promise<MeasureResultOutput> => {
       const [reference] = await context.db
         .select(referenceColumns)
         .from(measureReference)
@@ -102,32 +137,24 @@ export const measureRouter = {
         .limit(1)
 
       if (!reference) {
-        throw new ORPCError('BAD_REQUEST', {
-          message: ERRORS.referenceMissing
-        })
+        throw errors.BAD_REQUEST({ message: ERRORS.referenceMissing })
       }
 
-      const [referenceDetections, objectDetections] = await Promise.all([
+      const [referenceDetections, promptObjects] = await Promise.all([
         segment(context.openAi, input.image, reference.prompt),
-        segment(context.openAi, input.image, input.prompt)
+        segmentPrompts(context.openAi, input.image, input.prompts)
       ]).catch(() => {
-        throw new ORPCError('BAD_GATEWAY', {
-          message: ERRORS.segmentationFailed
-        })
+        throw errors.BAD_GATEWAY({ message: ERRORS.segmentationFailed })
       })
 
       const referenceBox = pickLargestDetection(referenceDetections)
 
       if (!referenceBox) {
-        throw new ORPCError('BAD_REQUEST', {
-          message: ERRORS.referenceNotFound(reference.label)
-        })
+        throw errors.BAD_REQUEST({ message: ERRORS.referenceNotFound(reference.label) })
       }
 
-      if (objectDetections.length === 0) {
-        throw new ORPCError('BAD_REQUEST', {
-          message: ERRORS.objectNotFound(input.prompt)
-        })
+      if (promptObjects.every((group) => group.objects.length === 0)) {
+        throw errors.BAD_REQUEST({ message: ERRORS.objectNotFound(input.prompts.join(', ')) })
       }
 
       try {
@@ -135,13 +162,11 @@ export const measureRouter = {
           reference,
           referenceBox,
           referenceMatches: referenceDetections.length,
-          objectPrompt: input.prompt,
-          objects: objectDetections
+          prompts: input.prompts,
+          promptObjects
         })
       } catch {
-        throw new ORPCError('BAD_REQUEST', {
-          message: ERRORS.measurementFailed
-        })
+        throw errors.BAD_REQUEST({ message: ERRORS.measurementFailed })
       }
     })
 }
