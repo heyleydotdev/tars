@@ -3,7 +3,7 @@ import { InfoIcon, PencilIcon } from 'lucide-react'
 
 import type { IncidentDetailOutput, IncidentEventOutput } from '@tars/core/schemas/incident'
 import { ERRORS } from '@tars/core/errors'
-import { formatTime, fromDateTimeLocal, toDateKey, toDateTimeLocal } from '@tars/core/utils/format'
+import { formatTime, toDateKey } from '@tars/core/utils/format'
 import { isGuessedTime } from '@tars/core/utils/incident'
 import {
   ContextMenu,
@@ -11,12 +11,12 @@ import {
   ContextMenuItem,
   ContextMenuTrigger
 } from '@tars/ui/components/context-menu'
-import { Input } from '@tars/ui/components/input'
 import { cn } from '@tars/ui/lib/utils'
 
 import { useUpdateIncidentEvent } from '../lib/incident'
 import IncidentDayHeader from './incident-day-header'
 import IncidentEventDialog from './incident-event-dialog'
+import IncidentTimeDialog from './incident-time-dialog'
 
 function confidenceClass(confidence: IncidentEventOutput['confidence']): string {
   if (confidence === 'high') return 'text-emerald-400'
@@ -58,8 +58,7 @@ export default function IncidentTimeline({
   highlightedEventIds: Set<string>
   onSelectEvidence: (id: string) => void
 }) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [draft, setDraft] = useState('')
+  const [editingTime, setEditingTime] = useState<IncidentEventOutput | null>(null)
   const [details, setDetails] = useState<IncidentEventOutput | null>(null)
   const update = useUpdateIncidentEvent()
   const evidenceById = useMemo(
@@ -67,16 +66,6 @@ export default function IncidentTimeline({
     [detail.evidence]
   )
   const groups = useMemo(() => groupEventsByDay(detail.events), [detail.events])
-
-  function startEditing(event: IncidentEventOutput): void {
-    setEditingId(event.id)
-    setDraft(toDateTimeLocal(event.occurredAt))
-  }
-
-  function commit(event: IncidentEventOutput): void {
-    setEditingId(null)
-    update.mutate({ eventId: event.id, occurredAt: fromDateTimeLocal(draft) })
-  }
 
   if (detail.events.length === 0) {
     return (
@@ -97,15 +86,6 @@ export default function IncidentTimeline({
               const fromUser = event.sourceEvidenceIds.some(
                 (id) => evidenceById.get(id)?.kind === 'answer'
               )
-              const sourceKinds = [
-                ...new Set(
-                  event.sourceEvidenceIds.flatMap((id) => {
-                    const item = evidenceById.get(id)
-
-                    return item ? [item.kind] : []
-                  })
-                )
-              ].join(' · ')
 
               return (
                 <li
@@ -119,29 +99,14 @@ export default function IncidentTimeline({
                   <ContextMenu>
                     <ContextMenuTrigger render={<div className="flex items-start gap-2" />}>
                       <div className="w-20 shrink-0">
-                        {editingId === event.id ? (
-                          <Input
-                            autoFocus
-                            type="datetime-local"
-                            value={draft}
-                            className="h-6 px-1 text-xs/6"
-                            onChange={(changeEvent) => setDraft(changeEvent.target.value)}
-                            onBlur={() => commit(event)}
-                            onKeyDown={(keyEvent) => {
-                              if (keyEvent.key === 'Enter') commit(event)
-                              if (keyEvent.key === 'Escape') setEditingId(null)
-                            }}
-                          />
-                        ) : (
-                          <button
-                            type="button"
-                            title="Fix this time"
-                            onClick={() => startEditing(event)}
-                            className="text-left font-mono text-xs/6 hover:underline"
-                          >
-                            {event.occurredAt ? formatTime(event.occurredAt) : 'no time'}
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          title="Fix this time"
+                          onClick={() => setEditingTime(event)}
+                          className="text-left font-mono text-xs/6 hover:underline"
+                        >
+                          {event.occurredAt ? formatTime(event.occurredAt) : 'no time'}
+                        </button>
                         <span className="text-muted-foreground block font-mono text-xs/6 uppercase">
                           {fromUser
                             ? 'user'
@@ -154,11 +119,8 @@ export default function IncidentTimeline({
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 text-xs/6">{event.description}</p>
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="text-muted-foreground font-mono text-xs/6 uppercase">
-                            {sourceKinds}
-                          </span>
-                          <span className="text-muted-foreground font-mono text-xs/6 uppercase">
-                            · {event.sourceEvidenceIds.length} source
+                          <span className="text-muted-foreground font-mono text-xs/6 whitespace-nowrap uppercase">
+                            {event.sourceEvidenceIds.length} source
                             {event.sourceEvidenceIds.length === 1 ? '' : 's'}
                           </span>
                           <span
@@ -177,7 +139,7 @@ export default function IncidentTimeline({
                         <InfoIcon />
                         Details
                       </ContextMenuItem>
-                      <ContextMenuItem onClick={() => startEditing(event)}>
+                      <ContextMenuItem onClick={() => setEditingTime(event)}>
                         <PencilIcon />
                         Fix time
                       </ContextMenuItem>
@@ -192,6 +154,21 @@ export default function IncidentTimeline({
       {update.isError ? (
         <p className="text-destructive p-2 text-xs/6">{ERRORS.incidentTimeUpdateFailed}</p>
       ) : null}
+
+      <IncidentTimeDialog
+        event={editingTime}
+        open={editingTime !== null}
+        pending={update.isPending}
+        onOpenChange={(open) => {
+          if (!open) setEditingTime(null)
+        }}
+        onSave={(occurredAt) => {
+          if (!editingTime) return
+
+          update.mutate({ eventId: editingTime.id, occurredAt })
+          setEditingTime(null)
+        }}
+      />
 
       <IncidentEventDialog
         event={details}
