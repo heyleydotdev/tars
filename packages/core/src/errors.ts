@@ -92,6 +92,8 @@ export const ERRORS = {
   incidentEvidenceTooLong: 'Keep evidence under 12,000 characters.',
   incidentEvidenceFull: 'This incident has reached its evidence limit.',
   incidentEvidenceDeleteFailed: 'Could not delete this evidence.',
+  incidentEvidenceImageFailed: 'Could not load this screenshot.',
+  incidentDemoFailed: 'Could not build the demo incident. Try again.',
   incidentTimeUpdateFailed: 'Could not update this time.',
   incidentExtractionFailed: 'Could not read this evidence. Try again.',
   incidentMergeFailed: 'Could not rebuild the timeline. Try again.',
