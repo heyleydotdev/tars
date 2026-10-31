@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { MeasureUnit } from '@tars/core/utils/format'
+import type { MeasureUnit } from '@tars/core/schemas/measure'
 import { MEASURE_UNITS } from '@tars/core/constants'
 
 type MeasurePreferencesStore = {

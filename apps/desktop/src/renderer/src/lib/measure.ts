@@ -7,9 +7,9 @@ import type {
   MeasureBoxOutput,
   MeasureReferenceListOutput,
   MeasureRequestInput,
-  MeasureResultOutput
+  MeasureResultOutput,
+  MeasureUnit
 } from '@tars/core/schemas/measure'
-import type { MeasureUnit } from '@tars/core/utils/format'
 import { MEASURE_RATE_LIMIT_FALLBACK_MS } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { measureRateLimitSchema } from '@tars/core/schemas/measure'

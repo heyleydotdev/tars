@@ -3,6 +3,8 @@ import * as z from 'zod'
 import { EXPENSE_CATEGORIES } from '../constants'
 import { ERRORS } from '../errors'
 
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
+
 export const expenseItemSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1),

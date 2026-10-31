@@ -1,9 +1,9 @@
 import type {
   MeasureHistoryDetailOutput,
   MeasureHistoryListOutput,
-  MeasureResultOutput
+  MeasureResultOutput,
+  MeasureUnit
 } from '@tars/core/schemas/measure'
-import type { MeasureUnit } from '@tars/core/utils/format'
 import { ERRORS } from '@tars/core/errors'
 import {
   measureHistoryIdSchema,

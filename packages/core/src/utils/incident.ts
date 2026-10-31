@@ -1,14 +1,14 @@
 import type { ZodType } from 'zod'
 
+import type { IncidentTimeSource } from '../schemas/incident'
 import type {
   IncidentExtractionOutput,
   IncidentMergeOutput,
   IncidentPostmortemOutput,
   IncidentQuestionsOutput,
   IncidentReadinessOutput,
-  IncidentRootCauseOutput,
-  IncidentTimeSource
-} from '../schemas/incident'
+  IncidentRootCauseOutput
+} from '../schemas/incident-ai'
 import { INCIDENT_EVENT_LIMIT } from '../constants'
 import {
   incidentExtractionSchema,
@@ -17,7 +17,7 @@ import {
   incidentQuestionsSchema,
   incidentReadinessSchema,
   incidentRootCauseSchema
-} from '../schemas/incident'
+} from '../schemas/incident-ai'
 import { parseDate } from './format'
 
 type Parsed<T> = { ok: true; result: T } | { ok: false; issues: string; output: string }

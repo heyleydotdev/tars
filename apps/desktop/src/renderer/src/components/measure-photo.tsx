@@ -1,6 +1,6 @@
 import { CameraIcon, XIcon } from 'lucide-react'
 
-import type { MeasureUnit } from '@tars/core/utils/format'
+import type { MeasureUnit } from '@tars/core/schemas/measure'
 import { formatLength } from '@tars/core/utils/format'
 import {
   Attachment,

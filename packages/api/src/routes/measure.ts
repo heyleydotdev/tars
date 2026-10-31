@@ -2,11 +2,12 @@ import type OpenAI from 'openai'
 import { APIConnectionError, APIError } from 'openai'
 
 import type {
+  MeasurePromptObjects,
   MeasureReferenceItemOutput,
   MeasureReferenceListOutput,
-  MeasureResultOutput
+  MeasureResultOutput,
+  SamDetection
 } from '@tars/core/schemas/measure'
-import type { MeasurePromptObjects, SamDetection } from '@tars/core/utils/measure'
 import { MEASURE_RATE_LIMIT_FALLBACK_MS, META_SAM_MODEL } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { createMeasureReferenceSchema, measureRequestSchema } from '@tars/core/schemas/measure'

@@ -2,12 +2,7 @@ import { useState } from 'react'
 
 import type { IncidentDetailOutput, IncidentEventOutput } from '@tars/core/schemas/incident'
 import { ERRORS } from '@tars/core/errors'
-import {
-  formatTime,
-  fromLocalDateTimeInput,
-  toDateKey,
-  toLocalDateTimeInput
-} from '@tars/core/utils/format'
+import { formatTime, fromDateTimeLocal, toDateKey, toDateTimeLocal } from '@tars/core/utils/format'
 import { isGuessedTime } from '@tars/core/utils/incident'
 import { Input } from '@tars/ui/components/input'
 
@@ -38,12 +33,12 @@ export default function IncidentTimeline({
 
   function startEditing(event: IncidentEventOutput): void {
     setEditingId(event.id)
-    setDraft(toLocalDateTimeInput(event.occurredAt))
+    setDraft(toDateTimeLocal(event.occurredAt))
   }
 
   function commit(event: IncidentEventOutput): void {
     setEditingId(null)
-    update.mutate({ eventId: event.id, occurredAt: fromLocalDateTimeInput(draft) })
+    update.mutate({ eventId: event.id, occurredAt: fromDateTimeLocal(draft) })
   }
 
   if (detail.events.length === 0) {

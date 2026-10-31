@@ -1,5 +1,5 @@
 import type { JournalMeasurementItemOutput } from '../schemas/journal'
-import type { MeasureUnit } from './format'
+import type { MeasureUnit } from '../schemas/measure'
 import { formatLength } from './format'
 
 export const JOURNAL_MEASUREMENT_CONTENT_LIMIT = 6_000

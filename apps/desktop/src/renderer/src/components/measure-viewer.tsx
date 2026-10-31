@@ -7,7 +7,7 @@ import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/plugins/captions.css'
 import 'yet-another-react-lightbox/styles.css'
 
-import type { MeasureUnit } from '@tars/core/utils/format'
+import type { MeasureUnit } from '@tars/core/schemas/measure'
 import { formatLength } from '@tars/core/utils/format'
 import { Spinner } from '@tars/ui/components/spinner'
 

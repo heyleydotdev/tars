@@ -8,8 +8,7 @@ import {
   TriangleAlertIcon
 } from 'lucide-react'
 
-import type { MeasureResultOutput } from '@tars/core/schemas/measure'
-import type { MeasureUnit } from '@tars/core/utils/format'
+import type { MeasureResultOutput, MeasureUnit } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
 import { formatLength } from '@tars/core/utils/format'
 import { measureWarnings } from '@tars/core/utils/measure'

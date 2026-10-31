@@ -25,7 +25,7 @@ import {
   buildDeskContext,
   buildDeskExtractionPrompt,
   buildDeskRepairPrompt
-} from '@tars/core/prompts'
+} from '@tars/core/prompts/desk'
 import {
   chatEventSchema,
   deskResultJsonSchema,

@@ -1,19 +1,16 @@
 import type {
   MeasureBoxOutput,
   MeasureObjectOutput,
+  MeasurePromptObjects,
   MeasureReferenceItemOutput,
-  MeasureResultOutput
+  MeasureResultOutput,
+  MeasureWarning,
+  SamDetection
 } from '../schemas/measure'
 import { ERRORS } from '../errors'
 
 const BOX_PATTERN =
   /<\|box;x1=([\d.]+);y1=([\d.]+);x2=([\d.]+);y2=([\d.]+);w=(\d+);h=(\d+)[^|]*\|>/g
-
-export type SamDetection = {
-  box: MeasureBoxOutput
-  imageWidth: number
-  imageHeight: number
-}
 
 function round(value: number, digits = 1): number {
   const factor = 10 ** digits
@@ -54,25 +51,6 @@ export function pickLargestDetection(detections: Array<SamDetection>): SamDetect
       ? detection
       : best
   }, null)
-}
-
-export type MeasurePromptObjects = {
-  prompt: string
-  objects: Array<SamDetection>
-}
-
-export type MeasureWarningCode =
-  | 'multiple-reference-matches'
-  | 'small-reference'
-  | 'reference-aspect'
-  | 'object-at-edge'
-  | 'small-object'
-  | 'missing-prompt'
-  | 'scale-outlier'
-
-export type MeasureWarning = {
-  code: MeasureWarningCode
-  message: string
 }
 
 export function scaleFromBoxes(

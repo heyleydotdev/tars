@@ -32,23 +32,25 @@ import {
   buildIncidentReadinessPrompt,
   buildIncidentRepairPrompt,
   buildIncidentRootCausePrompt
-} from '@tars/core/prompts'
+} from '@tars/core/prompts/incident'
 import {
   addIncidentEvidenceSchema,
   answerIncidentQuestionSchema,
   createIncidentSchema,
   incidentEvidenceIdSchema,
-  incidentExtractionJsonSchema,
   incidentIdSchema,
-  incidentMergeJsonSchema,
-  incidentPostmortemJsonSchema,
   incidentPromptSchema,
-  incidentQuestionsJsonSchema,
-  incidentReadinessJsonSchema,
-  incidentRootCauseJsonSchema,
   saveIncidentPostmortemSchema,
   updateIncidentEventSchema
 } from '@tars/core/schemas/incident'
+import {
+  incidentExtractionJsonSchema,
+  incidentMergeJsonSchema,
+  incidentPostmortemJsonSchema,
+  incidentQuestionsJsonSchema,
+  incidentReadinessJsonSchema,
+  incidentRootCauseJsonSchema
+} from '@tars/core/schemas/incident-ai'
 import { formatZonedIso } from '@tars/core/utils/format'
 import {
   parseIncidentExtraction,

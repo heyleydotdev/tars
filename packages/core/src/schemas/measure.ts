@@ -115,6 +115,33 @@ export const measureResultSchema = z.object({
   missingPrompts: z.array(z.string()).default([])
 })
 
+export type MeasureUnit = z.output<typeof measureUnitSchema>
+
+export type SamDetection = {
+  box: MeasureBoxOutput
+  imageWidth: number
+  imageHeight: number
+}
+
+export type MeasurePromptObjects = {
+  prompt: string
+  objects: Array<SamDetection>
+}
+
+export type MeasureWarningCode =
+  | 'multiple-reference-matches'
+  | 'small-reference'
+  | 'reference-aspect'
+  | 'object-at-edge'
+  | 'small-object'
+  | 'missing-prompt'
+  | 'scale-outlier'
+
+export type MeasureWarning = {
+  code: MeasureWarningCode
+  message: string
+}
+
 export type MeasureReferenceItemInput = z.input<typeof measureReferenceItemSchema>
 export type MeasureReferenceItemOutput = z.output<typeof measureReferenceItemSchema>
 export type MeasureReferenceListInput = z.input<typeof measureReferenceListSchema>

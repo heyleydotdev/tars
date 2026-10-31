@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
-import type { MeasureBoxOutput, MeasureResultOutput } from '@tars/core/schemas/measure'
-import type { MeasureUnit } from '@tars/core/utils/format'
+import type { MeasureBoxOutput, MeasureResultOutput, MeasureUnit } from '@tars/core/schemas/measure'
 import { formatLength } from '@tars/core/utils/format'
 
 import type { MeasureAnnotations } from '../stores/measure-annotations'

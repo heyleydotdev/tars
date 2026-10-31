@@ -1,6 +1,5 @@
+import type { ExpenseCategory } from '../schemas/expenses'
 import { EXPENSE_CATEGORIES } from '../constants'
-
-export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
 
 export function normalizeExpenseCategory(value: string | null): ExpenseCategory {
   const normalized = value?.trim().toLowerCase()
