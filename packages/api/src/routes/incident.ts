@@ -1,0 +1,896 @@
+import type OpenAI from 'openai'
+
+import type {
+  IncidentAnalysisOutput,
+  IncidentDetailOutput,
+  IncidentEventOutput,
+  IncidentEvidenceOutput,
+  IncidentQuestionOutput,
+  IncidentSummaryOutput
+} from '@tars/core/schemas/incident'
+import type { Database } from '@tars/db/client'
+import type { IncidentAnalysisSelect } from '@tars/db/schema'
+import {
+  INCIDENT_EVENT_LIMIT,
+  INCIDENT_EVIDENCE_LIMIT,
+  META_CHAT_MAX_TOKENS,
+  META_CHAT_MODEL
+} from '@tars/core/constants'
+import { ERRORS } from '@tars/core/errors'
+import {
+  buildIncidentExtractionPrompt,
+  buildIncidentMergePrompt,
+  buildIncidentPostmortemPrompt,
+  buildIncidentQuestionsPrompt,
+  buildIncidentReadinessPrompt,
+  buildIncidentRepairPrompt,
+  buildIncidentRootCausePrompt
+} from '@tars/core/prompts'
+import {
+  addIncidentEvidenceSchema,
+  answerIncidentQuestionSchema,
+  createIncidentSchema,
+  incidentEvidenceIdSchema,
+  incidentExtractionJsonSchema,
+  incidentIdSchema,
+  incidentMergeJsonSchema,
+  incidentPostmortemJsonSchema,
+  incidentPromptSchema,
+  incidentQuestionsJsonSchema,
+  incidentReadinessJsonSchema,
+  incidentRootCauseJsonSchema,
+  saveIncidentPostmortemSchema,
+  updateIncidentEventSchema
+} from '@tars/core/schemas/incident'
+import { formatZonedIso } from '@tars/core/utils/format'
+import {
+  parseIncidentExtraction,
+  parseIncidentMerge,
+  parseIncidentPostmortem,
+  parseIncidentQuestions,
+  parseIncidentReadiness,
+  parseIncidentRootCause,
+  parseIncidentTime,
+  sanitizeIncidentEvents,
+  sanitizeIncidentRootCause
+} from '@tars/core/utils/incident'
+import {
+  incident,
+  incidentAnalysis,
+  incidentEvent,
+  incidentEvidence,
+  incidentQuestion
+} from '@tars/db/schema'
+import { and, asc, desc, eq, inArray, sql } from '@tars/db/sql'
+
+import { openAiMiddleware, protectedProcedure } from '../context'
+import { BadRequestError, GatewayError, NotFoundError } from '../errors'
+
+const MODEL_MAX_TOKENS = META_CHAT_MAX_TOKENS
+
+type ParseResult<T> = { ok: true; result: T } | { ok: false; issues: string; output: string }
+
+type ModelContent =
+  { type: 'input_text'; text: string } | { type: 'input_image'; image_url: string; detail: 'auto' }
+
+type ModelInput = string | Array<{ type: 'message'; role: 'user'; content: Array<ModelContent> }>
+
+async function runStructured<T>(
+  openAi: OpenAI,
+  options: {
+    name: string
+    schema: Record<string, unknown>
+    instructions: string
+    input: ModelInput
+    parse: (text: string) => ParseResult<T>
+  }
+): Promise<T> {
+  const call = async (input: ModelInput): Promise<string> => {
+    const response = await openAi.responses.create(
+      {
+        model: META_CHAT_MODEL,
+        instructions: options.instructions,
+        input: input as never,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: options.name,
+            strict: true,
+            schema: options.schema
+          }
+        },
+        max_output_tokens: MODEL_MAX_TOKENS
+      },
+      { maxRetries: 2 }
+    )
+
+    return response.output_text
+  }
+
+  const first = await call(options.input)
+  const parsed = options.parse(first)
+
+  if (parsed.ok) return parsed.result
+
+  const repaired = await call(
+    buildIncidentRepairPrompt({
+      issues: parsed.issues,
+      input: typeof options.input === 'string' ? options.input : options.instructions,
+      output: parsed.output
+    })
+  )
+  const retry = options.parse(repaired)
+
+  if (retry.ok) return retry.result
+
+  throw new Error(retry.issues)
+}
+
+function iso(value: Date | null): string | null {
+  return value ? value.toISOString() : null
+}
+
+function serializeEvidence(row: typeof incidentEvidence.$inferSelect): IncidentEvidenceOutput {
+  return {
+    id: row.id,
+    kind: row.kind,
+    source: row.source,
+    content: row.content,
+    hasImage: Boolean(row.imageKey),
+    occurredAt: iso(row.occurredAt),
+    timeSource: row.timeSource ?? null,
+    timeNote: row.timeNote,
+    summary: row.summary,
+    status: row.status,
+    error: row.error,
+    createdAt: row.createdAt.toISOString()
+  }
+}
+
+function serializeEvent(row: typeof incidentEvent.$inferSelect): IncidentEventOutput {
+  return {
+    id: row.id,
+    occurredAt: iso(row.occurredAt),
+    timeSource: row.timeSource ?? null,
+    description: row.description,
+    confidence: row.confidence,
+    sourceEvidenceIds: row.sourceEvidenceIds,
+    sortOrder: row.sortOrder
+  }
+}
+
+function serializeQuestion(row: typeof incidentQuestion.$inferSelect): IncidentQuestionOutput {
+  return {
+    id: row.id,
+    text: row.text,
+    rationale: row.rationale,
+    gap: row.gap,
+    status: row.status,
+    answer: row.answer,
+    answeredAt: iso(row.answeredAt),
+    createdAt: row.createdAt.toISOString()
+  }
+}
+
+function serializeAnalysis(row: IncidentAnalysisSelect): IncidentAnalysisOutput {
+  return {
+    outcome: row.outcome,
+    rootCause: row.rootCause,
+    confidence: row.confidence,
+    supportingEventIds: row.supportingEventIds,
+    alternatives: row.alternatives,
+    postmortem: row.postmortem,
+    status: row.status,
+    approvedAt: iso(row.approvedAt),
+    updatedAt: row.updatedAt.toISOString()
+  }
+}
+
+type IncidentRow = typeof incident.$inferSelect
+
+async function loadIncident(
+  db: Database,
+  userId: string,
+  incidentId: string
+): Promise<IncidentRow> {
+  const [row] = await db
+    .select()
+    .from(incident)
+    .where(and(eq(incident.id, incidentId), eq(incident.userId, userId)))
+    .limit(1)
+
+  if (!row) throw new NotFoundError()
+
+  return row
+}
+
+async function loadDetail(
+  db: Database,
+  userId: string,
+  incidentId: string
+): Promise<IncidentDetailOutput> {
+  const row = await loadIncident(db, userId, incidentId)
+  const [evidenceRows, eventRows, questionRows, analysisRows, counts] = await Promise.all([
+    db
+      .select()
+      .from(incidentEvidence)
+      .where(eq(incidentEvidence.incidentId, incidentId))
+      .orderBy(asc(incidentEvidence.createdAt)),
+    db
+      .select()
+      .from(incidentEvent)
+      .where(eq(incidentEvent.incidentId, incidentId))
+      .orderBy(asc(incidentEvent.sortOrder)),
+    db
+      .select()
+      .from(incidentQuestion)
+      .where(eq(incidentQuestion.incidentId, incidentId))
+      .orderBy(asc(incidentQuestion.createdAt)),
+    db.select().from(incidentAnalysis).where(eq(incidentAnalysis.incidentId, incidentId)).limit(1),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(incidentEvidence)
+      .where(eq(incidentEvidence.incidentId, incidentId))
+  ])
+
+  const summary: IncidentSummaryOutput = {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    summary: row.summary,
+    evidenceCount: Number(counts[0]?.count ?? 0),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString()
+  }
+
+  return {
+    incident: summary,
+    evidence: evidenceRows.map(serializeEvidence),
+    events: eventRows.map(serializeEvent),
+    questions: questionRows.map(serializeQuestion),
+    analysis: analysisRows[0] ? serializeAnalysis(analysisRows[0]) : null
+  }
+}
+
+async function touchIncident(
+  db: Database,
+  incidentId: string,
+  patch: { summary?: string | null } = {}
+): Promise<void> {
+  await db
+    .update(incident)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(incident.id, incidentId))
+}
+
+function timelineInput(rows: Array<typeof incidentEvent.$inferSelect>, timezone?: string) {
+  return rows.map((row) => ({
+    id: row.id,
+    occurredAt: row.occurredAt ? formatZonedIso(row.occurredAt, timezone).value : null,
+    timeSource: row.timeSource ?? null,
+    description: row.description,
+    confidence: row.confidence,
+    sourceEvidenceIds: row.sourceEvidenceIds
+  }))
+}
+
+function evidenceInput(
+  rows: Array<typeof incidentEvidence.$inferSelect>,
+  timezone?: string
+): Array<{ id: string; kind: string; summary: string | null; occurredAt: string | null }> {
+  return rows.map((row) => ({
+    id: row.id,
+    kind: row.kind,
+    summary: row.summary,
+    occurredAt: row.occurredAt ? formatZonedIso(row.occurredAt, timezone).value : null
+  }))
+}
+
+async function insertEvents(
+  db: Database,
+  rows: Array<typeof incidentEvent.$inferInsert>
+): Promise<void> {
+  for (let index = 0; index < rows.length; index += 10) {
+    await db.insert(incidentEvent).values(rows.slice(index, index + 10))
+  }
+}
+
+function dataUrlBytes(dataUrl: string): { bytes: Uint8Array; contentType: string } {
+  const [header, payload] = dataUrl.split(',')
+
+  if (!header || payload === undefined) throw new Error(ERRORS.imageUnreadable)
+
+  const contentType = /data:([^;]+)/.exec(header)?.[1] ?? 'image/jpeg'
+  const binary = atob(payload)
+  const bytes = new Uint8Array(binary.length)
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+
+  return { bytes, contentType }
+}
+
+async function mergeTimeline(
+  openAi: OpenAI,
+  db: Database,
+  incidentId: string,
+  timezone?: string
+): Promise<void> {
+  const [evidenceRows, eventRows] = await Promise.all([
+    db
+      .select()
+      .from(incidentEvidence)
+      .where(eq(incidentEvidence.incidentId, incidentId))
+      .orderBy(asc(incidentEvidence.createdAt)),
+    db
+      .select()
+      .from(incidentEvent)
+      .where(eq(incidentEvent.incidentId, incidentId))
+      .orderBy(asc(incidentEvent.sortOrder))
+  ])
+
+  if (eventRows.length === 0) {
+    await touchIncident(db, incidentId, { summary: null })
+
+    return
+  }
+
+  const merged = await runStructured(openAi, {
+    name: 'incident_merge',
+    schema: incidentMergeJsonSchema as Record<string, unknown>,
+    instructions: buildIncidentMergePrompt({
+      evidence: evidenceInput(evidenceRows, timezone),
+      events: timelineInput(eventRows, timezone)
+    }),
+    input: 'Merge the events above into one timeline.',
+    parse: parseIncidentMerge
+  })
+  const evidenceIds = new Set(evidenceRows.map((row) => row.id))
+  const events = sanitizeIncidentEvents(merged.events, evidenceIds)
+
+  if (events.length === 0) {
+    throw new Error('merge returned no usable events')
+  }
+
+  const previousIds = eventRows.map((row) => row.id)
+
+  await insertEvents(
+    db,
+    events.map((event, index) => ({
+      id: crypto.randomUUID(),
+      incidentId,
+      occurredAt: parseIncidentTime(event.occurredAt),
+      timeSource: event.timeSource,
+      description: event.description,
+      confidence: event.confidence,
+      sourceEvidenceIds: event.sourceEvidenceIds,
+      sortOrder: index
+    }))
+  )
+
+  await db
+    .delete(incidentEvent)
+    .where(and(eq(incidentEvent.incidentId, incidentId), inArray(incidentEvent.id, previousIds)))
+
+  await touchIncident(db, incidentId, { summary: merged.summary })
+}
+
+export const incidentRouter = {
+  list: protectedProcedure.handler(
+    async ({ context }): Promise<{ items: Array<IncidentSummaryOutput> }> => {
+      const rows = await context.db
+        .select()
+        .from(incident)
+        .where(eq(incident.userId, context.session.user.id))
+        .orderBy(desc(incident.updatedAt))
+        .limit(50)
+
+      if (rows.length === 0) return { items: [] }
+
+      const counts = await context.db
+        .select({ incidentId: incidentEvidence.incidentId, count: sql<number>`count(*)` })
+        .from(incidentEvidence)
+        .where(
+          inArray(
+            incidentEvidence.incidentId,
+            rows.map((row) => row.id)
+          )
+        )
+        .groupBy(incidentEvidence.incidentId)
+      const byIncident = new Map(counts.map((row) => [row.incidentId, Number(row.count)]))
+
+      return {
+        items: rows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          status: row.status,
+          summary: row.summary,
+          evidenceCount: byIncident.get(row.id) ?? 0,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString()
+        }))
+      }
+    }
+  ),
+
+  create: protectedProcedure
+    .input(createIncidentSchema)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+      const id = crypto.randomUUID()
+
+      await context.db.insert(incident).values({
+        id,
+        userId: context.session.user.id,
+        title: input.title
+      })
+
+      return loadDetail(context.db, context.session.user.id, id)
+    }),
+
+  get: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(incidentIdSchema)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> =>
+      loadDetail(context.db, context.session.user.id, input.incidentId)
+    ),
+
+  remove: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(incidentIdSchema)
+    .handler(async ({ input, context }): Promise<void> => {
+      const row = await loadIncident(context.db, context.session.user.id, input.incidentId)
+
+      await context.db.delete(incident).where(eq(incident.id, row.id))
+    }),
+
+  addEvidence: protectedProcedure
+    .errors({
+      NOT_FOUND: NotFoundError,
+      BAD_REQUEST: BadRequestError,
+      BAD_GATEWAY: GatewayError
+    })
+    .input(addIncidentEvidenceSchema)
+    .use(openAiMiddleware)
+    .handler(async ({ input, context, errors }): Promise<IncidentDetailOutput> => {
+      const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
+      const evidenceId = crypto.randomUUID()
+      const id = owner.id
+
+      const [countRow] = await context.db
+        .select({ count: sql<number>`count(*)` })
+        .from(incidentEvidence)
+        .where(eq(incidentEvidence.incidentId, id))
+
+      if (Number(countRow?.count ?? 0) >= INCIDENT_EVIDENCE_LIMIT) {
+        throw errors.BAD_REQUEST({ message: ERRORS.incidentEvidenceFull })
+      }
+
+      let imageKey: string | null = null
+
+      if (input.kind === 'screenshot' && input.image) {
+        const { bytes, contentType } = dataUrlBytes(input.image)
+
+        imageKey = `incident/${context.session.user.id}/${id}/${evidenceId}.jpg`
+
+        await context.measureImages.put(imageKey, bytes.buffer as ArrayBuffer, {
+          httpMetadata: { contentType }
+        })
+      }
+
+      const occurredAt = parseIncidentTime(input.occurredAt)
+
+      await context.db.insert(incidentEvidence).values({
+        id: evidenceId,
+        incidentId: id,
+        kind: input.kind,
+        source: 'upload',
+        content: input.content,
+        imageKey,
+        occurredAt,
+        timeSource: occurredAt ? 'user' : null,
+        status: 'pending'
+      })
+
+      const [existingEvents] = await context.db
+        .select({ count: sql<number>`count(*)` })
+        .from(incidentEvent)
+        .where(eq(incidentEvent.incidentId, id))
+      const offset = Number(existingEvents?.count ?? 0)
+
+      try {
+        if (!input.image && !input.content) {
+          throw new Error(ERRORS.incidentEvidenceRequired)
+        }
+
+        const extraction = await runStructured(context.openAi, {
+          name: 'incident_extraction',
+          schema: incidentExtractionJsonSchema as Record<string, unknown>,
+          instructions: buildIncidentExtractionPrompt({
+            now: new Date(),
+            incidentStartedAt: owner.createdAt,
+            kind: input.kind,
+            content: input.content,
+            fileName: null,
+            timezone: input.timezone
+          }),
+          input: input.image
+            ? [
+                {
+                  type: 'message',
+                  role: 'user',
+                  content: [
+                    { type: 'input_text', text: 'Extract incident events from this screenshot.' },
+                    { type: 'input_image', image_url: input.image, detail: 'auto' }
+                  ]
+                }
+              ]
+            : 'Extract incident events from the evidence above.',
+          parse: parseIncidentExtraction
+        })
+
+        const timed = extraction.events.find((event) => parseIncidentTime(event.occurredAt))
+        const evidenceTime = occurredAt ?? parseIncidentTime(timed?.occurredAt ?? null)
+        const evidenceSource = occurredAt
+          ? 'user'
+          : (timed?.timeSource ?? extraction.events[0]?.timeSource ?? null)
+
+        await context.db
+          .update(incidentEvidence)
+          .set({
+            status: 'ready',
+            summary: extraction.summary,
+            timeNote: extraction.timeNote,
+            occurredAt: evidenceTime,
+            timeSource: evidenceSource
+          })
+          .where(eq(incidentEvidence.id, evidenceId))
+
+        if (extraction.events.length > 0) {
+          await insertEvents(
+            context.db,
+            extraction.events.slice(0, INCIDENT_EVENT_LIMIT).map((event, index) => ({
+              id: crypto.randomUUID(),
+              incidentId: id,
+              occurredAt: parseIncidentTime(event.occurredAt),
+              timeSource: event.timeSource,
+              description: event.description,
+              confidence: event.confidence,
+              sourceEvidenceIds: [evidenceId],
+              sortOrder: offset + index
+            }))
+          )
+        }
+
+        await touchIncident(context.db, id)
+      } catch {
+        await context.db
+          .update(incidentEvidence)
+          .set({ status: 'error', error: ERRORS.incidentExtractionFailed })
+          .where(eq(incidentEvidence.id, evidenceId))
+        await touchIncident(context.db, id)
+      }
+
+      return loadDetail(context.db, context.session.user.id, id)
+    }),
+
+  removeEvidence: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(incidentEvidenceIdSchema)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+      const [row] = await context.db
+        .select({ id: incidentEvidence.id, incidentId: incidentEvidence.incidentId })
+        .from(incidentEvidence)
+        .innerJoin(incident, eq(incident.id, incidentEvidence.incidentId))
+        .where(
+          and(
+            eq(incidentEvidence.id, input.evidenceId),
+            eq(incident.userId, context.session.user.id)
+          )
+        )
+        .limit(1)
+
+      if (!row) throw new NotFoundError()
+
+      await context.db.delete(incidentEvidence).where(eq(incidentEvidence.id, row.id))
+
+      const events = await context.db
+        .select()
+        .from(incidentEvent)
+        .where(eq(incidentEvent.incidentId, row.incidentId))
+
+      for (const event of events) {
+        const sourceEvidenceIds = event.sourceEvidenceIds.filter((id) => id !== row.id)
+
+        if (sourceEvidenceIds.length === 0) {
+          await context.db.delete(incidentEvent).where(eq(incidentEvent.id, event.id))
+        } else if (sourceEvidenceIds.length !== event.sourceEvidenceIds.length) {
+          await context.db
+            .update(incidentEvent)
+            .set({ sourceEvidenceIds })
+            .where(eq(incidentEvent.id, event.id))
+        }
+      }
+
+      await touchIncident(context.db, row.incidentId)
+
+      return loadDetail(context.db, context.session.user.id, row.incidentId)
+    }),
+
+  rebuildTimeline: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
+    .input(incidentPromptSchema)
+    .use(openAiMiddleware)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+      const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
+
+      try {
+        await mergeTimeline(context.openAi, context.db, owner.id, input.timezone)
+      } catch (error) {
+        console.error('incident merge failed', error)
+        throw new GatewayError({ message: ERRORS.incidentMergeFailed })
+      }
+
+      return loadDetail(context.db, context.session.user.id, owner.id)
+    }),
+
+  updateEvent: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(updateIncidentEventSchema)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+      const [row] = await context.db
+        .select({ id: incidentEvent.id, incidentId: incidentEvent.incidentId })
+        .from(incidentEvent)
+        .innerJoin(incident, eq(incident.id, incidentEvent.incidentId))
+        .where(
+          and(eq(incidentEvent.id, input.eventId), eq(incident.userId, context.session.user.id))
+        )
+        .limit(1)
+
+      if (!row) throw new NotFoundError()
+
+      const occurredAt = parseIncidentTime(input.occurredAt)
+
+      await context.db
+        .update(incidentEvent)
+        .set({ occurredAt, timeSource: occurredAt ? 'user' : null })
+        .where(eq(incidentEvent.id, row.id))
+      await touchIncident(context.db, row.incidentId)
+
+      return loadDetail(context.db, context.session.user.id, row.incidentId)
+    }),
+
+  findRootCause: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError, BAD_REQUEST: BadRequestError, BAD_GATEWAY: GatewayError })
+    .input(incidentPromptSchema)
+    .use(openAiMiddleware)
+    .handler(async ({ input, context, errors }): Promise<IncidentDetailOutput> => {
+      const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
+      const eventRows = await context.db
+        .select()
+        .from(incidentEvent)
+        .where(eq(incidentEvent.incidentId, owner.id))
+        .orderBy(asc(incidentEvent.sortOrder))
+
+      if (eventRows.length === 0) {
+        throw errors.BAD_REQUEST({ message: ERRORS.incidentTimelineEmpty })
+      }
+
+      const timeline = timelineInput(eventRows, input.timezone)
+
+      try {
+        const readiness = await runStructured(context.openAi, {
+          name: 'incident_readiness',
+          schema: incidentReadinessJsonSchema as Record<string, unknown>,
+          instructions: buildIncidentReadinessPrompt({ events: timeline }),
+          input: 'Is this timeline ready for a root cause?',
+          parse: parseIncidentReadiness
+        })
+
+        if (!readiness.enough && readiness.gaps.length > 0) {
+          const drafted = await runStructured(context.openAi, {
+            name: 'incident_questions',
+            schema: incidentQuestionsJsonSchema as Record<string, unknown>,
+            instructions: buildIncidentQuestionsPrompt({
+              events: timeline,
+              gaps: readiness.gaps
+            }),
+            input: 'Ask the questions that close these gaps.',
+            parse: parseIncidentQuestions
+          })
+
+          await context.db
+            .delete(incidentQuestion)
+            .where(
+              and(eq(incidentQuestion.incidentId, owner.id), eq(incidentQuestion.status, 'open'))
+            )
+          await context.db.delete(incidentAnalysis).where(eq(incidentAnalysis.incidentId, owner.id))
+
+          if (drafted.questions.length > 0) {
+            await context.db.insert(incidentQuestion).values(
+              drafted.questions.map((question) => ({
+                id: crypto.randomUUID(),
+                incidentId: owner.id,
+                text: question.text,
+                rationale: question.rationale,
+                gap: question.gap
+              }))
+            )
+          }
+
+          await touchIncident(context.db, owner.id)
+
+          return loadDetail(context.db, context.session.user.id, owner.id)
+        }
+
+        const proposed = await runStructured(context.openAi, {
+          name: 'incident_root_cause',
+          schema: incidentRootCauseJsonSchema as Record<string, unknown>,
+          instructions: buildIncidentRootCausePrompt({ events: timeline }),
+          input: 'Propose the most likely root cause, or say the evidence is inconclusive.',
+          parse: parseIncidentRootCause
+        })
+        const cause = sanitizeIncidentRootCause(proposed, new Set(eventRows.map((row) => row.id)))
+
+        let postmortem: string | null = null
+
+        if (cause.outcome === 'proposed') {
+          const drafted = await runStructured(context.openAi, {
+            name: 'incident_postmortem',
+            schema: incidentPostmortemJsonSchema as Record<string, unknown>,
+            instructions: buildIncidentPostmortemPrompt({
+              events: timeline,
+              rootCause: cause.rootCause,
+              confidence: cause.confidence,
+              alternatives: cause.alternatives
+            }),
+            input: 'Draft the postmortem.',
+            parse: parseIncidentPostmortem
+          })
+
+          postmortem = drafted.markdown
+        }
+
+        await context.db
+          .delete(incidentQuestion)
+          .where(
+            and(eq(incidentQuestion.incidentId, owner.id), eq(incidentQuestion.status, 'open'))
+          )
+        await context.db.delete(incidentAnalysis).where(eq(incidentAnalysis.incidentId, owner.id))
+        await context.db.insert(incidentAnalysis).values({
+          id: crypto.randomUUID(),
+          incidentId: owner.id,
+          outcome: cause.outcome,
+          rootCause: cause.rootCause,
+          confidence: cause.confidence,
+          supportingEventIds: cause.supportingEventIds,
+          alternatives: cause.alternatives,
+          postmortem,
+          status: 'draft'
+        })
+        await touchIncident(context.db, owner.id)
+
+        return loadDetail(context.db, context.session.user.id, owner.id)
+      } catch (error) {
+        console.error('incident analysis failed', error)
+        throw errors.BAD_GATEWAY({ message: ERRORS.incidentAnalysisFailed })
+      }
+    }),
+
+  answerQuestion: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(answerIncidentQuestionSchema)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+      const [row] = await context.db
+        .select({ id: incidentQuestion.id, incidentId: incidentQuestion.incidentId })
+        .from(incidentQuestion)
+        .innerJoin(incident, eq(incident.id, incidentQuestion.incidentId))
+        .where(
+          and(
+            eq(incidentQuestion.id, input.questionId),
+            eq(incident.userId, context.session.user.id)
+          )
+        )
+        .limit(1)
+
+      if (!row) throw new NotFoundError()
+
+      const evidenceId = crypto.randomUUID()
+      const answeredAt = new Date()
+
+      await context.db
+        .update(incidentQuestion)
+        .set({ status: 'answered', answer: input.answer, answeredAt })
+        .where(eq(incidentQuestion.id, row.id))
+
+      await context.db.insert(incidentEvidence).values({
+        id: evidenceId,
+        incidentId: row.incidentId,
+        kind: 'answer',
+        source: 'user',
+        content: input.answer,
+        occurredAt: null,
+        timeSource: null,
+        summary: input.answer,
+        status: 'ready'
+      })
+
+      const [countRow] = await context.db
+        .select({ count: sql<number>`count(*)` })
+        .from(incidentEvent)
+        .where(eq(incidentEvent.incidentId, row.incidentId))
+
+      await context.db.insert(incidentEvent).values({
+        id: crypto.randomUUID(),
+        incidentId: row.incidentId,
+        occurredAt: null,
+        timeSource: null,
+        description: `User answered: ${input.answer}`,
+        confidence: 'high',
+        sourceEvidenceIds: [evidenceId],
+        sortOrder: Number(countRow?.count ?? 0)
+      })
+
+      await touchIncident(context.db, row.incidentId)
+
+      return loadDetail(context.db, context.session.user.id, row.incidentId)
+    }),
+
+  savePostmortem: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(saveIncidentPostmortemSchema)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+      const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
+
+      await context.db
+        .update(incidentAnalysis)
+        .set({ postmortem: input.postmortem, updatedAt: new Date(), status: 'draft' })
+        .where(eq(incidentAnalysis.incidentId, owner.id))
+      await touchIncident(context.db, owner.id)
+
+      return loadDetail(context.db, context.session.user.id, owner.id)
+    }),
+
+  approvePostmortem: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(incidentIdSchema)
+    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+      const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
+
+      await context.db
+        .update(incidentAnalysis)
+        .set({ status: 'approved', approvedAt: new Date(), updatedAt: new Date() })
+        .where(eq(incidentAnalysis.incidentId, owner.id))
+      await touchIncident(context.db, owner.id)
+
+      return loadDetail(context.db, context.session.user.id, owner.id)
+    }),
+
+  evidenceImage: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(incidentEvidenceIdSchema)
+    .handler(async ({ input, context }): Promise<ReadableStream> => {
+      const [row] = await context.db
+        .select({ imageKey: incidentEvidence.imageKey })
+        .from(incidentEvidence)
+        .innerJoin(incident, eq(incident.id, incidentEvidence.incidentId))
+        .where(
+          and(
+            eq(incidentEvidence.id, input.evidenceId),
+            eq(incident.userId, context.session.user.id)
+          )
+        )
+        .limit(1)
+
+      if (!row?.imageKey) throw new NotFoundError()
+
+      const object = await context.measureImages.get(row.imageKey)
+
+      if (!object) throw new NotFoundError()
+
+      context.resHeaders?.set('content-type', object.httpMetadata?.contentType ?? 'image/jpeg')
+      context.resHeaders?.set('cache-control', 'private, max-age=3600')
+
+      return object.body
+    })
+}

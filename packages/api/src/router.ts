@@ -1,6 +1,7 @@
 import { base } from './context'
 import { chatRouter } from './routes/chat'
 import { expensesRouter } from './routes/expenses'
+import { incidentRouter } from './routes/incident'
 import { journalRouter } from './routes/journal'
 import { measureRouter } from './routes/measure'
 import { voiceRouter } from './routes/voice'
@@ -8,6 +9,7 @@ import { voiceRouter } from './routes/voice'
 export const router = base.router({
   chat: chatRouter,
   expenses: expensesRouter,
+  incident: incidentRouter,
   journal: journalRouter,
   measure: measureRouter,
   voice: voiceRouter
