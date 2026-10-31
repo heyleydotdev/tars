@@ -1,4 +1,27 @@
+import type { MEASURE_UNITS } from '../constants'
 import { ERRORS } from '../errors'
+
+export type MeasureUnit = (typeof MEASURE_UNITS)[number]
+
+const lengthFormats = new Map<MeasureUnit, Intl.NumberFormat>()
+
+export function formatLength(valueMm: number, unit: MeasureUnit): string {
+  let format = lengthFormats.get(unit)
+
+  if (!format) {
+    const digits = unit === 'in' ? 2 : 1
+
+    format = new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    })
+    lengthFormats.set(unit, format)
+  }
+
+  const value = unit === 'cm' ? valueMm / 10 : unit === 'in' ? valueMm / 25.4 : valueMm
+
+  return `${format.format(value)} ${unit}`
+}
 
 const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',

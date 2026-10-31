@@ -10,6 +10,7 @@ export const META_CHAT_MAX_TOKENS = 6_000
 export const CHAT_MESSAGE_MAX_LENGTH = 4_000
 export const DESK_HISTORY_MESSAGES = 20
 export const DESK_HISTORY_CHARS = 6_000
+export const MEASURE_PROMPT_LIMIT = 5
 export const JOURNAL_ITEM_LIMIT = 100
 export const EXPENSE_ITEM_LIMIT = 500
 
@@ -50,6 +51,8 @@ export const VOICE_WAKE_PHRASES = [
   'okay tars',
   'yo tars'
 ] as const
+
+export const MEASURE_UNITS = ['mm', 'cm', 'in'] as const
 
 export const VOICE_WAKE_PATTERN = new RegExp(`\\b(?:${VOICE_WAKE_PHRASES.join('|')})\\b`, 'i')
 
