@@ -1,3 +1,4 @@
+import { ORPCError } from '@orpc/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { zipSync } from 'fflate'
 
@@ -9,7 +10,9 @@ import type {
   MeasureResultOutput
 } from '@tars/core/schemas/measure'
 import type { MeasureUnit } from '@tars/core/utils/format'
+import { MEASURE_RATE_LIMIT_FALLBACK_MS } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
+import { measureRateLimitSchema } from '@tars/core/schemas/measure'
 import { formatDateTime, formatLength } from '@tars/core/utils/format'
 import { measureWarnings } from '@tars/core/utils/measure'
 
@@ -42,6 +45,13 @@ export type MeasureBatchItem = {
   error: string | null
   prompts: Array<string> | null
   request: MeasureRequest | null
+  notice: string | null
+}
+
+export function hasResult(
+  item: MeasureBatchItem
+): item is MeasureBatchItem & { result: MeasureResultOutput } {
+  return item.result !== null
 }
 
 export const FRAME_REFERENCE_WIDTH = 400
@@ -495,6 +505,14 @@ export async function prepareMeasureImage(file: File): Promise<PreparedMeasureIm
 }
 
 const measureReferencesKey = orpc.measure.references.queryKey()
+
+export function measureRateLimitDelayMs(error: unknown): number | null {
+  if (!(error instanceof ORPCError) || error.code !== 'RATE_LIMITED') return null
+
+  const data = measureRateLimitSchema.safeParse(error.data)
+
+  return Math.max(1_000, data.success ? data.data.retryAfterMs : MEASURE_RATE_LIMIT_FALLBACK_MS)
+}
 
 export function useMeasureReferences(initialData?: MeasureReferenceListOutput) {
   return useQuery({ ...orpc.measure.references.queryOptions(), initialData })

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { ImagePlusIcon, PlusIcon, RulerIcon } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 
 import type {
   MeasureFormOutput,
@@ -25,6 +26,7 @@ import { Spinner } from '@tars/ui/components/spinner'
 
 import type { PreparedMeasureImage } from '../lib/measure'
 import { prepareMeasureImage, useMeasureReferences } from '../lib/measure'
+import { useMeasureWorkspace } from '../stores/measure-workspace'
 import { FormError } from './form-error'
 import MeasurePromptEditor from './measure-prompt-editor'
 import MeasureReferenceDialog from './measure-reference-dialog'
@@ -41,15 +43,13 @@ export default function MeasureForm({
   photo,
   pending,
   onPhotos,
-  onMeasure,
-  onChange
+  onMeasure
 }: {
   initialReferences: MeasureReferenceListOutput
   photo: boolean
   pending: boolean
   onPhotos: (photos: Array<PreparedMeasureImage>) => void
   onMeasure: (values: MeasureFormOutput) => Promise<string | null>
-  onChange: () => void
 }) {
   const [formError, setFormError] = useState<string | null>(null)
   const [draftPrompt, setDraftPrompt] = useState('')
@@ -57,11 +57,18 @@ export default function MeasureForm({
   const [addReferenceOpen, setAddReferenceOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const references = useMeasureReferences(initialReferences)
+  const { draftReferenceId, draftPrompts } = useMeasureWorkspace(
+    useShallow((state) => ({
+      draftReferenceId: state.draft.referenceId,
+      draftPrompts: state.draft.prompts
+    }))
+  )
+  const setDraft = useMeasureWorkspace((state) => state.setDraft)
   const items = references.data?.items ?? EMPTY_REFERENCES
   const form = useForm({
     defaultValues: {
-      referenceId: '',
-      prompts: [] as Array<string>
+      referenceId: draftReferenceId,
+      prompts: [...draftPrompts]
     },
     validators: { onSubmit: measureFormSchema },
     onSubmit: async ({ value }) => {
@@ -86,9 +93,12 @@ export default function MeasureForm({
     const current = form.getFieldValue('referenceId')
 
     if (!items.some((reference) => reference.id === current)) {
-      form.setFieldValue('referenceId', (defaultReference ?? fallback).id)
+      const next = (defaultReference ?? fallback).id
+
+      form.setFieldValue('referenceId', next)
+      setDraft({ referenceId: next })
     }
-  }, [form, items])
+  }, [form, items, setDraft])
 
   async function acceptFiles(files: Array<File>): Promise<void> {
     if (files.length === 0) return
@@ -109,13 +119,18 @@ export default function MeasureForm({
   }
 
   function submit(): void {
-    const draft = draftPrompt.trim()
+    const prompt = draftPrompt.trim()
     const current = form.getFieldValue('prompts')
 
-    if (draft && current.length < MEASURE_PROMPT_LIMIT) {
-      const exists = current.some((prompt) => prompt.toLowerCase() === draft.toLowerCase())
+    if (prompt && current.length < MEASURE_PROMPT_LIMIT) {
+      const exists = current.some((entry) => entry.toLowerCase() === prompt.toLowerCase())
 
-      if (!exists) form.setFieldValue('prompts', [...current, draft])
+      if (!exists) {
+        const prompts = [...current, prompt]
+
+        form.setFieldValue('prompts', prompts)
+        setDraft({ prompts })
+      }
 
       setDraftPrompt('')
       setPromptVersion((version) => version + 1)
@@ -165,8 +180,8 @@ export default function MeasureForm({
                           if (typeof value !== 'string') return
 
                           field.handleChange(value)
+                          setDraft({ referenceId: value })
                           setFormError(null)
-                          onChange()
                         }}
                         disabled={
                           pending ||
@@ -237,8 +252,8 @@ export default function MeasureForm({
                       invalid={isInvalid}
                       onChange={(prompts) => {
                         field.handleChange(prompts)
+                        setDraft({ prompts })
                         setFormError(null)
-                        onChange()
                       }}
                       onDraftChange={setDraftPrompt}
                     />
@@ -289,8 +304,8 @@ export default function MeasureForm({
           onOpenChange={setAddReferenceOpen}
           onCreated={(reference) => {
             form.setFieldValue('referenceId', reference.id)
+            setDraft({ referenceId: reference.id })
             setFormError(null)
-            onChange()
           }}
         />
       ) : null}

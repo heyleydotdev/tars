@@ -270,7 +270,7 @@ export default function MeasureBatchResults({
               const value =
                 item.status === 'done' && object
                   ? `${formatLength(object.widthMm, unit)} × ${formatLength(object.heightMm, unit)}`
-                  : (item.error ?? item.status)
+                  : (item.notice ?? item.error ?? item.status)
 
               return (
                 <li key={item.id}>

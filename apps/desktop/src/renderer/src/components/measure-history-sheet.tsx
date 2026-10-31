@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { HistoryIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
 
-import type { MeasureHistorySummaryOutput } from '@tars/core/schemas/measure'
+import type { MeasureFormOutput, MeasureHistorySummaryOutput } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
 import { formatDateTime } from '@tars/core/utils/format'
 import { Button } from '@tars/ui/components/button'
@@ -21,7 +21,7 @@ export default function MeasureHistorySheet({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onRestore: (items: Array<MeasureBatchItem>) => void
+  onRestore: (items: Array<MeasureBatchItem>, draft: MeasureFormOutput | null) => void
 }) {
   const queryClient = useQueryClient()
   const showAlert = useShellAlertStore((state) => state.showAlert)
@@ -56,6 +56,7 @@ export default function MeasureHistorySheet({
             result: item.result,
             error: item.error,
             prompts: null,
+            notice: null,
             request: detail.referenceId
               ? {
                   referenceId: detail.referenceId,
@@ -66,7 +67,10 @@ export default function MeasureHistorySheet({
         ]
       })
 
-      onRestore(items)
+      onRestore(
+        items,
+        detail.referenceId ? { referenceId: detail.referenceId, prompts: detail.prompts } : null
+      )
       onOpenChange(false)
     } catch (error) {
       showAlert({

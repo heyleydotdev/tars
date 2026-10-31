@@ -17,6 +17,8 @@ import type { MeasureBatchItem } from '../lib/measure'
 import EmptyState from './empty-state'
 
 function describe(item: MeasureBatchItem, unit: MeasureUnit): string {
+  if (item.notice) return item.notice
+
   if (item.status === 'error') return item.error ?? 'Measurement failed.'
 
   if (item.status === 'measuring') return 'Measuring…'
