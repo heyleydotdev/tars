@@ -2,6 +2,7 @@ import * as z from 'zod'
 
 import { DESK_PRIORITIES } from '../constants'
 import { ERRORS } from '../errors'
+import { measureUnitSchema } from './measure'
 
 export const todoItemSchema = z.object({
   id: z.string(),
@@ -62,6 +63,23 @@ export const recordDoneSchema = z.object({
   done: z.boolean()
 })
 
+export const journalMeasurementObjectSchema = z.object({
+  prompt: z.string().min(1),
+  widthMm: z.number().positive(),
+  heightMm: z.number().positive()
+})
+
+export const journalMeasurementItemSchema = z.object({
+  name: z.string().min(1),
+  objects: z.array(journalMeasurementObjectSchema).min(1)
+})
+
+export const logMeasurementsSchema = z.object({
+  dayKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  unit: measureUnitSchema,
+  items: z.array(journalMeasurementItemSchema).min(1).max(50)
+})
+
 export type TodoItemInput = z.input<typeof todoItemSchema>
 export type TodoItemOutput = z.output<typeof todoItemSchema>
 export type ReminderItemInput = z.input<typeof reminderItemSchema>
@@ -78,3 +96,9 @@ export type UpdateJournalInput = z.input<typeof updateJournalSchema>
 export type UpdateJournalOutput = z.output<typeof updateJournalSchema>
 export type RecordDoneInput = z.input<typeof recordDoneSchema>
 export type RecordDoneOutput = z.output<typeof recordDoneSchema>
+export type JournalMeasurementObjectInput = z.input<typeof journalMeasurementObjectSchema>
+export type JournalMeasurementObjectOutput = z.output<typeof journalMeasurementObjectSchema>
+export type JournalMeasurementItemInput = z.input<typeof journalMeasurementItemSchema>
+export type JournalMeasurementItemOutput = z.output<typeof journalMeasurementItemSchema>
+export type LogMeasurementsInput = z.input<typeof logMeasurementsSchema>
+export type LogMeasurementsOutput = z.output<typeof logMeasurementsSchema>

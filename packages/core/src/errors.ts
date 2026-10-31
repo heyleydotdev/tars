@@ -57,6 +57,7 @@ export const ERRORS = {
   historySaveFailed: 'Could not save this measurement run.',
   historyLoadFailed: 'Could not load measurement history.',
   historyDeleteFailed: 'Could not delete this measurement run.',
+  journalLogFailed: 'Could not save the measurement to your journal.',
   historyTitle: 'History',
   voiceUnavailableTitle: 'Voice unavailable',
   notFound: 'That item could not be found.',

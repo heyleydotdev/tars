@@ -2,6 +2,7 @@ import type { JournalPageOutput, RecordDoneOutput } from '@tars/core/schemas/jou
 import type { JournalEntrySelect, ReminderSelect, TodoSelect } from '@tars/db/schema'
 import { JOURNAL_ITEM_LIMIT } from '@tars/core/constants'
 import {
+  logMeasurementsSchema,
   recordDoneSchema,
   updateJournalSchema,
   updateReminderSchema,
@@ -9,6 +10,7 @@ import {
 } from '@tars/core/schemas/journal'
 import { deleteRecordSchema } from '@tars/core/schemas/records'
 import { parseDate } from '@tars/core/utils/format'
+import { appendJournalContent, formatMeasurementJournalBlock } from '@tars/core/utils/journal'
 import { journalEntry, reminder, todo } from '@tars/db/schema'
 import { and, desc, eq } from '@tars/db/sql'
 
@@ -21,6 +23,8 @@ type JournalRow = Pick<
   JournalEntrySelect,
   'id' | 'title' | 'content' | 'mood' | 'tags' | 'occurredAt'
 >
+
+const measurementTags = JSON.stringify(['measure'])
 
 const todoColumns = {
   id: todo.id,
@@ -142,6 +146,44 @@ export const journalRouter = {
       journals: journals.map(journalItem).sort(byJournalDate)
     }
   }),
+
+  logMeasurements: protectedProcedure
+    .input(logMeasurementsSchema)
+    .handler(async ({ input, context }): Promise<void> => {
+      const userId = context.session.user.id
+      const id = `measure-${userId}-${input.dayKey}`
+      const occurredAt = new Date()
+      const block = formatMeasurementJournalBlock(input.items, input.unit)
+      const [existing] = await context.db
+        .select({ content: journalEntry.content })
+        .from(journalEntry)
+        .where(and(eq(journalEntry.id, id), eq(journalEntry.userId, userId)))
+        .limit(1)
+
+      if (existing) {
+        await context.db
+          .update(journalEntry)
+          .set({
+            content: appendJournalContent(existing.content, block),
+            occurredAt,
+            tags: measurementTags
+          })
+          .where(and(eq(journalEntry.id, id), eq(journalEntry.userId, userId)))
+
+        return
+      }
+
+      await context.db.insert(journalEntry).values({
+        id,
+        userId,
+        messageId: null,
+        title: 'Measurements',
+        content: block,
+        mood: null,
+        tags: measurementTags,
+        occurredAt
+      })
+    }),
 
   updateEntry: protectedProcedure
     .errors({ NOT_FOUND: NotFoundError })
