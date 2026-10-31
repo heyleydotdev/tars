@@ -6,6 +6,7 @@ import {
   NotebookPenIcon,
   RulerIcon,
   SearchIcon,
+  SirenIcon,
   WalletIcon
 } from 'lucide-react'
 import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
@@ -64,7 +65,10 @@ const navigation = [
   },
   {
     label: 'Developer Kit',
-    items: [{ title: 'Measure', to: '/measure', icon: RulerIcon }]
+    items: [
+      { title: 'Measure', to: '/measure', icon: RulerIcon },
+      { title: 'Incidents', to: '/incidents', icon: SirenIcon }
+    ]
   }
 ]
 

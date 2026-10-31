@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
+import type { LoaderFunctionArgs } from 'react-router'
 import { redirect } from 'react-router'
 
 import { useAuthStore } from '../stores/auth'
@@ -50,7 +51,27 @@ export function measureLoader(queryClient: QueryClient) {
   }
 }
 
+export function incidentsLoader(queryClient: QueryClient) {
+  return async () => {
+    await requireSession()
+
+    return queryClient.query(orpc.incident.list.queryOptions())
+  }
+}
+
+export function incidentLoader(queryClient: QueryClient) {
+  return async ({ params }: LoaderFunctionArgs) => {
+    await requireSession()
+
+    return queryClient.query(
+      orpc.incident.get.queryOptions({ input: { incidentId: params.id ?? '' } })
+    )
+  }
+}
+
 export type ExpensesLoaderData = Awaited<ReturnType<ReturnType<typeof expensesLoader>>>
 export type JournalLoaderData = Awaited<ReturnType<ReturnType<typeof journalLoader>>>
 export type StatsLoaderData = Awaited<ReturnType<ReturnType<typeof statsLoader>>>
 export type MeasureLoaderData = Awaited<ReturnType<ReturnType<typeof measureLoader>>>
+export type IncidentsLoaderData = Awaited<ReturnType<ReturnType<typeof incidentsLoader>>>
+export type IncidentLoaderData = Awaited<ReturnType<ReturnType<typeof incidentLoader>>>

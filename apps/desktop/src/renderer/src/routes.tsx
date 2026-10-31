@@ -5,9 +5,18 @@ import { GuestOnly, RequireAuth } from './components/auth-guard'
 import DashboardLayout from './components/dashboard-layout'
 import LoadingScreen from './components/loading-screen'
 import RouteError from './components/route-error'
-import { expensesLoader, journalLoader, measureLoader, statsLoader } from './lib/loaders'
+import {
+  expensesLoader,
+  incidentLoader,
+  incidentsLoader,
+  journalLoader,
+  measureLoader,
+  statsLoader
+} from './lib/loaders'
 import Desk from './pages/desk'
 import Expenses from './pages/expenses'
+import Incident from './pages/incident'
+import Incidents from './pages/incidents'
 import Journal from './pages/journal'
 import Login from './pages/login'
 import Measure from './pages/measure'
@@ -57,6 +66,16 @@ export function createAppRouter(queryClient: QueryClient) {
                       path: '/measure',
                       element: <Measure />,
                       loader: measureLoader(queryClient)
+                    },
+                    {
+                      path: '/incidents',
+                      element: <Incidents />,
+                      loader: incidentsLoader(queryClient)
+                    },
+                    {
+                      path: '/incidents/:id',
+                      element: <Incident />,
+                      loader: incidentLoader(queryClient)
                     }
                   ]
                 }
