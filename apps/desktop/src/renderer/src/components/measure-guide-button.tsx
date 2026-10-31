@@ -27,10 +27,14 @@ export default function MeasureGuideButton() {
           <li>Place a card or A4 sheet beside the object.</li>
           <li>Keep both flat and fully in frame.</li>
           <li>Shoot straight down.</li>
-          <li>Name one concept per measurement.</li>
+          <li>Name one or more objects per measurement.</li>
+          <li>Use Adjust boxes if a reference or object box is slightly off.</li>
         </ol>
         <p className="text-muted-foreground text-xs">
           Tilt and perspective reduce accuracy. Use a contrasting surface for white paper.
+        </p>
+        <p className="text-muted-foreground font-mono text-xs">
+          Arrows switch photos · R retry · E export · C copy · Delete remove
         </p>
       </PopoverContent>
     </Popover>

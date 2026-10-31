@@ -3,12 +3,12 @@ import { useForm } from '@tanstack/react-form'
 import { ImagePlusIcon, PlusIcon, RulerIcon } from 'lucide-react'
 
 import type { MeasureFormOutput, MeasureReferenceItemOutput } from '@tars/core/schemas/measure'
+import { MEASURE_PROMPT_LIMIT } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { measureFormSchema } from '@tars/core/schemas/measure'
 import { titleCase } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/field'
-import { Input } from '@tars/ui/components/input'
 import { InputGroup, InputGroupAddon, InputGroupButton } from '@tars/ui/components/input-group'
 import {
   Select,
@@ -22,6 +22,7 @@ import { Spinner } from '@tars/ui/components/spinner'
 import type { PreparedMeasureImage } from '../lib/measure'
 import { prepareMeasureImage, useMeasureReferences } from '../lib/measure'
 import { FormError } from './form-error'
+import MeasurePromptEditor from './measure-prompt-editor'
 import MeasureReferenceDialog from './measure-reference-dialog'
 
 const DEFAULT_REFERENCE_ID = 'a4'
@@ -45,6 +46,8 @@ export default function MeasureForm({
   onChange: () => void
 }) {
   const [formError, setFormError] = useState<string | null>(null)
+  const [draftPrompt, setDraftPrompt] = useState('')
+  const [promptVersion, setPromptVersion] = useState(0)
   const [addReferenceOpen, setAddReferenceOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const references = useMeasureReferences()
@@ -52,7 +55,7 @@ export default function MeasureForm({
   const form = useForm({
     defaultValues: {
       referenceId: '',
-      prompt: ''
+      prompts: [] as Array<string>
     },
     validators: { onSubmit: measureFormSchema },
     onSubmit: async ({ value }) => {
@@ -97,6 +100,22 @@ export default function MeasureForm({
     }
 
     if (photos.length > 0) onPhotos(photos)
+  }
+
+  function submit(): void {
+    const draft = draftPrompt.trim()
+    const current = form.getFieldValue('prompts')
+
+    if (draft && current.length < MEASURE_PROMPT_LIMIT) {
+      const exists = current.some((prompt) => prompt.toLowerCase() === draft.toLowerCase())
+
+      if (!exists) form.setFieldValue('prompts', [...current, draft])
+
+      setDraftPrompt('')
+      setPromptVersion((version) => version + 1)
+    }
+
+    void form.handleSubmit()
   }
 
   return (
@@ -195,26 +214,27 @@ export default function MeasureForm({
             />
 
             <form.Field
-              name="prompt"
+              name="prompts"
               children={(field) => {
                 const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
 
                 return (
                   <Field data-invalid={isInvalid} className="min-w-0 flex-1">
-                    <FieldLabel htmlFor="measure-object">Object</FieldLabel>
-                    <Input
+                    <FieldLabel htmlFor="measure-object">Objects</FieldLabel>
+                    <MeasurePromptEditor
+                      key={`measure-prompts-${promptVersion}`}
                       id="measure-object"
                       value={field.state.value}
-                      maxLength={80}
-                      placeholder="Cardboard Box"
+                      max={MEASURE_PROMPT_LIMIT}
                       disabled={pending}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => {
-                        field.handleChange(event.target.value)
+                      placeholder="Cardboard Box"
+                      invalid={isInvalid}
+                      onChange={(prompts) => {
+                        field.handleChange(prompts)
                         setFormError(null)
                         onChange()
                       }}
-                      aria-invalid={isInvalid}
+                      onDraftChange={setDraftPrompt}
                     />
                     {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
                   </Field>
@@ -233,11 +253,20 @@ export default function MeasureForm({
             </Button>
 
             <form.Subscribe
-              selector={(state) => state.isSubmitting}
-              children={(isSubmitting) => (
+              selector={(state) =>
+                [state.canSubmit, state.isSubmitting, state.values.prompts] as const
+              }
+              children={([canSubmit, isSubmitting, prompts]) => (
                 <Button
-                  type="submit"
-                  disabled={!photo || pending || items.length === 0 || isSubmitting}
+                  type="button"
+                  disabled={
+                    !photo ||
+                    pending ||
+                    items.length === 0 ||
+                    !canSubmit ||
+                    (prompts.length === 0 && draftPrompt.trim().length === 0)
+                  }
+                  onClick={submit}
                 >
                   {isSubmitting || pending ? <Spinner /> : <RulerIcon />}
                   Measure

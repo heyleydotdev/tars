@@ -1,9 +1,15 @@
 import type { MeasureResultOutput } from '@tars/core/schemas/measure'
+import type { MeasureUnit } from '@tars/core/utils/format'
+import { formatLength } from '@tars/core/utils/format'
 import { titleCase } from '@tars/core/utils/string'
 
-import { formatMm } from '../lib/measure'
-
-export default function MeasureResult({ result }: { result: MeasureResultOutput | null }) {
+export default function MeasureResult({
+  result,
+  unit
+}: {
+  result: MeasureResultOutput | null
+  unit: MeasureUnit
+}) {
   if (!result) return null
 
   return (
@@ -14,7 +20,7 @@ export default function MeasureResult({ result }: { result: MeasureResultOutput 
         </p>
         <p className="text-foreground font-mono text-2xl tabular-nums">
           {result.objects[0]
-            ? `${formatMm(result.objects[0].widthMm)} × ${formatMm(result.objects[0].heightMm)}`
+            ? `${formatLength(result.objects[0].widthMm, unit)} × ${formatLength(result.objects[0].heightMm, unit)}`
             : '—'}
         </p>
         <p className="text-muted-foreground mt-1 font-mono text-xs">
@@ -30,8 +36,11 @@ export default function MeasureResult({ result }: { result: MeasureResultOutput 
               className="flex items-baseline justify-between gap-3 px-3 py-2 text-xs"
             >
               <span className="text-muted-foreground font-mono">#{index + 1}</span>
+              <span className="text-muted-foreground min-w-0 flex-1 truncate font-mono">
+                {titleCase(object.prompt)}
+              </span>
               <span className="text-foreground font-mono tabular-nums">
-                {formatMm(object.widthMm)} × {formatMm(object.heightMm)}
+                {formatLength(object.widthMm, unit)} × {formatLength(object.heightMm, unit)}
               </span>
             </li>
           ))}
