@@ -281,7 +281,7 @@ export default function MeasureBatchResults({
                     }}
                     className={cn(
                       'flex w-full items-center gap-2 px-3 py-2 text-left text-xs',
-                      item.id === selected.id ? 'bg-muted/30' : 'hover:bg-muted/20'
+                      item.id === selected.id ? 'bg-muted/30' : 'hover:bg-muted'
                     )}
                   >
                     <span className="text-muted-foreground font-mono">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeftIcon } from 'lucide-react'
 import { Link, useLoaderData, useParams } from 'react-router'
+import { useShallow } from 'zustand/react/shallow'
 
 import type { IncidentLoaderData } from '../lib/loaders'
 import ConsoleHeader from '../components/console-header'
@@ -9,6 +10,7 @@ import IncidentAnalysisPanel from '../components/incident-analysis-panel'
 import IncidentEvidencePanel from '../components/incident-evidence-panel'
 import IncidentTimeline from '../components/incident-timeline'
 import { useIncident } from '../lib/incident'
+import { useIncidentDemoStore } from '../stores/incident-demo'
 
 export default function Incident() {
   const initial = useLoaderData<IncidentLoaderData>()
@@ -17,6 +19,14 @@ export default function Incident() {
   const detail = incident.data ?? initial
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null)
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set())
+  const demo = useIncidentDemoStore(
+    useShallow((state) => ({
+      running: state.running,
+      done: state.done,
+      total: state.total,
+      incidentId: state.incidentId
+    }))
+  )
 
   function highlightEvents(ids: Set<string>): void {
     setHighlighted(ids)
@@ -27,7 +37,17 @@ export default function Incident() {
 
     document
       .querySelector(`[data-event-id="${first}"]`)
-      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+
+  function selectEvidence(id: string): void {
+    setSelectedEvidenceId(id)
+
+    const eventIds = detail.events
+      .filter((event) => event.sourceEvidenceIds.includes(id))
+      .map((event) => event.id)
+
+    highlightEvents(new Set(eventIds))
   }
 
   return (
@@ -36,6 +56,11 @@ export default function Incident() {
         title="incident"
         right={
           <div className="flex items-center gap-2">
+            {demo.running && demo.incidentId === detail.incident.id ? (
+              <span className="text-muted-foreground font-mono text-xs/6">
+                ({demo.done}/{demo.total}) Building...
+              </span>
+            ) : null}
             <span className="text-foreground max-w-64 truncate text-xs/6 font-medium">
               {detail.incident.title}
             </span>
@@ -67,7 +92,7 @@ export default function Incident() {
           <IncidentEvidencePanel
             detail={detail}
             selectedId={selectedEvidenceId}
-            onSelect={setSelectedEvidenceId}
+            onSelect={selectEvidence}
           />
         </ConsolePanel>
 
@@ -85,9 +110,8 @@ export default function Incident() {
         >
           <IncidentTimeline
             detail={detail}
-            selectedEvidenceId={selectedEvidenceId}
             highlightedEventIds={highlighted}
-            onSelectEvidence={setSelectedEvidenceId}
+            onSelectEvidence={selectEvidence}
           />
         </ConsolePanel>
 

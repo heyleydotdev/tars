@@ -1,25 +1,36 @@
 import type { ComponentProps, ReactNode } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   FileTextIcon,
   ImageIcon,
+  InfoIcon,
+  ListTreeIcon,
+  Maximize2Icon,
   MicIcon,
   MicOffIcon,
   PaperclipIcon,
   SendIcon,
-  XIcon
+  Trash2Icon
 } from 'lucide-react'
 
 import type { IncidentDetailOutput, IncidentEvidenceOutput } from '@tars/core/schemas/incident'
 import { INCIDENT_EVIDENCE_CHARS, VOICE_CAPTURE_SETTINGS } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
-import { formatTime } from '@tars/core/utils/format'
+import { formatTime, toDateKey } from '@tars/core/utils/format'
 import { isGuessedTime } from '@tars/core/utils/incident'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger
+} from '@tars/ui/components/context-menu'
 import { Spinner } from '@tars/ui/components/spinner'
 import { Textarea } from '@tars/ui/components/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
+import { cn } from '@tars/ui/lib/utils'
 
 import {
   loadIncidentEvidenceImage,
@@ -30,6 +41,10 @@ import {
 import { prepareMeasureImage } from '../lib/measure'
 import { recordSegment, toWav } from '../lib/voice'
 import { useShellAlertStore } from '../stores/alert'
+import ConfirmDialog from './confirm-dialog'
+import IncidentDayHeader from './incident-day-header'
+import IncidentEvidenceDialog from './incident-evidence-dialog'
+import IncidentEvidenceViewer from './incident-evidence-viewer'
 
 function kindIcon(kind: IncidentEvidenceOutput['kind']) {
   if (kind === 'screenshot') return <ImageIcon />
@@ -50,6 +65,36 @@ function TooltipButton({
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   )
+}
+
+function groupEvidenceByDay(
+  evidence: Array<IncidentEvidenceOutput>
+): Array<{ key: string; label: string; items: Array<IncidentEvidenceOutput> }> {
+  const sorted = [...evidence].sort((left, right) => {
+    const leftAt = left.occurredAt ? Date.parse(left.occurredAt) : Number.POSITIVE_INFINITY
+    const rightAt = right.occurredAt ? Date.parse(right.occurredAt) : Number.POSITIVE_INFINITY
+
+    return leftAt - rightAt || left.createdAt.localeCompare(right.createdAt)
+  })
+  const groups: Array<{ key: string; label: string; items: Array<IncidentEvidenceOutput> }> = []
+
+  for (const item of sorted) {
+    const key = item.occurredAt ? toDateKey(item.occurredAt) : 'no-time'
+    const last = groups[groups.length - 1]
+
+    if (last?.key === key) {
+      last.items.push(item)
+      continue
+    }
+
+    groups.push({
+      key,
+      label: key === 'no-time' ? 'no time' : key,
+      items: [item]
+    })
+  }
+
+  return groups
 }
 
 function EvidenceThumb({ evidenceId }: { evidenceId: string }) {
@@ -101,6 +146,11 @@ export default function IncidentEvidencePanel({
   const [kind, setKind] = useState<'log' | 'text'>('log')
   const [busy, setBusy] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [viewing, setViewing] = useState<IncidentEvidenceOutput | null>(null)
+  const [detailsId, setDetailsId] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<IncidentEvidenceOutput | null>(null)
+  const groups = useMemo(() => groupEvidenceByDay(detail.evidence), [detail.evidence])
+  const details = detailsId ? (detail.evidence.find((item) => item.id === detailsId) ?? null) : null
   const fileRef = useRef<HTMLInputElement>(null)
   const add = useAddIncidentEvidence()
   const rebuild = useRebuildIncidentTimeline()
@@ -225,10 +275,14 @@ export default function IncidentEvidencePanel({
     }
   }
 
-  async function removeEvidence(id: string): Promise<void> {
+  async function confirmRemove(): Promise<void> {
+    if (!removing) return
+
     try {
-      await remove.mutateAsync({ evidenceId: id })
+      await remove.mutateAsync({ evidenceId: removing.id })
+      setRemoving(null)
     } catch {
+      setRemoving(null)
       showAlert({
         title: ERRORS.deleteFailed,
         description: ERRORS.incidentEvidenceDeleteFailed,
@@ -238,8 +292,8 @@ export default function IncidentEvidencePanel({
   }
 
   return (
-    <div className="flex flex-col gap-3 p-3">
-      <div className="space-y-2">
+    <div className="flex flex-col">
+      <div className="space-y-2 p-3">
         <Textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}
@@ -322,75 +376,144 @@ export default function IncidentEvidencePanel({
         />
       </div>
 
-      {detail.evidence.length === 0 ? (
-        <p className="text-muted-foreground text-xs/6">
+      {groups.length === 0 ? (
+        <p className="text-muted-foreground p-3 text-xs/6">
           Nothing yet. Add screenshots, log lines, or a voice note as they come in.
         </p>
       ) : (
-        <ul className="divide-border border-border divide-y border">
-          {detail.evidence.map((item) => (
-            <li key={item.id}>
-              <div
-                className={
-                  item.id === selectedId
-                    ? 'bg-muted/40 flex gap-2 p-2'
-                    : 'hover:bg-muted/20 flex gap-2 p-2'
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => onSelect(item.id)}
-                  className="flex min-w-0 flex-1 items-start gap-2 text-left"
-                >
-                  {item.hasImage ? (
-                    <EvidenceThumb evidenceId={item.id} />
-                  ) : (
-                    <span className="bg-muted/30 text-muted-foreground flex h-11 w-11 shrink-0 items-center justify-center border [&_svg]:size-4">
-                      {kindIcon(item.kind)}
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-mono text-xs/6 uppercase">
-                        {item.kind}
-                      </span>
-                      <span className="text-muted-foreground font-mono text-xs/6">
-                        {item.occurredAt ? formatTime(item.occurredAt) : 'no time'}
-                      </span>
-                      {isGuessedTime(item.timeSource) ? (
-                        <span className="font-mono text-xs/6 text-amber-300/80">guessed</span>
-                      ) : null}
-                    </span>
-                    <span className="text-foreground/90 mt-0.5 line-clamp-2 block text-xs/6">
-                      {item.summary ?? item.content ?? 'Screenshot'}
-                    </span>
-                    {item.status === 'pending' ? (
-                      <span className="text-muted-foreground mt-1 flex items-center gap-1 text-xs/6">
-                        <Spinner className="size-3" /> reading…
-                      </span>
-                    ) : null}
-                    {item.status === 'error' ? (
-                      <span className="text-destructive mt-1 block text-xs/6">
-                        {item.error ?? ERRORS.incidentExtractionFailed}
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
-                <Button
-                  type="button"
-                  size="icon-xs"
-                  variant="ghost"
-                  aria-label={`Remove ${item.kind} evidence`}
-                  disabled={busy}
-                  onClick={() => void removeEvidence(item.id)}
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            </li>
+        <div className="border-border border-t">
+          {groups.map((group) => (
+            <section key={group.key}>
+              <IncidentDayHeader label={group.label} count={group.items.length} unit="item" />
+              <ul className="divide-border divide-y">
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <ContextMenu>
+                      <ContextMenuTrigger
+                        render={
+                          <div
+                            className={cn(
+                              'flex gap-2 px-3 py-2 transition-colors',
+                              item.id === selectedId ? 'bg-muted/40' : 'hover:bg-muted'
+                            )}
+                          />
+                        }
+                      >
+                        {item.hasImage ? (
+                          <button
+                            type="button"
+                            aria-label={`Enlarge ${item.kind} evidence`}
+                            onClick={() => setViewing(item)}
+                            className="group relative h-11 w-11 shrink-0 overflow-hidden border"
+                          >
+                            <EvidenceThumb evidenceId={item.id} />
+                            <span className="absolute inset-0 grid place-items-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                              <Maximize2Icon className="size-4" />
+                            </span>
+                          </button>
+                        ) : (
+                          <span className="bg-muted/30 text-muted-foreground flex h-11 w-11 shrink-0 items-center justify-center border [&_svg]:size-4">
+                            {kindIcon(item.kind)}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onSelect(item.id)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="text-muted-foreground font-mono text-xs/6 uppercase">
+                              {item.kind}
+                            </span>
+                            <span className="text-muted-foreground font-mono text-xs/6">
+                              {item.occurredAt ? formatTime(item.occurredAt) : 'no time'}
+                            </span>
+                            {isGuessedTime(item.timeSource) ? (
+                              <span className="font-mono text-xs/6 text-amber-300/80">guessed</span>
+                            ) : null}
+                          </span>
+                          <span className="text-foreground mt-0.5 line-clamp-1 text-xs/6">
+                            {item.summary ?? item.content ?? 'Screenshot'}
+                          </span>
+                          {item.status === 'pending' ? (
+                            <span className="text-muted-foreground mt-1 flex items-center gap-1 text-xs/6">
+                              <Spinner className="size-3" /> reading…
+                            </span>
+                          ) : null}
+                          {item.status === 'error' ? (
+                            <span className="text-destructive mt-1 block text-xs/6">
+                              {item.error ?? ERRORS.incidentExtractionFailed}
+                            </span>
+                          ) : null}
+                        </button>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onClick={() => setDetailsId(item.id)}>
+                          <InfoIcon />
+                          Details
+                        </ContextMenuItem>
+                        {item.hasImage ? (
+                          <ContextMenuItem onClick={() => setViewing(item)}>
+                            <Maximize2Icon />
+                            Enlarge
+                          </ContextMenuItem>
+                        ) : null}
+                        <ContextMenuItem onClick={() => onSelect(item.id)}>
+                          <ListTreeIcon />
+                          Show in timeline
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          variant="destructive"
+                          disabled={busy}
+                          onClick={() => setRemoving(item)}
+                        >
+                          <Trash2Icon />
+                          Remove
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
+
+      <ConfirmDialog
+        title="Remove evidence?"
+        description="This removes the evidence and any timeline entries that only cite it."
+        confirmLabel="Remove"
+        destructive
+        open={removing !== null}
+        pending={remove.isPending}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null)
+        }}
+        onConfirm={() => void confirmRemove()}
+      />
+
+      <IncidentEvidenceDialog
+        evidence={details}
+        open={details !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailsId(null)
+        }}
+        onEnlarge={() => {
+          const item = details
+
+          setDetailsId(null)
+
+          if (item) setViewing(item)
+        }}
+      />
+
+      <IncidentEvidenceViewer
+        evidence={viewing}
+        open={viewing !== null}
+        onClose={() => setViewing(null)}
+      />
     </div>
   )
 }
