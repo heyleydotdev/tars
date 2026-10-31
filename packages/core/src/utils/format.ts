@@ -56,6 +56,24 @@ export function formatTime(value: string): string {
   return date ? timeFormat.format(date) : value
 }
 
+export function toLocalDateTimeInput(value: string | null): string {
+  const date = value ? parseDate(value) : null
+
+  if (!date) return ''
+
+  const pad = (part: number): string => `${part}`.padStart(2, '0')
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+export function fromLocalDateTimeInput(value: string): string | null {
+  if (!value) return null
+
+  const date = new Date(value)
+
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
 export function toDateKey(value: string | Date): string {
   const date = typeof value === 'string' ? parseDate(value) : value
 

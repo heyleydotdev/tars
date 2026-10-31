@@ -80,11 +80,25 @@ export const ERRORS = {
   microphoneAccessDenied:
     'Microphone access is off. Turn it on in system settings, then try again.',
   transcriptionUnavailable: 'Transcription is temporarily unavailable. Trying again…',
+  voiceNoSpeech: 'No speech detected. Speak a little longer and try again.',
   microphoneAccessTitle: 'Microphone access',
   microphoneAccessMessage: 'Tars needs microphone access',
   microphoneAccessDetail:
     'Allow microphone access in system settings to use voice commands like “Hey Tars”.',
   websocketUpgradeRequired: 'Expected WebSocket upgrade',
+  incidentTitleRequired: 'Give this incident a title.',
+  incidentTitleTooLong: 'Keep the incident title under 120 characters.',
+  incidentEvidenceRequired: 'Add a screenshot, log, note, or voice note.',
+  incidentEvidenceTooLong: 'Keep evidence under 12,000 characters.',
+  incidentEvidenceFull: 'This incident has reached its evidence limit.',
+  incidentImageRequired: 'Add a screenshot for this evidence.',
+  incidentExtractionFailed: 'Could not read this evidence. Try again.',
+  incidentMergeFailed: 'Could not rebuild the timeline. Try again.',
+  incidentAnalysisFailed: 'Could not analyze this incident. Try again.',
+  incidentPostmortemFailed: 'Could not draft the postmortem. Try again.',
+  incidentAnswerRequired: 'Answer the question first.',
+  incidentNotFound: 'That incident could not be found.',
+  incidentTimelineEmpty: 'Add evidence before looking for a root cause.',
   forbidden: 'Forbidden',
   internalServer: 'Internal Server Error'
 } as const
