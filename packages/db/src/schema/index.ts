@@ -1,4 +1,5 @@
 export * from './auth'
 export * from './chat'
 export * from './desk'
+export * from './incident'
 export * from './measure'
