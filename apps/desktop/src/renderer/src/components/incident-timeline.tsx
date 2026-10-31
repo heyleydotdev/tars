@@ -8,6 +8,7 @@ import {
   toDateKey,
   toLocalDateTimeInput
 } from '@tars/core/utils/format'
+import { isGuessedTime } from '@tars/core/utils/incident'
 import { Input } from '@tars/ui/components/input'
 
 import { useUpdateIncidentEvent } from '../lib/incident'
@@ -100,9 +101,11 @@ export default function IncidentTimeline({
                   </button>
                 )}
                 <span className="text-muted-foreground block font-mono text-xs/6">
-                  {event.timeSource === 'screenshot' || event.timeSource === 'inferred'
-                    ? 'guessed'
-                    : (event.timeSource ?? 'unknown')}
+                  {event.sourceEvidenceIds.some((id) => evidenceById.get(id)?.kind === 'answer')
+                    ? 'user'
+                    : isGuessedTime(event.timeSource)
+                      ? 'guessed'
+                      : (event.timeSource ?? 'unknown')}
                 </span>
               </div>
 
@@ -142,7 +145,7 @@ export default function IncidentTimeline({
         )
       })}
       {update.isError ? (
-        <li className="text-destructive p-2 text-xs/6">{ERRORS.incidentMergeFailed}</li>
+        <li className="text-destructive p-2 text-xs/6">{ERRORS.incidentTimeUpdateFailed}</li>
       ) : null}
     </ol>
   )

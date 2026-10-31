@@ -29,7 +29,7 @@ export default function IncidentDemoButton({ onDone }: { onDone: (incidentId: st
       console.error(error)
       showAlert({
         title: ERRORS.saveFailedTitle,
-        description: error instanceof Error ? error.message : ERRORS.incidentExtractionFailed,
+        description: ERRORS.incidentExtractionFailed,
         variant: 'destructive'
       })
     } finally {

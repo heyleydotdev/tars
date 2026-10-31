@@ -9,7 +9,14 @@ import type {
   IncidentSummaryOutput
 } from '@tars/core/schemas/incident'
 import type { Database } from '@tars/db/client'
-import type { IncidentAnalysisSelect } from '@tars/db/schema'
+import type {
+  IncidentAnalysisSelect,
+  IncidentEventInsert,
+  IncidentEventSelect,
+  IncidentEvidenceSelect,
+  IncidentQuestionSelect,
+  IncidentSelect
+} from '@tars/db/schema'
 import {
   INCIDENT_EVENT_LIMIT,
   INCIDENT_EVIDENCE_LIMIT,
@@ -130,7 +137,7 @@ function iso(value: Date | null): string | null {
   return value ? value.toISOString() : null
 }
 
-function serializeEvidence(row: typeof incidentEvidence.$inferSelect): IncidentEvidenceOutput {
+function serializeEvidence(row: IncidentEvidenceSelect): IncidentEvidenceOutput {
   return {
     id: row.id,
     kind: row.kind,
@@ -147,7 +154,7 @@ function serializeEvidence(row: typeof incidentEvidence.$inferSelect): IncidentE
   }
 }
 
-function serializeEvent(row: typeof incidentEvent.$inferSelect): IncidentEventOutput {
+function serializeEvent(row: IncidentEventSelect): IncidentEventOutput {
   return {
     id: row.id,
     occurredAt: iso(row.occurredAt),
@@ -159,7 +166,7 @@ function serializeEvent(row: typeof incidentEvent.$inferSelect): IncidentEventOu
   }
 }
 
-function serializeQuestion(row: typeof incidentQuestion.$inferSelect): IncidentQuestionOutput {
+function serializeQuestion(row: IncidentQuestionSelect): IncidentQuestionOutput {
   return {
     id: row.id,
     text: row.text,
@@ -186,7 +193,7 @@ function serializeAnalysis(row: IncidentAnalysisSelect): IncidentAnalysisOutput 
   }
 }
 
-type IncidentRow = typeof incident.$inferSelect
+type IncidentRow = IncidentSelect
 
 async function loadIncident(
   db: Database,
@@ -263,7 +270,7 @@ async function touchIncident(
     .where(eq(incident.id, incidentId))
 }
 
-function timelineInput(rows: Array<typeof incidentEvent.$inferSelect>, timezone?: string) {
+function timelineInput(rows: Array<IncidentEventSelect>, timezone?: string) {
   return rows.map((row) => ({
     id: row.id,
     occurredAt: row.occurredAt ? formatZonedIso(row.occurredAt, timezone).value : null,
@@ -275,7 +282,7 @@ function timelineInput(rows: Array<typeof incidentEvent.$inferSelect>, timezone?
 }
 
 function evidenceInput(
-  rows: Array<typeof incidentEvidence.$inferSelect>,
+  rows: Array<IncidentEvidenceSelect>,
   timezone?: string
 ): Array<{ id: string; kind: string; summary: string | null; occurredAt: string | null }> {
   return rows.map((row) => ({
@@ -286,10 +293,7 @@ function evidenceInput(
   }))
 }
 
-async function insertEvents(
-  db: Database,
-  rows: Array<typeof incidentEvent.$inferInsert>
-): Promise<void> {
+async function insertEvents(db: Database, rows: Array<IncidentEventInsert>): Promise<void> {
   for (let index = 0; index < rows.length; index += 10) {
     await db.insert(incidentEvent).values(rows.slice(index, index + 10))
   }
@@ -372,6 +376,9 @@ async function mergeTimeline(
   await db
     .delete(incidentEvent)
     .where(and(eq(incidentEvent.incidentId, incidentId), inArray(incidentEvent.id, previousIds)))
+
+  // A changed timeline invalidates the previous conclusion and its citations.
+  await db.delete(incidentAnalysis).where(eq(incidentAnalysis.incidentId, incidentId))
 
   await touchIncident(db, incidentId, { summary: merged.summary })
 }
@@ -778,9 +785,9 @@ export const incidentRouter = {
     }),
 
   answerQuestion: protectedProcedure
-    .errors({ NOT_FOUND: NotFoundError })
+    .errors({ NOT_FOUND: NotFoundError, BAD_REQUEST: BadRequestError })
     .input(answerIncidentQuestionSchema)
-    .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
+    .handler(async ({ input, context, errors }): Promise<IncidentDetailOutput> => {
       const [row] = await context.db
         .select({ id: incidentQuestion.id, incidentId: incidentQuestion.incidentId })
         .from(incidentQuestion)
@@ -794,6 +801,15 @@ export const incidentRouter = {
         .limit(1)
 
       if (!row) throw new NotFoundError()
+
+      const [countRow] = await context.db
+        .select({ count: sql<number>`count(*)` })
+        .from(incidentEvidence)
+        .where(eq(incidentEvidence.incidentId, row.incidentId))
+
+      if (Number(countRow?.count ?? 0) >= INCIDENT_EVIDENCE_LIMIT) {
+        throw errors.BAD_REQUEST({ message: ERRORS.incidentEvidenceFull })
+      }
 
       const evidenceId = crypto.randomUUID()
       const answeredAt = new Date()
@@ -815,7 +831,7 @@ export const incidentRouter = {
         status: 'ready'
       })
 
-      const [countRow] = await context.db
+      const [eventCount] = await context.db
         .select({ count: sql<number>`count(*)` })
         .from(incidentEvent)
         .where(eq(incidentEvent.incidentId, row.incidentId))
@@ -828,7 +844,7 @@ export const incidentRouter = {
         description: `User answered: ${input.answer}`,
         confidence: 'high',
         sourceEvidenceIds: [evidenceId],
-        sortOrder: Number(countRow?.count ?? 0)
+        sortOrder: Number(eventCount?.count ?? 0)
       })
 
       await touchIncident(context.db, row.incidentId)
@@ -853,14 +869,23 @@ export const incidentRouter = {
 
   approvePostmortem: protectedProcedure
     .errors({ NOT_FOUND: NotFoundError })
-    .input(incidentIdSchema)
+    .input(saveIncidentPostmortemSchema)
     .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
       const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
 
-      await context.db
+      const [row] = await context.db
         .update(incidentAnalysis)
-        .set({ status: 'approved', approvedAt: new Date(), updatedAt: new Date() })
+        .set({
+          postmortem: input.postmortem,
+          status: 'approved',
+          approvedAt: new Date(),
+          updatedAt: new Date()
+        })
         .where(eq(incidentAnalysis.incidentId, owner.id))
+        .returning({ id: incidentAnalysis.id })
+
+      if (!row) throw new NotFoundError()
+
       await touchIncident(context.db, owner.id)
 
       return loadDetail(context.db, context.session.user.id, owner.id)

@@ -16,7 +16,7 @@ import { orpc } from './orpc'
 
 const incidentsKey = orpc.incident.list.queryKey()
 
-function timezone(): string {
+export function getTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
@@ -76,7 +76,7 @@ export function useDeleteIncident() {
 export function useAddIncidentEvidence() {
   return useIncidentMutation(
     (input: AddIncidentEvidenceInput) =>
-      orpc.incident.addEvidence.call({ ...input, timezone: timezone() }),
+      orpc.incident.addEvidence.call({ ...input, timezone: getTimeZone() }),
     (input) => input.incidentId
   )
 }
@@ -99,7 +99,7 @@ export function useRemoveIncidentEvidence() {
 export function useRebuildIncidentTimeline() {
   return useIncidentMutation(
     (input: IncidentIdInput) =>
-      orpc.incident.rebuildTimeline.call({ ...input, timezone: timezone() }),
+      orpc.incident.rebuildTimeline.call({ ...input, timezone: getTimeZone() }),
     (input) => input.incidentId
   )
 }
@@ -121,7 +121,7 @@ export function useUpdateIncidentEvent() {
 export function useFindIncidentRootCause() {
   return useIncidentMutation(
     (input: IncidentIdInput) =>
-      orpc.incident.findRootCause.call({ ...input, timezone: timezone() }),
+      orpc.incident.findRootCause.call({ ...input, timezone: getTimeZone() }),
     (input) => input.incidentId
   )
 }
@@ -150,7 +150,7 @@ export function useSaveIncidentPostmortem() {
 
 export function useApproveIncidentPostmortem() {
   return useIncidentMutation(
-    (input: IncidentIdInput) => orpc.incident.approvePostmortem.call(input),
+    (input: SaveIncidentPostmortemInput) => orpc.incident.approvePostmortem.call(input),
     (input) => input.incidentId
   )
 }

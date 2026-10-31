@@ -14,6 +14,7 @@ import type { IncidentDetailOutput, IncidentEvidenceOutput } from '@tars/core/sc
 import { INCIDENT_EVIDENCE_CHARS, VOICE_CAPTURE_SETTINGS } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { formatTime } from '@tars/core/utils/format'
+import { isGuessedTime } from '@tars/core/utils/incident'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
 import { Spinner } from '@tars/ui/components/spinner'
@@ -230,7 +231,7 @@ export default function IncidentEvidencePanel({
     } catch {
       showAlert({
         title: ERRORS.deleteFailed,
-        description: ERRORS.incidentEvidenceRequired,
+        description: ERRORS.incidentEvidenceDeleteFailed,
         variant: 'destructive'
       })
     }
@@ -356,7 +357,7 @@ export default function IncidentEvidencePanel({
                       <span className="text-muted-foreground font-mono text-xs/6">
                         {item.occurredAt ? formatTime(item.occurredAt) : 'no time'}
                       </span>
-                      {item.timeSource === 'screenshot' || item.timeSource === 'inferred' ? (
+                      {isGuessedTime(item.timeSource) ? (
                         <span className="font-mono text-xs/6 text-amber-300/80">guessed</span>
                       ) : null}
                     </span>

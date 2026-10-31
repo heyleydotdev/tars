@@ -1,8 +1,5 @@
+import { getTimeZone } from './incident'
 import { orpc } from './orpc'
-
-function timezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone
-}
 
 const ERROR_PAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520">
 <rect width="900" height="520" fill="#0b0f14"/>
@@ -96,7 +93,7 @@ export async function seedIncidentDemo(
       content: item.content,
       image: null,
       occurredAt: null,
-      timezone: timezone()
+      timezone: getTimeZone()
     })
     tick()
   }
@@ -109,7 +106,7 @@ export async function seedIncidentDemo(
     content: null,
     image: errorPage,
     occurredAt: null,
-    timezone: timezone()
+    timezone: getTimeZone()
   })
   tick()
 
@@ -121,11 +118,11 @@ export async function seedIncidentDemo(
     content: null,
     image: dashboard,
     occurredAt: null,
-    timezone: timezone()
+    timezone: getTimeZone()
   })
   tick()
 
-  await orpc.incident.rebuildTimeline.call({ incidentId, timezone: timezone() })
+  await orpc.incident.rebuildTimeline.call({ incidentId, timezone: getTimeZone() })
   tick()
 
   return incidentId

@@ -190,7 +190,7 @@ export default function IncidentAnalysisPanel({
                   analysis.status === 'approved' ||
                   postmortem.trim().length === 0
                 }
-                onClick={() => approve.mutate({ incidentId })}
+                onClick={() => approve.mutate({ incidentId, postmortem })}
               >
                 {approve.isPending ? <Spinner className="size-3.5" /> : <CheckIcon />}
                 Approve
