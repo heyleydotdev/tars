@@ -4,6 +4,7 @@ import Captions from 'yet-another-react-lightbox/plugins/captions'
 import Rotate from 'yet-another-react-lightbox/plugins/rotate'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 
+import 'yet-another-react-lightbox/plugins/captions.css'
 import 'yet-another-react-lightbox/styles.css'
 
 import type { MeasureUnit } from '@tars/core/utils/format'
@@ -66,14 +67,18 @@ export default function MeasureViewer({
   }
 
   const result = item.result
-  const description = result
-    ? result.objects
-        .map(
-          (object) =>
-            `${object.prompt}: ${formatLength(object.widthMm, unit)} × ${formatLength(object.heightMm, unit)}`
-        )
-        .join('\n')
-    : `${item.photo.width} × ${item.photo.height} px`
+  const description = result ? (
+    <div>
+      {result.objects.map((object, index) => (
+        <div key={`${object.box.x1}-${object.box.y1}-${index}`}>
+          {object.prompt}: {formatLength(object.widthMm, unit)} ×{' '}
+          {formatLength(object.heightMm, unit)}
+        </div>
+      ))}
+    </div>
+  ) : (
+    `${item.photo.width} × ${item.photo.height} px`
+  )
 
   return (
     <Lightbox
@@ -98,7 +103,14 @@ export default function MeasureViewer({
       controller={{ closeOnBackdropClick: true }}
       zoom={{ maxZoomPixelRatio: 2, scrollToZoom: true }}
       on={{ exited: () => setGenerated(null) }}
-      styles={{ container: { backgroundColor: 'rgba(9, 9, 11, 0.96)' } }}
+      styles={{
+        root: {
+          top: 'var(--title-bar-height)',
+          bottom: 'auto',
+          height: 'calc(100svh - var(--title-bar-height))'
+        },
+        container: { backgroundColor: 'rgba(9, 9, 11, 0.96)' }
+      }}
     />
   )
 }
