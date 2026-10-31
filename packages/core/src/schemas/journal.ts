@@ -2,7 +2,6 @@ import * as z from 'zod'
 
 import { DESK_PRIORITIES } from '../constants'
 import { ERRORS } from '../errors'
-import { measureUnitSchema } from './measure'
 
 export const todoItemSchema = z.object({
   id: z.string(),
@@ -63,21 +62,65 @@ export const recordDoneSchema = z.object({
   done: z.boolean()
 })
 
-export const journalMeasurementObjectSchema = z.object({
-  prompt: z.string().min(1),
-  widthMm: z.number().positive(),
-  heightMm: z.number().positive()
+const activityDayKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+const activityOccurredAt = z.iso.datetime({ offset: true, error: ERRORS.dateInvalid })
+
+export const taskDoneActivitySchema = z.object({
+  type: z.literal('task.done'),
+  todoId: z.string().min(1),
+  title: z.string().min(1),
+  dayKey: activityDayKey,
+  occurredAt: activityOccurredAt
 })
 
-export const journalMeasurementItemSchema = z.object({
-  name: z.string().min(1),
-  objects: z.array(journalMeasurementObjectSchema).min(1)
+export const incidentOpenedActivitySchema = z.object({
+  type: z.literal('incident.opened'),
+  incidentId: z.string().min(1),
+  title: z.string().min(1),
+  occurredAt: activityOccurredAt
 })
 
-export const logMeasurementsSchema = z.object({
-  dayKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  unit: measureUnitSchema,
-  items: z.array(journalMeasurementItemSchema).min(1).max(50)
+export const incidentApprovedActivitySchema = z.object({
+  type: z.literal('incident.approved'),
+  incidentId: z.string().min(1),
+  title: z.string().min(1),
+  occurredAt: activityOccurredAt
+})
+
+export const measureCompletedActivitySchema = z.object({
+  type: z.literal('measure.completed'),
+  runId: z.string().min(1),
+  photoCount: z.number().int().positive(),
+  objectCount: z.number().int().nonnegative(),
+  occurredAt: activityOccurredAt
+})
+
+export const activityEventSchema = z.discriminatedUnion('type', [
+  taskDoneActivitySchema,
+  incidentOpenedActivitySchema,
+  incidentApprovedActivitySchema,
+  measureCompletedActivitySchema
+])
+
+export const logActivitySchema = z.object({
+  events: z.array(activityEventSchema).min(1).max(50)
+})
+
+export const removeTaskActivitySchema = z.object({
+  todoId: z.string().min(1)
+})
+
+export const journalNotesPageSchema = z.object({
+  items: z.array(journalItemSchema)
+})
+
+export const journalActivitySchema = z.object({
+  from: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid }),
+  to: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid })
+})
+
+export const journalActivityPageSchema = z.object({
+  items: z.array(journalItemSchema)
 })
 
 export type TodoItemInput = z.input<typeof todoItemSchema>
@@ -96,9 +139,23 @@ export type UpdateJournalInput = z.input<typeof updateJournalSchema>
 export type UpdateJournalOutput = z.output<typeof updateJournalSchema>
 export type RecordDoneInput = z.input<typeof recordDoneSchema>
 export type RecordDoneOutput = z.output<typeof recordDoneSchema>
-export type JournalMeasurementObjectInput = z.input<typeof journalMeasurementObjectSchema>
-export type JournalMeasurementObjectOutput = z.output<typeof journalMeasurementObjectSchema>
-export type JournalMeasurementItemInput = z.input<typeof journalMeasurementItemSchema>
-export type JournalMeasurementItemOutput = z.output<typeof journalMeasurementItemSchema>
-export type LogMeasurementsInput = z.input<typeof logMeasurementsSchema>
-export type LogMeasurementsOutput = z.output<typeof logMeasurementsSchema>
+export type TaskDoneActivityInput = z.input<typeof taskDoneActivitySchema>
+export type TaskDoneActivityOutput = z.output<typeof taskDoneActivitySchema>
+export type IncidentOpenedActivityInput = z.input<typeof incidentOpenedActivitySchema>
+export type IncidentOpenedActivityOutput = z.output<typeof incidentOpenedActivitySchema>
+export type IncidentApprovedActivityInput = z.input<typeof incidentApprovedActivitySchema>
+export type IncidentApprovedActivityOutput = z.output<typeof incidentApprovedActivitySchema>
+export type MeasureCompletedActivityInput = z.input<typeof measureCompletedActivitySchema>
+export type MeasureCompletedActivityOutput = z.output<typeof measureCompletedActivitySchema>
+export type ActivityEventInput = z.input<typeof activityEventSchema>
+export type ActivityEventOutput = z.output<typeof activityEventSchema>
+export type LogActivityInput = z.input<typeof logActivitySchema>
+export type LogActivityOutput = z.output<typeof logActivitySchema>
+export type RemoveTaskActivityInput = z.input<typeof removeTaskActivitySchema>
+export type RemoveTaskActivityOutput = z.output<typeof removeTaskActivitySchema>
+export type JournalActivityInput = z.input<typeof journalActivitySchema>
+export type JournalActivityOutput = z.output<typeof journalActivitySchema>
+export type JournalActivityPageInput = z.input<typeof journalActivityPageSchema>
+export type JournalActivityPageOutput = z.output<typeof journalActivityPageSchema>
+export type JournalNotesPageInput = z.input<typeof journalNotesPageSchema>
+export type JournalNotesPageOutput = z.output<typeof journalNotesPageSchema>
