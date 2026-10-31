@@ -190,7 +190,7 @@ export function groupRecordsByMessage(tables: RecordTables): Map<string, Array<S
   }
 
   for (const record of tables.journals) {
-    add(record.messageId, savedJournal(record))
+    if (record.messageId) add(record.messageId, savedJournal(record))
   }
 
   return recordsByMessage

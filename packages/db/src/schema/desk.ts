@@ -88,9 +88,7 @@ export const journalEntry = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    messageId: text('message_id')
-      .notNull()
-      .references(() => chatMessage.id, { onDelete: 'cascade' }),
+    messageId: text('message_id').references(() => chatMessage.id, { onDelete: 'cascade' }),
     title: text('title'),
     content: text('content').notNull(),
     mood: text('mood'),
