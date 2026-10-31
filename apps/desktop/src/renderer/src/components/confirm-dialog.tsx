@@ -1,3 +1,5 @@
+import type * as React from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,8 +20,9 @@ export default function ConfirmDialog({
   open,
   pending,
   onOpenChange,
-  onConfirm
-}: {
+  onConfirm,
+  children
+}: React.PropsWithChildren<{
   title: string
   description: string
   confirmLabel?: string
@@ -28,7 +31,7 @@ export default function ConfirmDialog({
   pending: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
-}) {
+}>) {
   return (
     <AlertDialog
       open={open}
@@ -42,6 +45,7 @@ export default function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {children}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
           <AlertDialogAction
@@ -49,7 +53,8 @@ export default function ConfirmDialog({
             disabled={pending}
             onClick={onConfirm}
           >
-            {pending ? <Spinner /> : confirmLabel}
+            {pending ? <Spinner /> : null}
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
