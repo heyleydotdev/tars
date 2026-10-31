@@ -57,7 +57,7 @@ export default function StatsRecent({ events }: { events: Array<ActivityEvent> }
               {event.title}
             </span>
             {event.meta ? (
-              <span className="text-muted-foreground block truncate text-[10px]">{event.meta}</span>
+              <span className="text-muted-foreground block truncate text-xs">{event.meta}</span>
             ) : null}
           </span>
           <span className="flex justify-end self-start pt-1">

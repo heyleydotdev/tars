@@ -52,7 +52,7 @@ export default function StatsHeatmap({ activity }: { activity: ActivitySummary }
           {WEEKDAYS.map((weekday, index) => (
             <span
               key={index}
-              className="text-muted-foreground flex h-5 items-center text-[10px] uppercase"
+              className="text-muted-foreground flex h-5 items-center text-xs uppercase"
             >
               {weekday}
             </span>

@@ -67,7 +67,7 @@ export default function StatsCategoryChart({
         }))}
       >
         <span className="text-foreground text-lg tabular-nums">{entries}</span>
-        <span className="text-muted-foreground text-[10px] tracking-wide uppercase">entries</span>
+        <span className="text-muted-foreground text-xs tracking-wide uppercase">entries</span>
       </StatsRing>
 
       <ul className="w-full space-y-1.5">

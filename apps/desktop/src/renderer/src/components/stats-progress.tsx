@@ -43,7 +43,7 @@ export default function StatsProgress({
         segments={[{ key: 'done', value: completion, tone: 'stroke-emerald-400' }]}
       >
         <span className="text-foreground text-xl tabular-nums">{completion}%</span>
-        <span className="text-muted-foreground text-[10px] tracking-wide uppercase">done</span>
+        <span className="text-muted-foreground text-xs tracking-wide uppercase">done</span>
       </StatsRing>
 
       <div className="w-full">
@@ -55,7 +55,7 @@ export default function StatsProgress({
         </dl>
 
         <div className="mt-4">
-          <div className="text-muted-foreground flex items-center justify-between text-[10px] tracking-wide uppercase">
+          <div className="text-muted-foreground flex items-center justify-between text-xs tracking-wide uppercase">
             <span>reminders</span>
             <span className="tabular-nums">{reminderTotal}</span>
           </div>
@@ -71,7 +71,7 @@ export default function StatsProgress({
               />
             ))}
           </div>
-          <ul className="text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] uppercase">
+          <ul className="text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs uppercase">
             {segments.map((segment) => (
               <li key={segment.label} className="flex items-center gap-1.5">
                 <StatsSwatch tone={segment.tone} />

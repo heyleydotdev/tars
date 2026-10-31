@@ -90,7 +90,7 @@ export default function StatsSpendChart({
         ))}
       </svg>
 
-      <div className="text-muted-foreground relative mt-1 h-4 text-[10px]">
+      <div className="text-muted-foreground relative mt-1 h-4 text-xs">
         {coords.map((point) => (
           <span
             key={point.key}
