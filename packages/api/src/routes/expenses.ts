@@ -1,5 +1,3 @@
-import { ORPCError } from '@orpc/client'
-
 import type { ExpenseListOutput } from '@tars/core/schemas/expenses'
 import type { ExpenseSelect } from '@tars/db/schema'
 import { EXPENSE_ITEM_LIMIT } from '@tars/core/constants'
@@ -10,6 +8,7 @@ import { expense } from '@tars/db/schema'
 import { and, desc, eq } from '@tars/db/sql'
 
 import { protectedProcedure } from '../context'
+import { NotFoundError } from '../errors'
 
 type ExpenseRow = Pick<
   ExpenseSelect,
@@ -51,8 +50,9 @@ export const expensesRouter = {
   }),
 
   update: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(updateExpenseSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const updated: Array<{ id: string }> = await context.db
         .update(expense)
         .set({
@@ -67,22 +67,23 @@ export const expensesRouter = {
         .returning({ id: expense.id })
 
       if (updated.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }
     }),
 
   delete: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(deleteRecordSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const deleted: Array<{ id: string }> = await context.db
         .delete(expense)
         .where(and(eq(expense.id, input.id), eq(expense.userId, context.session.user.id)))
         .returning({ id: expense.id })
 
       if (deleted.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }

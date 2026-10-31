@@ -1,5 +1,3 @@
-import { ORPCError } from '@orpc/client'
-
 import type { JournalPageOutput, RecordDoneOutput } from '@tars/core/schemas/journal'
 import type { JournalEntrySelect, ReminderSelect, TodoSelect } from '@tars/db/schema'
 import { JOURNAL_ITEM_LIMIT } from '@tars/core/constants'
@@ -15,6 +13,7 @@ import { journalEntry, reminder, todo } from '@tars/db/schema'
 import { and, desc, eq } from '@tars/db/sql'
 
 import { protectedProcedure } from '../context'
+import { NotFoundError } from '../errors'
 
 type TodoRow = Pick<TodoSelect, 'id' | 'title' | 'status' | 'dueAt' | 'priority' | 'createdAt'>
 type ReminderRow = Pick<ReminderSelect, 'id' | 'title' | 'remindAt' | 'status' | 'createdAt'>
@@ -145,8 +144,9 @@ export const journalRouter = {
   }),
 
   updateEntry: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(updateJournalSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const updated: Array<{ id: string }> = await context.db
         .update(journalEntry)
         .set({
@@ -160,15 +160,16 @@ export const journalRouter = {
         .returning({ id: journalEntry.id })
 
       if (updated.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }
     }),
 
   updateTodo: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(updateTodoSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const updated: Array<{ id: string }> = await context.db
         .update(todo)
         .set({
@@ -180,15 +181,16 @@ export const journalRouter = {
         .returning({ id: todo.id })
 
       if (updated.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }
     }),
 
   updateReminder: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(updateReminderSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const updated: Array<{ id: string }> = await context.db
         .update(reminder)
         .set({
@@ -199,60 +201,64 @@ export const journalRouter = {
         .returning({ id: reminder.id })
 
       if (updated.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }
     }),
 
   deleteEntry: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(deleteRecordSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const deleted: Array<{ id: string }> = await context.db
         .delete(journalEntry)
         .where(and(eq(journalEntry.id, input.id), eq(journalEntry.userId, context.session.user.id)))
         .returning({ id: journalEntry.id })
 
       if (deleted.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }
     }),
 
   deleteTodo: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(deleteRecordSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const deleted: Array<{ id: string }> = await context.db
         .delete(todo)
         .where(and(eq(todo.id, input.id), eq(todo.userId, context.session.user.id)))
         .returning({ id: todo.id })
 
       if (deleted.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }
     }),
 
   deleteReminder: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(deleteRecordSchema)
-    .handler(async ({ input, context }): Promise<{ id: string }> => {
+    .handler(async ({ input, context, errors }): Promise<{ id: string }> => {
       const deleted: Array<{ id: string }> = await context.db
         .delete(reminder)
         .where(and(eq(reminder.id, input.id), eq(reminder.userId, context.session.user.id)))
         .returning({ id: reminder.id })
 
       if (deleted.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return { id: input.id }
     }),
 
   setTodoDone: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(recordDoneSchema)
-    .handler(async ({ input, context }): Promise<RecordDoneOutput> => {
+    .handler(async ({ input, context, errors }): Promise<RecordDoneOutput> => {
       const updated: Array<{ id: string }> = await context.db
         .update(todo)
         .set({ status: input.done ? 'done' : 'open' })
@@ -260,15 +266,16 @@ export const journalRouter = {
         .returning({ id: todo.id })
 
       if (updated.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return input
     }),
 
   setReminderDone: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
     .input(recordDoneSchema)
-    .handler(async ({ input, context }): Promise<RecordDoneOutput> => {
+    .handler(async ({ input, context, errors }): Promise<RecordDoneOutput> => {
       const updated: Array<{ id: string }> = await context.db
         .update(reminder)
         .set({ status: input.done ? 'dismissed' : 'pending' })
@@ -276,7 +283,7 @@ export const journalRouter = {
         .returning({ id: reminder.id })
 
       if (updated.length === 0) {
-        throw new ORPCError('NOT_FOUND')
+        throw errors.NOT_FOUND()
       }
 
       return input

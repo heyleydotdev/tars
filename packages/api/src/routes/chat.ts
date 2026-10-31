@@ -1,4 +1,3 @@
-import { ORPCError } from '@orpc/client'
 import { asyncIteratorObject } from '@orpc/server'
 
 import type {
@@ -51,7 +50,7 @@ import {
 import { and, asc, desc, eq, inArray } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
-import { ChatFailedError } from '../errors'
+import { ChatFailedError, NotFoundError } from '../errors'
 
 type DeskPhase = ChatPhaseOutput['phase']
 
@@ -170,32 +169,35 @@ export const chatRouter = {
     }))
   }),
 
-  thinking: protectedProcedure.input(messageThinkingSchema).handler(async ({ input, context }) => {
-    const [owned] = await context.db
-      .select({ id: chatMessage.id })
-      .from(chatMessage)
-      .innerJoin(chat, eq(chatMessage.chatId, chat.id))
-      .where(and(eq(chatMessage.id, input.messageId), eq(chat.userId, context.session.user.id)))
-      .limit(1)
+  thinking: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(messageThinkingSchema)
+    .handler(async ({ input, context, errors }) => {
+      const [owned] = await context.db
+        .select({ id: chatMessage.id })
+        .from(chatMessage)
+        .innerJoin(chat, eq(chatMessage.chatId, chat.id))
+        .where(and(eq(chatMessage.id, input.messageId), eq(chat.userId, context.session.user.id)))
+        .limit(1)
 
-    if (!owned) {
-      throw new ORPCError('NOT_FOUND')
-    }
+      if (!owned) {
+        throw errors.NOT_FOUND()
+      }
 
-    const thinking: Array<Pick<ChatThinkingSelect, 'id' | 'kind' | 'content' | 'sequence'>> =
-      await context.db
-        .select({
-          id: chatThinking.id,
-          kind: chatThinking.kind,
-          content: chatThinking.content,
-          sequence: chatThinking.sequence
-        })
-        .from(chatThinking)
-        .where(eq(chatThinking.messageId, input.messageId))
-        .orderBy(asc(chatThinking.sequence))
+      const thinking: Array<Pick<ChatThinkingSelect, 'id' | 'kind' | 'content' | 'sequence'>> =
+        await context.db
+          .select({
+            id: chatThinking.id,
+            kind: chatThinking.kind,
+            content: chatThinking.content,
+            sequence: chatThinking.sequence
+          })
+          .from(chatThinking)
+          .where(eq(chatThinking.messageId, input.messageId))
+          .orderBy(asc(chatThinking.sequence))
 
-    return thinking
-  }),
+      return thinking
+    }),
 
   send: protectedProcedure
     .errors({ CHAT_FAILED: ChatFailedError })

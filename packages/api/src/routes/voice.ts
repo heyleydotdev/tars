@@ -1,4 +1,3 @@
-import { ORPCError } from '@orpc/client'
 import { decodeBase64url } from '@orpc/server/helpers'
 
 import { META_ASR_MODEL, VOICE_WAKE_PHRASES } from '@tars/core/constants'
@@ -6,18 +5,18 @@ import { ERRORS } from '@tars/core/errors'
 import { transcribeSchema } from '@tars/core/schemas/chat'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
-import { TranscriptionFailedError } from '../errors'
+import { BadRequestError, TranscriptionFailedError } from '../errors'
 
 export const voiceRouter = {
   transcribe: protectedProcedure
-    .errors({ TRANSCRIPTION_FAILED: TranscriptionFailedError })
+    .errors({ BAD_REQUEST: BadRequestError, TRANSCRIPTION_FAILED: TranscriptionFailedError })
     .input(transcribeSchema)
     .use(openAiMiddleware)
     .handler(async ({ input, context, errors }) => {
       const audio = decodeBase64url(input.audio)
 
       if (!audio) {
-        throw new ORPCError('BAD_REQUEST', { message: ERRORS.invalidBase64 })
+        throw errors.BAD_REQUEST({ message: ERRORS.invalidBase64 })
       }
 
       const form = new FormData()
