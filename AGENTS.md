@@ -29,6 +29,7 @@
 - Local dev `bunx wrangler dev --env-file ../../.env`, deploy `bun run deploy` in `apps/server` (applies remote D1 migrations first); run `bun run typegen` after `wrangler.jsonc` changes and commit `worker-configuration.d.ts`.
 - Required secrets are declared in `wrangler.jsonc` `secrets.required` — the source of truth for `Env` types; values come from the root `.env` locally and `wrangler secret put` when deployed.
 - The Worker is a Hono app (`apps/server/src/index.ts`): trusted-origin CORS, better-auth at `/api/auth/*`, oRPC at `/api/rpc/*` plus WebSocket at `/api/ws` (raw `WebSocketPair`, `@orpc/server/websocket`; Electron main is the client). Schema is drizzle-managed: run `bun run generate` from the root (auth writes `packages/db/src/auth-schema.ts`, then drizzle-kit emits migrations), applied to D1 with apps/server's `migrate:local` / `migrate:remote`.
+- Declare oRPC errors in `packages/api/src/errors.ts` with `error()`, give them a default message, attach them with `.errors({ CODE: Error })`, and throw them with `errors.CODE(...)`. Override the message at the throw site when the context needs it. Do not throw `new ORPCError` from route handlers.
 - While `wrangler dev` runs, the Local Explorer API inspects local state: `/cdn-cgi/local/explorer/api/local/workers`, `.../storage/kv/namespaces`, `.../d1/database`, `.../r2/buckets`, plus `POST .../local/observability/query` for read-only SQL over `spans` and `logs`.
 - Node.js compatibility: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
 - Error 1102 (CPU/memory) → `/workers/platform/limits/`; all errors → https://developers.cloudflare.com/workers/observability/errors/
@@ -87,6 +88,7 @@
 - Use `React.PropsWithChildren` for components that accept children.
 - Branding is uppercase `TARS` in the README and document titles; app header and tray use `Tars`.
 - Import icons directly from `lucide-react`; no icon barrels, so tree-shaking survives.
+- Never use interface text smaller than `text-xs` (`0.75rem`); if it needs to be smaller, it is too small to read. Measurement frame labels are user-controlled and exempt.
 - Packages ship TypeScript source (`@tars/tsconfig/source-package.json`); no build step.
 - Workspaces depend on shared tooling via `workspace:*` and set `"prettier": "@tars/prettier"`.
 - ESLint configs (`eslint.config.js` or `.mjs`) list every tsconfig in `parserOptions.project`; `apps/desktop` includes node, preload, and web.
