@@ -97,7 +97,7 @@ export const savedRecordSchema = z.discriminatedUnion('type', [
   })
 ])
 
-const chatPhaseNameSchema = z.enum(['extract', 'repair', 'review'])
+const chatPhaseNameSchema = z.enum(['extract', 'repair', 'review', 'gather', 'write'])
 
 export const chatPhaseSchema = z.object({
   phase: chatPhaseNameSchema,
@@ -125,6 +125,13 @@ export const chatEventSchema = z.discriminatedUnion('type', [
   }),
   chatPhaseEventSchema
 ])
+
+export const summaryPeriodSchema = z.enum(['day', 'week', 'month', 'year'])
+
+export const summarizeChatSchema = z.object({
+  period: summaryPeriodSchema,
+  timezone: z.string().max(64).optional()
+})
 
 export const sendChatMessageSchema = z.object({
   content: z.string().trim().min(1).max(CHAT_MESSAGE_MAX_LENGTH, ERRORS.messageTooLong),
@@ -192,6 +199,14 @@ export type ChatMessage = {
   role: ChatRole
   content: string
   status: ChatStatus
+  kind: 'chat' | 'summary'
+  period: SummaryPeriod | null
+  from: string | null
+  to: string | null
   records: Array<SavedRecordOutput>
   phases?: Array<ChatPhaseProgress>
 }
+
+export type SummaryPeriod = z.output<typeof summaryPeriodSchema>
+export type SummarizeChatInput = z.input<typeof summarizeChatSchema>
+export type SummarizeChatOutput = z.output<typeof summarizeChatSchema>

@@ -72,3 +72,7 @@ export const VOICE_CAPTURE_SETTINGS = {
   autoGainControl: true,
   sampleRate: VOICE_SAMPLE_RATE
 } as const
+
+export const SUMMARY_MAX_TOKENS = 2_500
+export const SUMMARY_NOTE_LIMIT = 40
+export const SUMMARY_NOTE_CHARS = 8_000

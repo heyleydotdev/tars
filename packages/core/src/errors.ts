@@ -20,6 +20,8 @@ export const ERRORS = {
   chatUnavailable: 'Chat unavailable.',
   chatShowingLast: 'Showing the last loaded conversation.',
   chatLoadFailed: 'Could not load your conversation. Try again.',
+  chatFailed: 'Could not send that message. Try again.',
+  summaryFailed: 'Could not write this summary. Try again.',
   saveFailed: 'Could not save. Try again.',
   titleRequired: 'Enter a title.',
   contentRequired: 'Enter the content.',
