@@ -8,8 +8,10 @@ type MeasureWorkspaceStore = {
   items: Array<MeasureBatchItem>
   selectedId: string | null
   running: boolean
+  savedRunId: string | null
   pendingRestore: Array<MeasureBatchItem> | null
   pendingRestoreDraft: MeasureFormOutput | null
+  pendingRestoreRunId: string | null
   draft: MeasureFormOutput
   draftSeed: number
   addPhotos: (photos: Array<PreparedMeasureImage>) => void
@@ -20,8 +22,13 @@ type MeasureWorkspaceStore = {
   setPhotoResult: (id: string, result: MeasureResultOutput) => void
   clearResults: (ids?: Array<string>) => void
   setRunning: (running: boolean) => void
+  setSavedRunId: (runId: string | null) => void
   setDraft: (patch: Partial<MeasureFormOutput>) => void
-  requestRestore: (items: Array<MeasureBatchItem>, draft: MeasureFormOutput | null) => void
+  requestRestore: (
+    items: Array<MeasureBatchItem>,
+    draft: MeasureFormOutput | null,
+    runId?: string | null
+  ) => void
   confirmRestore: () => void
   dismissRestore: () => void
 }
@@ -39,13 +46,16 @@ function clearedResult() {
 function restoredWorkspace(
   state: MeasureWorkspaceStore,
   items: Array<MeasureBatchItem>,
-  draft: MeasureFormOutput | null
+  draft: MeasureFormOutput | null,
+  runId: string | null
 ) {
   return {
     items,
     selectedId: items[0]?.id ?? null,
+    savedRunId: runId,
     pendingRestore: null,
     pendingRestoreDraft: null,
+    pendingRestoreRunId: null,
     ...(draft ? { draft, draftSeed: state.draftSeed + 1 } : {})
   }
 }
@@ -54,8 +64,10 @@ export const useMeasureWorkspace = create<MeasureWorkspaceStore>()((set) => ({
   items: [],
   selectedId: null,
   running: false,
+  savedRunId: null,
   pendingRestore: null,
   pendingRestoreDraft: null,
+  pendingRestoreRunId: null,
   draft: { referenceId: '', prompts: [] },
   draftSeed: 0,
   addPhotos: (photos) =>
@@ -106,20 +118,27 @@ export const useMeasureWorkspace = create<MeasureWorkspaceStore>()((set) => ({
     set((state) => ({
       items: state.items.map((item) =>
         !ids || ids.includes(item.id) ? { ...item, ...clearedResult() } : item
-      )
+      ),
+      savedRunId: null
     })),
   setRunning: (running) => set({ running }),
+  setSavedRunId: (savedRunId) => set({ savedRunId }),
   setDraft: (patch) => set((state) => ({ draft: { ...state.draft, ...patch } })),
-  requestRestore: (items, draft) =>
+  requestRestore: (items, draft, runId = null) =>
     set((state) =>
       state.items.length > 0
-        ? { pendingRestore: items, pendingRestoreDraft: draft }
-        : restoredWorkspace(state, items, draft)
+        ? { pendingRestore: items, pendingRestoreDraft: draft, pendingRestoreRunId: runId }
+        : restoredWorkspace(state, items, draft, runId)
     ),
   confirmRestore: () =>
     set((state) =>
       state.pendingRestore
-        ? restoredWorkspace(state, state.pendingRestore, state.pendingRestoreDraft)
+        ? restoredWorkspace(
+            state,
+            state.pendingRestore,
+            state.pendingRestoreDraft,
+            state.pendingRestoreRunId
+          )
         : {}
     ),
   dismissRestore: () => set({ pendingRestore: null, pendingRestoreDraft: null })

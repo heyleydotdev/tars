@@ -1,35 +1,33 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ORPCError } from '@orpc/client'
-import { HistoryIcon } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useLoaderData } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import type { MeasureFormOutput, MeasureResultOutput } from '@tars/core/schemas/measure'
 import {
   MEASURE_BATCH_GAP_MS,
+  MEASURE_BATCH_LIMIT,
   MEASURE_RATE_LIMIT_MAX_MS,
   MEASURE_RATE_LIMIT_RETRIES
 } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { sleep } from '@tars/core/utils/time'
-import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
 import { Checkbox } from '@tars/ui/components/checkbox'
 
 import type { MeasureLoaderData } from '../lib/loaders'
-import type { MeasureBatchItem, MeasureRequest } from '../lib/measure'
+import type { MeasureBatchItem, MeasureRequest, PreparedMeasureImage } from '../lib/measure'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleEnd from '../components/console-end'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import MeasureAnnotationSettings from '../components/measure-annotation-settings'
-import MeasureBatchResults from '../components/measure-batch-results'
 import MeasureExportAllButton from '../components/measure-export-all-button'
 import MeasureForm from '../components/measure-form'
 import MeasureGuideButton from '../components/measure-guide-button'
-import MeasureHistorySheet from '../components/measure-history-sheet'
 import MeasurePhoto from '../components/measure-photo'
-import MeasureSaveButton from '../components/measure-save-button'
+import MeasurePreview from '../components/measure-preview'
 import { useLogActivity } from '../lib/journal'
 import {
   exportMeasure,
@@ -38,6 +36,12 @@ import {
   measureSummary,
   useMeasure
 } from '../lib/measure'
+import {
+  measureSavedKey,
+  removeSavedMeasure,
+  saveMeasureRun,
+  updateSavedMeasures
+} from '../lib/measure-history'
 import { useShellAlertStore } from '../stores/alert'
 import { useMeasureAnnotations } from '../stores/measure-annotations'
 import { useMeasurePreferences } from '../stores/measure-preferences'
@@ -60,7 +64,6 @@ export default function Measure() {
     setPhotoResult,
     clearResults,
     setRunning,
-    requestRestore,
     confirmRestore,
     dismissRestore
   } = useMeasureWorkspace(
@@ -71,7 +74,6 @@ export default function Measure() {
       setPhotoResult: state.setPhotoResult,
       clearResults: state.clearResults,
       setRunning: state.setRunning,
-      requestRestore: state.requestRestore,
       confirmRestore: state.confirmRestore,
       dismissRestore: state.dismissRestore
     }))
@@ -79,7 +81,10 @@ export default function Measure() {
   const addPhotos = useMeasureWorkspace((state) => state.addPhotos)
   const removePhoto = useMeasureWorkspace((state) => state.removePhoto)
   const draftSeed = useMeasureWorkspace((state) => state.draftSeed)
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const setSavedRunId = useMeasureWorkspace((state) => state.setSavedRunId)
+  const queryClient = useQueryClient()
+  const saveTimer = useRef<number | null>(null)
+  const pendingSaves = useRef(new Set<string>())
   const [pendingMeasure, setPendingMeasure] = useState<{
     values: MeasureFormOutput
     skipMeasured: boolean
@@ -137,6 +142,48 @@ export default function Measure() {
       }
     },
     [measure, updateItem]
+  )
+
+  const flushSaves = useCallback(() => {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current)
+
+    saveTimer.current = null
+
+    const { items: snapshot, savedRunId } = useMeasureWorkspace.getState()
+    const ids = pendingSaves.current
+
+    pendingSaves.current = new Set()
+
+    if (!savedRunId || ids.size === 0) return
+
+    void updateSavedMeasures(snapshot.filter((item) => ids.has(item.id))).catch(
+      (error: unknown) => {
+        showAlert({
+          title: ERRORS.saveFailedTitle,
+          description: error instanceof Error ? error.message : ERRORS.historySaveFailed,
+          variant: 'destructive'
+        })
+      }
+    )
+  }, [showAlert])
+
+  const scheduleSave = useCallback(
+    (id: string) => {
+      pendingSaves.current.add(id)
+      if (saveTimer.current) window.clearTimeout(saveTimer.current)
+      saveTimer.current = window.setTimeout(flushSaves, 800)
+    },
+    [flushSaves]
+  )
+
+  useEffect(() => () => flushSaves(), [flushSaves])
+
+  const handleResultChange = useCallback(
+    (id: string, result: MeasureResultOutput) => {
+      setPhotoResult(id, result)
+      scheduleSave(id)
+    },
+    [scheduleSave, setPhotoResult]
   )
 
   const logCompleted = useCallback(
@@ -199,6 +246,32 @@ export default function Measure() {
 
     await logCompleted(completed, runId)
 
+    if (completed.length > 0) {
+      try {
+        const measured = useMeasureWorkspace.getState().items.filter(hasResult)
+
+        // Re-measuring replaces these photos' saved copies instead of adding new ones.
+        await Promise.all(
+          measured.map((item) => removeSavedMeasure(item.id).catch(() => undefined))
+        )
+
+        const savedRunId = await saveMeasureRun(
+          measured,
+          measured.at(0)?.result.prompts ?? values.prompts,
+          unit
+        )
+
+        setSavedRunId(savedRunId)
+        await queryClient.invalidateQueries({ queryKey: measureSavedKey })
+      } catch (error) {
+        showAlert({
+          title: ERRORS.saveFailedTitle,
+          description: error instanceof Error ? error.message : ERRORS.historySaveFailed,
+          variant: 'destructive'
+        })
+      }
+    }
+
     return null
   }
 
@@ -222,12 +295,15 @@ export default function Measure() {
       try {
         const result = await measurePhoto(item, item.request)
 
-        if (result) await logCompleted([{ ...item, result }], crypto.randomUUID())
+        if (result) {
+          await logCompleted([{ ...item, result }], crypto.randomUUID())
+          scheduleSave(item.id)
+        }
       } finally {
         setRunning(false)
       }
     },
-    [items, logCompleted, measure, measurePhoto, running, setRunning]
+    [items, logCompleted, measure, measurePhoto, running, scheduleSave, setRunning]
   )
 
   useEffect(() => {
@@ -317,6 +393,19 @@ export default function Measure() {
     unit
   ])
 
+  function addBatchPhotos(photos: Array<PreparedMeasureImage>): void {
+    if (items.length + photos.length > MEASURE_BATCH_LIMIT) {
+      showAlert({
+        title: ERRORS.measureBatchFullTitle,
+        description: ERRORS.measureBatchFull,
+        variant: 'destructive'
+      })
+      return
+    }
+
+    addPhotos(photos)
+  }
+
   return (
     <div className="flex min-h-full flex-col">
       <ConsoleHeader
@@ -325,18 +414,6 @@ export default function Measure() {
           <ButtonGroup>
             <MeasureAnnotationSettings objectCount={selected?.result?.objects.length ?? 0} />
             <MeasureExportAllButton items={items} />
-            <MeasureSaveButton items={items} />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              aria-label="Measurement history"
-              title="Measurement history"
-              disabled={running}
-              onClick={() => setHistoryOpen(true)}
-            >
-              <HistoryIcon />
-            </Button>
             <MeasureGuideButton />
           </ButtonGroup>
         }
@@ -360,20 +437,19 @@ export default function Measure() {
         </ConsolePanel>
 
         <ConsolePanel
-          title="measure.result"
-          count={String(items.length)}
+          title="measure.preview"
+          count={selected ? '1' : '0'}
           accent="bg-emerald-400"
           className="lg:col-span-5"
         >
-          <MeasureBatchResults
+          <MeasurePreview
             items={items}
             selectedId={selected?.id ?? null}
             unit={unit}
             pending={running}
-            onSelect={selectPhoto}
             onRetry={retryPhoto}
             onPromptsChange={setPrompts}
-            onResultChange={setPhotoResult}
+            onResultChange={handleResultChange}
           />
         </ConsolePanel>
       </div>
@@ -385,23 +461,14 @@ export default function Measure() {
         initialReferences={initialReferences}
         photo={items.length > 0}
         pending={running}
-        onPhotos={addPhotos}
+        onPhotos={addBatchPhotos}
         onMeasure={requestMeasure}
-      />
-
-      <MeasureHistorySheet
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
-        onRestore={(restored, draft) => {
-          measure.reset()
-          requestRestore(restored, draft)
-        }}
       />
 
       <ConfirmDialog
         title="Replace current batch?"
-        description="Opening this run replaces the photos and results currently in Measure."
-        confirmLabel="Open run"
+        description="Opening this measurement replaces the photos and results currently in Measure."
+        confirmLabel="Open measurement"
         open={Boolean(pendingRestore)}
         pending={false}
         onOpenChange={(next) => {

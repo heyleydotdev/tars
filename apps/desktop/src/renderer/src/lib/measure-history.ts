@@ -1,4 +1,6 @@
-import type { MeasureHistoryDetailOutput, MeasureUnit } from '@tars/core/schemas/measure'
+import { useInfiniteQuery } from '@tanstack/react-query'
+
+import type { MeasureSavedOutput, MeasureUnit } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
 
 import type { MeasureBatchItem } from './measure'
@@ -6,17 +8,13 @@ import { fileSrc, uploadFile } from './files'
 import { blobToDataUrl, createMeasureThumbnail, dataUrlToBlob } from './measure'
 import { orpc } from './orpc'
 
-async function fetchImage(url: string): Promise<Blob> {
-  const response = await fetch(fileSrc(url))
+const PAGE_SIZE = 12
 
-  if (!response.ok) throw new Error(ERRORS.historyLoadFailed)
+export const measureSavedKey = ['measure', 'saved'] as const
 
-  return response.blob()
-}
-
-function historyItem(item: MeasureBatchItem, id: string) {
+function historyItem(item: MeasureBatchItem) {
   return {
-    id,
+    id: item.id,
     name: item.photo.name,
     status:
       item.status === 'done'
@@ -29,6 +27,16 @@ function historyItem(item: MeasureBatchItem, id: string) {
     imageHeight: item.photo.height,
     result: item.result
   }
+}
+
+export function useSavedMeasures() {
+  return useInfiniteQuery({
+    queryKey: measureSavedKey,
+    queryFn: ({ pageParam }) =>
+      orpc.measure.saved.list.call({ cursor: pageParam, limit: PAGE_SIZE }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor
+  })
 }
 
 export async function saveMeasureRun(
@@ -45,7 +53,6 @@ export async function saveMeasureRun(
 
   const thumbnail = await createMeasureThumbnail(measured.photo)
   const coverThumb = await blobToDataUrl(thumbnail)
-  const uploadItems = items.map((item) => ({ item, id: crypto.randomUUID() }))
   let runId: string | null = null
 
   try {
@@ -58,13 +65,13 @@ export async function saveMeasureRun(
       prompts,
       unit,
       coverThumb,
-      items: uploadItems.map(({ item, id }) => historyItem(item, id))
+      items: items.map((item) => historyItem(item))
     })
 
     runId = savedRunId
 
-    for (const { item, id } of uploadItems) {
-      const target = targets.find((entry) => entry.itemId === id)
+    for (const item of items) {
+      const target = targets.find((entry) => entry.itemId === item.id)
 
       if (!target) throw new Error(ERRORS.historySaveFailed)
 
@@ -84,22 +91,48 @@ export async function saveMeasureRun(
   }
 }
 
-export async function loadMeasureRun(id: string): Promise<{
-  detail: MeasureHistoryDetailOutput
-  photos: Record<string, string>
-}> {
-  const detail = await orpc.measure.history.get.call({ id })
-  const photos = await Promise.all(
-    detail.items.map(async (item) => {
-      const blob = await fetchImage(item.imageUrl)
-
-      return [item.id, await blobToDataUrl(blob)] as const
-    })
+export async function updateSavedMeasures(items: Array<MeasureBatchItem>): Promise<void> {
+  const updates = items.flatMap((item) =>
+    item.result ? [{ id: item.id, result: item.result }] : []
   )
 
-  return { detail, photos: Object.fromEntries(photos) }
+  if (updates.length === 0) return
+
+  await orpc.measure.saved.update.call({ items: updates })
 }
 
-export async function deleteMeasureRun(id: string): Promise<void> {
-  await orpc.measure.history.remove.call({ id })
+export async function removeSavedMeasure(id: string): Promise<void> {
+  await orpc.measure.saved.remove.call({ id })
+}
+
+export async function fetchMeasureImage(url: string): Promise<string> {
+  const response = await fetch(fileSrc(url))
+
+  if (!response.ok) throw new Error(ERRORS.historyLoadFailed)
+
+  return blobToDataUrl(await response.blob())
+}
+
+export function savedMeasureItem(measure: MeasureSavedOutput, dataUrl: string): MeasureBatchItem {
+  return {
+    id: measure.id,
+    photo: {
+      dataUrl,
+      width: measure.imageWidth,
+      height: measure.imageHeight,
+      name: measure.name
+    },
+    status: measure.status,
+    result: measure.result,
+    error: measure.error,
+    prompts: null,
+    notice: null,
+    request: measure.referenceId
+      ? { referenceId: measure.referenceId, prompts: measure.prompts }
+      : null
+  }
+}
+
+export function fetchSavedMeasuresPage(cursor: string | null, limit = 50) {
+  return orpc.measure.saved.list.call({ cursor, limit })
 }
