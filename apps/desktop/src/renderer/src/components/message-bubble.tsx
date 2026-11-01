@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BugIcon, CheckIcon, CopyIcon } from 'lucide-react'
 
 import type { ChatMessage } from '@tars/core/schemas/chat'
+import { formatSummaryRange } from '@tars/core/utils/summary'
 import { Bubble, BubbleContent } from '@tars/ui/components/bubble'
 import { Button } from '@tars/ui/components/button'
 import { Markdown } from '@tars/ui/components/markdown'
@@ -45,6 +46,7 @@ function MessageAction({
 export default function MessageBubble({ message }: { message: ChatMessageView }) {
   const [debugOpen, setDebugOpen] = useState(false)
   const { copied, copy } = useCopyToClipboard()
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const isUser = message.role === 'user'
   const isError = message.variant === 'error' || message.status === 'error'
   const isThinking = message.status === 'thinking' && message.content === ''
@@ -77,6 +79,17 @@ export default function MessageBubble({ message }: { message: ChatMessageView })
     <>
       <Message>
         <MessageContent className="gap-2">
+          {message.kind === 'summary' && message.period && message.from && message.to ? (
+            <span className="text-muted-foreground font-mono text-xs/6 uppercase">
+              {message.period} ·{' '}
+              {formatSummaryRange(
+                message.period,
+                new Date(message.from),
+                new Date(message.to),
+                timeZone
+              )}
+            </span>
+          ) : null}
           {isThinking ? (
             <PhaseProgress phases={message.phases ?? []} />
           ) : isError ? (

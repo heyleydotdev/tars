@@ -12,7 +12,9 @@ import {
 const PHASE_LABELS = {
   extract: { running: 'Extracting…', completed: 'Extracted' },
   repair: { running: 'Repairing…', completed: 'Repaired' },
-  review: { running: 'Reviewing…', completed: 'Reviewed' }
+  review: { running: 'Reviewing…', completed: 'Reviewed' },
+  gather: { running: 'Gathering records…', completed: 'Gathered' },
+  write: { running: 'Writing…', completed: 'Written' }
 } as const
 
 export default function PhaseProgress({ phases }: { phases: Array<ChatPhaseProgress> }) {
