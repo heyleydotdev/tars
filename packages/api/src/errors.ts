@@ -30,3 +30,7 @@ export const TranscriptionFailedError = error('TRANSCRIPTION_FAILED', {
 export const ChatFailedError = error('CHAT_FAILED', {
   message: ERRORS.tryAgain
 })
+
+export const SummaryFailedError = error('SUMMARY_FAILED', {
+  message: ERRORS.summaryFailed
+})

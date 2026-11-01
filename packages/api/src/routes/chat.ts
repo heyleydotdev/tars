@@ -6,6 +6,7 @@ import type {
   ChatPhaseOutput,
   SavedRecordOutput
 } from '@tars/core/schemas/chat'
+import type { SummaryData } from '@tars/core/services/summary'
 import type { Database } from '@tars/db/client'
 import type {
   ChatInsert,
@@ -19,25 +20,31 @@ import {
   DESK_HISTORY_CHARS,
   DESK_HISTORY_MESSAGES,
   META_CHAT_MAX_TOKENS,
-  META_CHAT_MODEL
+  META_CHAT_MODEL,
+  SUMMARY_MAX_TOKENS
 } from '@tars/core/constants'
+import { ERRORS } from '@tars/core/errors'
 import {
   buildDeskContext,
   buildDeskExtractionPrompt,
   buildDeskRepairPrompt
 } from '@tars/core/prompts/desk'
+import { buildSummaryPrompt } from '@tars/core/prompts/summary'
 import {
   chatEventSchema,
   deskResultJsonSchema,
   messageThinkingSchema,
-  sendChatMessageSchema
+  sendChatMessageSchema,
+  summarizeChatSchema
 } from '@tars/core/schemas/chat'
 import {
   groupRecordsByMessage,
   loadDeskContextRecords,
   saveDeskRecords
 } from '@tars/core/services/records'
+import { loadSummaryData } from '@tars/core/services/summary'
 import { parseDeskOutput } from '@tars/core/utils/desk'
+import { resolveSummaryRange, summaryRequestText } from '@tars/core/utils/summary'
 import {
   chat,
   chatMessage,
@@ -50,7 +57,7 @@ import {
 import { and, asc, desc, eq, inArray } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
-import { ChatFailedError, NotFoundError } from '../errors'
+import { ChatFailedError, NotFoundError, SummaryFailedError } from '../errors'
 
 type DeskPhase = ChatPhaseOutput['phase']
 
@@ -72,6 +79,46 @@ function observationRow(messageId: string, sequence: number, content: string): C
   }
 }
 
+async function finishSummary(
+  db: Database,
+  chatId: string,
+  assistantId: string,
+  content: string,
+  data: SummaryData,
+  observations: Array<ChatThinkingInsert>
+): Promise<void> {
+  const [first, ...rest] = [
+    db
+      .update(chatMessage)
+      .set({ content, status: 'completed' })
+      .where(eq(chatMessage.id, assistantId)),
+    db.update(chat).set({ updatedAt: new Date() }).where(eq(chat.id, chatId)),
+    db.insert(chatThinking).values(summaryDataRow(assistantId, data)),
+    ...observations.map((observation) => db.insert(chatThinking).values(observation))
+  ]
+
+  await db.batch([first, ...rest])
+}
+
+function summaryDataRow(messageId: string, data: SummaryData): ChatThinkingInsert {
+  return {
+    id: crypto.randomUUID(),
+    messageId,
+    sequence: 0,
+    kind: 'tool_result' as const,
+    content: JSON.stringify({
+      period: data.period,
+      label: data.label,
+      from: data.from.toISOString(),
+      to: data.to.toISOString(),
+      counts: data.counts,
+      totals: data.totals,
+      notes: data.notes,
+      incidentTitles: data.incidentTitles
+    })
+  }
+}
+
 async function loadHistory(db: Database, chatId: string) {
   const rows = await db
     .select({
@@ -81,7 +128,7 @@ async function loadHistory(db: Database, chatId: string) {
       createdAt: chatMessage.createdAt
     })
     .from(chatMessage)
-    .where(eq(chatMessage.chatId, chatId))
+    .where(and(eq(chatMessage.chatId, chatId), eq(chatMessage.kind, 'chat')))
     .orderBy(desc(chatMessage.createdAt))
     .limit(DESK_HISTORY_MESSAGES)
 
@@ -160,11 +207,15 @@ export const chatRouter = {
       recordsByMessage = groupRecordsByMessage({ todos, reminders, expenses, journals })
     }
 
-    return rows.map(({ id, role, content, status }) => ({
+    return rows.map(({ id, role, content, status, kind, period, rangeStart, rangeEnd }) => ({
       id,
       role,
       content,
       status,
+      kind,
+      period,
+      from: rangeStart?.toISOString() ?? null,
+      to: rangeEnd?.toISOString() ?? null,
       records: recordsByMessage.get(id) ?? []
     }))
   }),
@@ -351,7 +402,7 @@ export const chatRouter = {
 
         await context.db
           .update(chatMessage)
-          .set({ content, status: 'error' })
+          .set({ content: content || ERRORS.chatFailed, status: 'error' })
           .where(eq(chatMessage.id, assistantId))
 
         await context.db
@@ -361,6 +412,164 @@ export const chatRouter = {
           )
 
         throw errors.CHAT_FAILED({ cause: error })
+      }
+    }),
+
+  summarize: protectedProcedure
+    .errors({ SUMMARY_FAILED: SummaryFailedError })
+    .input(summarizeChatSchema)
+    .output(asyncIteratorObject(chatEventSchema))
+    .use(openAiMiddleware)
+    .handler(async function* ({ input, context, signal, errors }) {
+      const userId = context.session.user.id
+      const chatId = await resolveChatId(context.db, userId)
+      const range = resolveSummaryRange(input.period, new Date(), input.timezone)
+      const metadata = {
+        kind: 'summary' as const,
+        period: input.period,
+        rangeStart: range.from,
+        rangeEnd: range.to
+      }
+      const userMessageId = crypto.randomUUID()
+      const assistantId = crypto.randomUUID()
+
+      await context.db.batch([
+        context.db.insert(chatMessage).values({
+          id: userMessageId,
+          chatId,
+          role: 'user',
+          content: summaryRequestText(input.period),
+          status: 'completed',
+          ...metadata
+        }),
+        context.db.insert(chatMessage).values({
+          id: assistantId,
+          chatId,
+          role: 'assistant',
+          content: '',
+          status: 'thinking',
+          ...metadata
+        })
+      ])
+
+      const gatherStartedAt = Date.now()
+
+      yield phaseEvent('gather', 'running', null)
+
+      const data = await loadSummaryData(context.db, userId, {
+        period: input.period,
+        ...range
+      })
+      const gatherDuration = Date.now() - gatherStartedAt
+
+      yield phaseEvent('gather', 'completed', gatherDuration)
+
+      if (!data.hasActivity) {
+        const content = `Nothing logged for ${range.label}.`
+
+        await finishSummary(context.db, chatId, assistantId, content, data, [
+          observationRow(
+            assistantId,
+            1,
+            JSON.stringify({
+              phase: 'gather',
+              status: 'completed',
+              durationMs: gatherDuration,
+              empty: true
+            })
+          )
+        ])
+
+        yield { type: 'delta', text: content, records: [] }
+
+        return
+      }
+
+      let content = ''
+
+      try {
+        yield phaseEvent('write', 'running', null)
+
+        const writeStartedAt = Date.now()
+        const response = await context.openAi.responses.create(
+          {
+            model: META_CHAT_MODEL,
+            instructions: buildSummaryPrompt(data, input.timezone),
+            input: 'Write the summary.',
+            reasoning: { effort: 'low' },
+            max_output_tokens: SUMMARY_MAX_TOKENS
+          },
+          { signal }
+        )
+        const usage = response.usage ?? null
+
+        const reports: Array<ChatPhaseOutput> = [
+          {
+            phase: 'gather',
+            model: META_CHAT_MODEL,
+            status: 'completed',
+            durationMs: gatherDuration,
+            inputTokens: null,
+            outputTokens: null,
+            reasoningTokens: null,
+            reasoning: null
+          },
+          {
+            phase: 'write',
+            model: META_CHAT_MODEL,
+            status: response.status ?? null,
+            durationMs: Date.now() - writeStartedAt,
+            inputTokens: usage?.input_tokens ?? null,
+            outputTokens: usage?.output_tokens ?? null,
+            reasoningTokens: usage?.output_tokens_details.reasoning_tokens ?? null,
+            reasoning: null
+          }
+        ]
+
+        content = response.output_text.trim()
+
+        if (!content) {
+          throw new Error(
+            `Model returned an empty summary (${response.status}, ${usage?.output_tokens ?? 0} tokens)`
+          )
+        }
+
+        await finishSummary(
+          context.db,
+          chatId,
+          assistantId,
+          content,
+          data,
+          reports.map((report, sequence) =>
+            observationRow(assistantId, sequence + 1, JSON.stringify(report))
+          )
+        )
+
+        yield phaseEvent('write', 'completed', reports[1]?.durationMs ?? null)
+        yield { type: 'delta', text: content, records: [] }
+      } catch (error) {
+        console.error('chat.summarize failed', error)
+
+        content = content || ERRORS.summaryFailed
+
+        await context.db.batch([
+          context.db
+            .update(chatMessage)
+            .set({ content, status: 'error' })
+            .where(eq(chatMessage.id, assistantId)),
+          context.db.insert(chatThinking).values(summaryDataRow(assistantId, data)),
+          context.db
+            .insert(chatThinking)
+            .values(
+              observationRow(
+                assistantId,
+                1,
+                error instanceof Error ? error.message : 'Summary failed'
+              )
+            )
+        ])
+
+        throw errors.SUMMARY_FAILED({ cause: error })
       }
     })
 }
