@@ -26,6 +26,20 @@ export async function createTestDb(): Promise<ApiDatabase> {
   }
 
   const db = drizzle(sqlite, { schema }) as unknown as ApiDatabase
+  const batchable = db as unknown as {
+    batch?: (queries: ReadonlyArray<Promise<unknown>>) => Promise<Array<unknown>>
+  }
+
+  // better-sqlite3 has no D1 batch; the routes only need sequential execution here.
+  if (typeof batchable.batch !== 'function') {
+    batchable.batch = async (queries) => {
+      const results: Array<unknown> = []
+
+      for (const query of queries) results.push(await query)
+
+      return results
+    }
+  }
 
   await db.insert(user).values({
     id: TEST_USER_ID,
@@ -59,11 +73,11 @@ const session = {
   }
 }
 
-export async function callRpc(
+export async function callRpcRaw(
   db: ApiDatabase,
   path: string,
   input?: unknown
-): Promise<{ status: number; body: unknown }> {
+): Promise<{ status: number; text: string }> {
   const { matched, response } = await rpcHandler.handle(
     new Request(`http://test/api/rpc/${path}`, {
       method: 'POST',
@@ -83,7 +97,15 @@ export async function callRpc(
 
   if (!matched) throw new Error(`No rpc procedure matched ${path}`)
 
-  const text = await response.text()
+  return { status: response.status, text: await response.text() }
+}
 
-  return { status: response.status, body: text ? JSON.parse(text) : null }
+export async function callRpc(
+  db: ApiDatabase,
+  path: string,
+  input?: unknown
+): Promise<{ status: number; body: unknown }> {
+  const { status, text } = await callRpcRaw(db, path, input)
+
+  return { status, body: text ? JSON.parse(text) : null }
 }
