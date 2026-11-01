@@ -1,16 +1,17 @@
-import { describe, expect, it, mock } from 'bun:test'
+import { describe, expect, it, vi } from 'vitest'
 
-const electron = {
-  app: { getName: () => 'Tars', getPath: () => '/tmp', getVersion: () => '0.0.0' },
-  screen: {
-    getDisplayMatching: () => ({ workArea: { x: 0, y: 0, width: 1920, height: 1032 } })
+import { fitToDisplay, MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from '../../src/main/window-state'
+
+vi.mock('electron', () => {
+  const electron = {
+    app: { getName: () => 'Tars', getPath: () => '/tmp', getVersion: () => '0.0.0' },
+    screen: {
+      getDisplayMatching: () => ({ workArea: { x: 0, y: 0, width: 1920, height: 1032 } })
+    }
   }
-}
 
-mock.module('electron', () => ({ default: electron, ...electron }))
-
-const { fitToDisplay, MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } =
-  await import('../../src/main/window-state')
+  return { default: electron, ...electron }
+})
 
 describe('fitToDisplay', () => {
   it('keeps bounds that already fit', () => {

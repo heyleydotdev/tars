@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { Database } from 'bun:sqlite'
-import { drizzle } from 'drizzle-orm/bun-sqlite'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
 
 import type { Auth } from '@tars/auth/server'
 import type { Database as ApiDatabase } from '@tars/db/client'
@@ -17,7 +17,7 @@ export const TEST_USER_ID = 'user-test'
 export async function createTestDb(): Promise<ApiDatabase> {
   const sqlite = new Database(':memory:')
 
-  sqlite.exec('PRAGMA foreign_keys = ON;')
+  sqlite.pragma('foreign_keys = ON')
 
   for (const file of readdirSync(MIGRATIONS_DIR)
     .filter((name) => name.endsWith('.sql'))

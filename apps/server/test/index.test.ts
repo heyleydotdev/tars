@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test'
 import { exports } from 'cloudflare:workers'
+import { describe, expect, it } from 'vitest'
 
 import { ERRORS } from '@tars/core/errors'
 

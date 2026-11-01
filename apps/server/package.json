@@ -27,10 +27,9 @@
     "prettier": "catalog:",
     "typescript": "catalog:",
     "wrangler": "4.153.0",
-    "@types/bun": "catalog:",
     "@cloudflare/vitest-plugin": "1.4.11",
     "vite": "catalog:",
-    "vitest": "5.0.5"
+    "vitest": "catalog:"
   },
   "prettier": "@tars/prettier",
   "dependencies": {

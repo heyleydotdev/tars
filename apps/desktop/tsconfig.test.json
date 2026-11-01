@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.web.json",
   "compilerOptions": {
-    "types": ["vite/client", "node", "bun"]
+    "types": ["vite/client", "node"]
   },
-  "include": ["test/**/*.ts", "src/preload/env.d.ts"]
+  "include": ["test/**/*.ts", "src/preload/env.d.ts", "vitest.config.ts"]
 }

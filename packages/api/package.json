@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore",
     "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore",
-    "test": "bun test"
+    "test": "vitest run"
   },
   "dependencies": {
     "@orpc/client": "catalog:",
@@ -34,7 +34,10 @@
     "typescript": "catalog:",
     "drizzle-orm": "catalog:",
     "@types/node": "catalog:",
-    "@types/bun": "catalog:"
+    "@types/better-sqlite3": "^9.6.0",
+    "better-sqlite3": "13.0.3",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "prettier": "@tars/prettier"
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { IncidentDetailOutput, IncidentListOutput } from '@tars/core/schemas/incident'
 import type { Database } from '@tars/db/client'

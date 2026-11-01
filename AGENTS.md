@@ -55,7 +55,7 @@
 
 ## Traps
 
-- Tests live in `<workspace>/test`. Packages run with `bun test` and `bunfig.toml` pins the root; `apps/server` uses the Cloudflare Vitest plugin (`vitest.config.ts`) with `bun:test` aliased to `vitest`.
+- Tests live in `<workspace>/test` and run with Vitest. Bun is the package manager only; `apps/server` uses the Cloudflare Vitest plugin.
 - `typecheck` is `bun check` (Bun's TypeScript 7); catalog `typescript` 5.9.3 is only for editors and ESLint.
 - `bun fmt` reads only the current directory's `.gitignore`; workspace scripts pass `--ignore-path ../../.gitignore`.
 - Do not edit generated files: `packages/db/src/auth-schema.ts` (regenerate with `bun run generate`) or `worker-configuration.d.ts` (regenerate with `bun run typegen` in `apps/server`).

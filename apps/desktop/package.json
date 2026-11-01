@@ -20,7 +20,7 @@
     "build:win": "bun run build && electron-builder --win",
     "build:mac": "bun run build && electron-builder --mac",
     "build:linux": "bun run build && electron-builder --linux",
-    "test": "bun test"
+    "test": "vitest run"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -60,7 +60,7 @@
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "zustand": "5.0.16",
-    "@types/bun": "catalog:"
+    "vitest": "catalog:"
   },
   "prettier": "@tars/prettier"
 }

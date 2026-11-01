@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { JournalPageOutput } from '@tars/core/schemas/journal'
 import type { Database } from '@tars/db/client'

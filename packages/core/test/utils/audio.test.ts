@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 
 import { VOICE_SAMPLE_RATE } from '../../src/constants'
 import { encodeWav, hasSpeech } from '../../src/utils/audio'

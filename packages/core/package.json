@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore",
     "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore",
-    "test": "bun test"
+    "test": "vitest run"
   },
   "dependencies": {
     "@tars/db": "workspace:*",
@@ -30,7 +30,9 @@
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:",
-    "@types/bun": "catalog:"
+    "@types/node": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "prettier": "@tars/prettier"
 }

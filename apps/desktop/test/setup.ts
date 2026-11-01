@@ -1,1 +1,0 @@
-process.env.VITE_BETTER_AUTH_URL ??= 'http://localhost:3001'

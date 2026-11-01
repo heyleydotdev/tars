@@ -19,11 +19,6 @@ export default defineConfig({
       }
     })
   ],
-  resolve: {
-    alias: {
-      'bun:test': 'vitest'
-    }
-  },
   test: {
     include: ['test/**/*.test.ts'],
     testTimeout: 30_000,

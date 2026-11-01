@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 
 import type { IncidentMergeOutput, IncidentRootCauseOutput } from '../../src/schemas/incident-ai'
 import { INCIDENT_EVENT_LIMIT } from '../../src/constants'
