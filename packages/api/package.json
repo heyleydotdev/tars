@@ -21,7 +21,8 @@
     "@tars/auth": "workspace:*",
     "@tars/core": "workspace:*",
     "@tars/db": "workspace:*",
-    "openai": "7.45.1"
+    "openai": "7.45.1",
+    "p-limit": "7.3.3"
   },
   "devDependencies": {
     "@tars/eslint": "workspace:*",
