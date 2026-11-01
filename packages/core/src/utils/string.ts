@@ -25,6 +25,7 @@ export function normalizeText(value: string): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export function safeRedirect(value: string | null): string {
