@@ -78,8 +78,6 @@ export function createWindow(): BrowserWindow {
     }
   })
 
-  if (saved?.maximized) window.maximize()
-
   trackWindowState(window)
 
   window.webContents.session.setPermissionCheckHandler(
@@ -106,6 +104,8 @@ export function createWindow(): BrowserWindow {
   }
 
   window.on('ready-to-show', () => {
+    if (saved?.maximized) window.maximize()
+
     window.show()
     emitFocus()
   })

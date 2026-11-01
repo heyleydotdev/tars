@@ -12,30 +12,43 @@ type WindowState = {
   maximized: boolean
 }
 
-const store = new Store<WindowState>({
-  name: 'window-state',
-  clearInvalidConfig: true,
-  defaults: { bounds: null, maximized: false }
-})
+let store: Store<WindowState> | null = null
 
-function isOnScreen(bounds: Rectangle): boolean {
-  return screen.getAllDisplays().some(({ workArea }) => {
-    const overlapsX = bounds.x < workArea.x + workArea.width && bounds.x + bounds.width > workArea.x
-    const overlapsY =
-      bounds.y < workArea.y + workArea.height && bounds.y + bounds.height > workArea.y
-
-    return overlapsX && overlapsY
+// Resolve userData lazily: the app name is set after module evaluation, so
+// constructing the store at import time can land in the wrong directory.
+function getStore(): Store<WindowState> {
+  store ??= new Store<WindowState>({
+    name: 'window-state',
+    clearInvalidConfig: true,
+    defaults: { bounds: null, maximized: false }
   })
+
+  return store
+}
+
+function fitToDisplay(bounds: Rectangle): Rectangle | null {
+  const { workArea } = screen.getDisplayMatching(bounds)
+  const width = Math.min(bounds.width, workArea.width)
+  const height = Math.min(bounds.height, workArea.height)
+
+  if (width < MIN_WINDOW_WIDTH || height < MIN_WINDOW_HEIGHT) return null
+
+  return {
+    x: Math.min(Math.max(bounds.x, workArea.x), workArea.x + workArea.width - width),
+    y: Math.min(Math.max(bounds.y, workArea.y), workArea.y + workArea.height - height),
+    width,
+    height
+  }
 }
 
 export function loadWindowState(): { bounds: Rectangle; maximized: boolean } | null {
-  const state = store.store
+  const state = getStore().store
 
   if (!state.bounds) return null
-  if (state.bounds.width < MIN_WINDOW_WIDTH || state.bounds.height < MIN_WINDOW_HEIGHT) return null
-  if (!isOnScreen(state.bounds)) return null
 
-  return { bounds: state.bounds, maximized: state.maximized }
+  const bounds = fitToDisplay(state.bounds)
+
+  return bounds ? { bounds, maximized: state.maximized } : null
 }
 
 export function trackWindowState(window: BrowserWindow): void {
@@ -47,7 +60,7 @@ export function trackWindowState(window: BrowserWindow): void {
       timer = null
     }
 
-    store.set({ bounds: window.getNormalBounds(), maximized: window.isMaximized() })
+    getStore().set({ bounds: window.getNormalBounds(), maximized: window.isMaximized() })
   }
 
   function schedule(): void {
