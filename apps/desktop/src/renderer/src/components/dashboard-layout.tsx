@@ -35,6 +35,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
@@ -53,7 +56,14 @@ import DeskChatPanel from './desk-chat-panel'
 import LoadingScreen from './loading-screen'
 import ShellAlert from './shell-alert'
 
-const navigation = [
+type NavItem = {
+  title: string
+  to: string
+  icon: typeof BotIcon
+  children?: Array<{ title: string; to: string }>
+}
+
+const navigation: Array<{ label: string; items: Array<NavItem> }> = [
   {
     label: 'Notebook',
     items: [
@@ -66,7 +76,12 @@ const navigation = [
   {
     label: 'Developer Kit',
     items: [
-      { title: 'Measure', to: '/measure', icon: RulerIcon },
+      {
+        title: 'Measure',
+        to: '/measure',
+        icon: RulerIcon,
+        children: [{ title: 'Saved', to: '/measure/saved' }]
+      },
       { title: 'Incidents', to: '/incidents', icon: SirenIcon }
     ]
   }
@@ -99,11 +114,11 @@ function UserIdentity({ name, email }: { name: string; email: string }) {
 }
 
 function AppSidebar({
-  active,
+  pathname,
   onSelect,
   onSignOut
 }: {
-  active: string
+  pathname: string
   onSelect: (to: string) => void
   onSignOut: () => void
 }) {
@@ -132,11 +147,12 @@ function AppSidebar({
               <SidebarMenu>
                 {group.items.map((item) => {
                   const Icon = item.icon
+                  const active = pathname === item.to || pathname.startsWith(`${item.to}/`)
 
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
-                        isActive={active === item.title}
+                        isActive={active}
                         tooltip={item.title}
                         onClick={() => {
                           onSelect(item.to)
@@ -146,6 +162,23 @@ function AppSidebar({
                         <Icon />
                         <span>{item.title}</span>
                       </SidebarMenuButton>
+                      {item.children ? (
+                        <SidebarMenuSub>
+                          {item.children.map((child) => (
+                            <SidebarMenuSubItem key={child.to}>
+                              <SidebarMenuSubButton
+                                isActive={pathname === child.to}
+                                onClick={() => {
+                                  onSelect(child.to)
+                                  if (isMobile) setOpenMobile(false)
+                                }}
+                              >
+                                <span>{child.title}</span>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      ) : null}
                     </SidebarMenuItem>
                   )
                 })}
@@ -227,7 +260,11 @@ export default function DashboardLayout() {
   return (
     <TooltipProvider>
       <SidebarProvider open={open} onOpenChange={setOpen} className="min-h-0 overflow-hidden">
-        <AppSidebar active={active} onSelect={navigate} onSignOut={() => setSignOutOpen(true)} />
+        <AppSidebar
+          pathname={pathname}
+          onSelect={navigate}
+          onSignOut={() => setSignOutOpen(true)}
+        />
         <SidebarInset className="min-h-0">
           <ShellAlert />
           <header className="bg-sidebar border-sidebar-border flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
