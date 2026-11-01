@@ -1,8 +1,9 @@
 import type { ComponentProps, ReactNode } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   FileTextIcon,
   ImageIcon,
+  ImageOffIcon,
   InfoIcon,
   ListTreeIcon,
   Maximize2Icon,
@@ -35,13 +36,15 @@ import { Textarea } from '@tars/ui/components/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
 import { cn } from '@tars/ui/lib/utils'
 
+import { fileSrc } from '../lib/files'
 import {
-  loadIncidentEvidenceImage,
   useAddIncidentEvidence,
+  useAddIncidentScreenshot,
+  useIncidentImageUrl,
   useRebuildIncidentTimeline,
   useRemoveIncidentEvidence
 } from '../lib/incident'
-import { prepareMeasureImage } from '../lib/measure'
+import { dataUrlToBlob, prepareMeasureImage } from '../lib/measure'
 import { recordSegment, toWav } from '../lib/voice'
 import { useShellAlertStore } from '../stores/alert'
 import ConfirmDialog from './confirm-dialog'
@@ -106,35 +109,23 @@ function groupEvidenceByDay(
 }
 
 function EvidenceThumb({ evidenceId }: { evidenceId: string }) {
-  const [url, setUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-
-    void loadIncidentEvidenceImage(evidenceId)
-      .then((value) => {
-        if (active) setUrl(value)
-        else URL.revokeObjectURL(value)
-      })
-      .catch(() => undefined)
-
-    return () => {
-      active = false
-    }
-  }, [evidenceId])
-
-  useEffect(() => {
-    if (!url) return
-
-    return () => URL.revokeObjectURL(url)
-  }, [url])
+  const image = useIncidentImageUrl(evidenceId)
+  const [failed, setFailed] = useState(false)
+  const src = image.data ? fileSrc(image.data.url) : null
 
   return (
     <div className="bg-muted/30 flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden border">
-      {url ? (
-        <img src={url} alt="" className="h-full w-full object-cover" />
-      ) : (
+      {src && !failed ? (
+        <img
+          src={src}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : image.isPending ? (
         <Spinner className="size-3.5" />
+      ) : (
+        <ImageOffIcon className="size-4" />
       )}
     </div>
   )
@@ -161,6 +152,7 @@ export default function IncidentEvidencePanel({
   const details = detailsId ? (detail.evidence.find((item) => item.id === detailsId) ?? null) : null
   const fileRef = useRef<HTMLInputElement>(null)
   const add = useAddIncidentEvidence()
+  const addScreenshot = useAddIncidentScreenshot()
   const rebuild = useRebuildIncidentTimeline()
   const remove = useRemoveIncidentEvidence()
   const showAlert = useShellAlertStore((state) => state.showAlert)
@@ -200,7 +192,10 @@ export default function IncidentEvidencePanel({
       for (const file of files) {
         const photo = await prepareMeasureImage(file)
 
-        await add.mutateAsync({ incidentId, kind: 'screenshot', image: photo.dataUrl })
+        await addScreenshot.mutateAsync({
+          incidentId,
+          image: dataUrlToBlob(photo.dataUrl)
+        })
       }
 
       await refreshTimeline()

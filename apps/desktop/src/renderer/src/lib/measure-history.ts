@@ -2,25 +2,16 @@ import type { MeasureHistoryDetailOutput, MeasureUnit } from '@tars/core/schemas
 import { ERRORS } from '@tars/core/errors'
 
 import type { MeasureBatchItem } from './measure'
+import { fileSrc, uploadFile } from './files'
 import { blobToDataUrl, createMeasureThumbnail, dataUrlToBlob } from './measure'
 import { orpc } from './orpc'
 
-async function uploadImage(itemId: string, variant: 'full' | 'thumb', blob: Blob): Promise<void> {
-  await orpc.measure.history.upload.call({
-    itemId,
-    variant,
-    file: new File([blob], `${itemId}-${variant}.jpg`, {
-      type: blob.type || 'image/jpeg'
-    })
-  })
-}
+async function fetchImage(url: string): Promise<Blob> {
+  const response = await fetch(fileSrc(url))
 
-async function fetchImage(itemId: string, variant: 'full' | 'thumb'): Promise<Blob> {
-  const stream = await orpc.measure.history.image.call({ itemId, variant })
+  if (!response.ok) throw new Error(ERRORS.historyLoadFailed)
 
-  return new Response(stream, {
-    headers: { 'content-type': 'image/jpeg' }
-  }).blob()
+  return response.blob()
 }
 
 function historyItem(item: MeasureBatchItem, id: string) {
@@ -58,7 +49,7 @@ export async function saveMeasureRun(
   let runId: string | null = null
 
   try {
-    const begin = await orpc.measure.history.begin.call({
+    const { runId: savedRunId, items: targets } = await orpc.measure.history.begin.call({
       referenceId,
       referenceLabel: result.reference.label,
       referencePrompt: result.reference.prompt,
@@ -70,11 +61,15 @@ export async function saveMeasureRun(
       items: uploadItems.map(({ item, id }) => historyItem(item, id))
     })
 
-    runId = begin.runId
+    runId = savedRunId
 
     for (const { item, id } of uploadItems) {
-      await uploadImage(id, 'full', dataUrlToBlob(item.photo.dataUrl))
-      await uploadImage(id, 'thumb', await createMeasureThumbnail(item.photo))
+      const target = targets.find((entry) => entry.itemId === id)
+
+      if (!target) throw new Error(ERRORS.historySaveFailed)
+
+      await uploadFile(target.imageKey, dataUrlToBlob(item.photo.dataUrl))
+      await uploadFile(target.thumbKey, await createMeasureThumbnail(item.photo))
     }
 
     await orpc.measure.history.complete.call({ id: runId })
@@ -96,7 +91,7 @@ export async function loadMeasureRun(id: string): Promise<{
   const detail = await orpc.measure.history.get.call({ id })
   const photos = await Promise.all(
     detail.items.map(async (item) => {
-      const blob = await fetchImage(item.id, 'full')
+      const blob = await fetchImage(item.imageUrl)
 
       return [item.id, await blobToDataUrl(blob)] as const
     })

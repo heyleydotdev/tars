@@ -1,4 +1,5 @@
-import { getTimeZone } from './incident'
+import { addIncidentScreenshot, getTimeZone } from './incident'
+import { dataUrlToBlob } from './measure'
 import { orpc } from './orpc'
 
 const ERROR_PAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520">
@@ -106,7 +107,6 @@ export async function seedIncidentDemo(
       incidentId,
       kind: item.kind,
       content: item.content,
-      image: null,
       occurredAt: null,
       timezone: getTimeZone()
     })
@@ -115,26 +115,12 @@ export async function seedIncidentDemo(
 
   const errorPage = await svgToPng(ERROR_PAGE_SVG, 900, 520)
 
-  await orpc.incident.addEvidence.call({
-    incidentId,
-    kind: 'screenshot',
-    content: null,
-    image: errorPage,
-    occurredAt: null,
-    timezone: getTimeZone()
-  })
+  await addIncidentScreenshot(incidentId, dataUrlToBlob(errorPage))
   tick()
 
   const dashboard = await svgToPng(DASHBOARD_SVG, 900, 520)
 
-  await orpc.incident.addEvidence.call({
-    incidentId,
-    kind: 'screenshot',
-    content: null,
-    image: dashboard,
-    occurredAt: null,
-    timezone: getTimeZone()
-  })
+  await addIncidentScreenshot(incidentId, dataUrlToBlob(dashboard))
   tick()
 
   await orpc.incident.rebuildTimeline.call({ incidentId, timezone: getTimeZone() })

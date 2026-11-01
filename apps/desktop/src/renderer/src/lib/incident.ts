@@ -12,6 +12,7 @@ import type {
   UpdateIncidentEventInput
 } from '@tars/core/schemas/incident'
 
+import { deleteFile, uploadFile } from './files'
 import { orpc } from './orpc'
 
 const incidentsKey = orpc.incident.list.queryKey()
@@ -77,6 +78,36 @@ export function useAddIncidentEvidence() {
   return useIncidentMutation(
     (input: AddIncidentEvidenceInput) =>
       orpc.incident.addEvidence.call({ ...input, timezone: getTimeZone() }),
+    (input) => input.incidentId
+  )
+}
+
+export async function addIncidentScreenshot(
+  incidentId: string,
+  image: Blob
+): Promise<IncidentDetailOutput> {
+  const { evidenceId, imageKey } = await orpc.incident.evidenceUpload.call({ incidentId })
+
+  try {
+    await uploadFile(imageKey, image)
+
+    return await orpc.incident.addEvidence.call({
+      incidentId,
+      evidenceId,
+      imageKey,
+      kind: 'screenshot',
+      timezone: getTimeZone()
+    })
+  } catch (error) {
+    await deleteFile(imageKey).catch(() => undefined)
+    throw error
+  }
+}
+
+export function useAddIncidentScreenshot() {
+  return useIncidentMutation(
+    (input: { incidentId: string; image: Blob }) =>
+      addIncidentScreenshot(input.incidentId, input.image),
     (input) => input.incidentId
   )
 }
@@ -155,11 +186,10 @@ export function useApproveIncidentPostmortem() {
   )
 }
 
-export async function loadIncidentEvidenceImage(evidenceId: string): Promise<string> {
-  const stream = await orpc.incident.evidenceImage.call({ evidenceId })
-  const blob = await new Response(stream, {
-    headers: { 'content-type': 'image/jpeg' }
-  }).blob()
-
-  return URL.createObjectURL(blob)
+export function useIncidentImageUrl(evidenceId: string | null) {
+  return useQuery({
+    ...orpc.incident.imageUrl.queryOptions({ input: { evidenceId: evidenceId ?? '' } }),
+    enabled: Boolean(evidenceId),
+    staleTime: Infinity
+  })
 }
