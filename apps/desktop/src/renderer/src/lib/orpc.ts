@@ -1,6 +1,8 @@
 import { createRpcClient } from '@tars/api/client'
 
-const baseURL: string = import.meta.env.VITE_BETTER_AUTH_URL
+const baseURL = import.meta.env.VITE_BETTER_AUTH_URL
+
+if (!baseURL) throw new Error('VITE_BETTER_AUTH_URL is required')
 
 export const orpc = createRpcClient({
   origin: baseURL,
