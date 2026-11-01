@@ -207,25 +207,28 @@ export const measureHistoryIdSchema = z.object({
   id: z.string().min(1)
 })
 
-export const measureHistoryUploadSchema = z.object({
-  itemId: z.string().min(1),
-  variant: z.enum(['full', 'thumb']),
-  file: z.instanceof(Blob)
+export const measureHistoryBeginItemSchema = z.object({
+  itemId: z.string(),
+  imageKey: z.string(),
+  thumbKey: z.string()
 })
 
-export const measureHistoryImageSchema = z.object({
-  itemId: z.string().min(1),
-  variant: z.enum(['full', 'thumb'])
+export const measureHistoryBeginSchema = z.object({
+  runId: z.string(),
+  items: z.array(measureHistoryBeginItemSchema)
 })
 
-export const measureHistoryImageOutputSchema = z.instanceof(ReadableStream)
+export const measureHistoryDetailItemSchema = measureHistoryItemSchema.extend({
+  imageUrl: z.string(),
+  thumbUrl: z.string()
+})
 
 export const measureHistoryDetailSchema = measureHistorySummarySchema.extend({
   referenceId: z.string().nullable(),
   referencePrompt: z.string(),
   referenceWidthMm: z.number(),
   referenceHeightMm: z.number(),
-  items: z.array(measureHistoryItemSchema)
+  items: z.array(measureHistoryDetailItemSchema)
 })
 
 export type MeasureHistoryItemInput = z.input<typeof measureHistoryItemSchema>
@@ -238,10 +241,11 @@ export type MeasureHistoryListInput = z.input<typeof measureHistoryListSchema>
 export type MeasureHistoryListOutput = z.output<typeof measureHistoryListSchema>
 export type MeasureHistoryIdInput = z.input<typeof measureHistoryIdSchema>
 export type MeasureHistoryIdOutput = z.output<typeof measureHistoryIdSchema>
-export type MeasureHistoryUploadInput = z.input<typeof measureHistoryUploadSchema>
-export type MeasureHistoryUploadOutput = z.output<typeof measureHistoryUploadSchema>
-export type MeasureHistoryImageInput = z.input<typeof measureHistoryImageSchema>
-export type MeasureHistoryImageOutput = z.output<typeof measureHistoryImageSchema>
-export type MeasureHistoryImageResponse = z.output<typeof measureHistoryImageOutputSchema>
+export type MeasureHistoryBeginItemInput = z.input<typeof measureHistoryBeginItemSchema>
+export type MeasureHistoryBeginItemOutput = z.output<typeof measureHistoryBeginItemSchema>
+export type MeasureHistoryBeginInput = z.input<typeof measureHistoryBeginSchema>
+export type MeasureHistoryBeginOutput = z.output<typeof measureHistoryBeginSchema>
+export type MeasureHistoryDetailItemInput = z.input<typeof measureHistoryDetailItemSchema>
+export type MeasureHistoryDetailItemOutput = z.output<typeof measureHistoryDetailItemSchema>
 export type MeasureHistoryDetailInput = z.input<typeof measureHistoryDetailSchema>
 export type MeasureHistoryDetailOutput = z.output<typeof measureHistoryDetailSchema>

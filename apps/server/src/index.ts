@@ -4,16 +4,15 @@ import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
 import { requestId } from 'hono/request-id'
 
-import type { Auth } from '@tars/auth/server'
-import type { Database } from '@tars/db/client'
 import { rpcHandler, rpcWebSocketHandler } from '@tars/api/server'
 import { createAuth } from '@tars/auth/server'
 import { ERRORS } from '@tars/core/errors'
 import { createDb } from '@tars/db/client'
 
-type Variables = { db: Database; auth: Auth }
+import type { AppEnv } from './env'
+import { fileRoutes } from './routes/files'
 
-const app = new Hono<{ Bindings: Env; Variables: Variables }>()
+const app = new Hono<AppEnv>()
 
 app.use('/api/*', requestId())
 
@@ -24,7 +23,7 @@ app.use(
       c.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').includes(origin) ? origin : null,
     credentials: true,
     allowHeaders: ['content-type', 'authorization'],
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     exposeHeaders: ['Content-Disposition', 'Standard-Server'],
     maxAge: 600
   })
@@ -51,6 +50,8 @@ app.use('/api/*', async (c, next) => {
 
 app.all('/api/auth/*', (c) => c.get('auth').handler(c.req.raw))
 
+app.route('/api/files', fileRoutes)
+
 app.get('/api/ws', (c) => {
   if (c.req.header('upgrade') !== 'websocket') {
     return c.text(ERRORS.websocketUpgradeRequired, 426)
@@ -73,7 +74,8 @@ app.get('/api/ws', (c) => {
       db: c.get('db'),
       auth: c.get('auth'),
       metaAiApiKey: c.env.META_AI_API,
-      measureImages: c.env.MEASURE_IMAGES
+      fileSecret: c.env.FILE_SIGNING_SECRET,
+      files: c.env.FILES
     }
   })
 
@@ -87,7 +89,8 @@ app.use('/api/rpc/*', async (c, next) => {
       db: c.get('db'),
       auth: c.get('auth'),
       metaAiApiKey: c.env.META_AI_API,
-      measureImages: c.env.MEASURE_IMAGES
+      fileSecret: c.env.FILE_SIGNING_SECRET,
+      files: c.env.FILES
     }
   })
 

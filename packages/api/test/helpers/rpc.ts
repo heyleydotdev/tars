@@ -4,6 +4,7 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 
 import type { Auth } from '@tars/auth/server'
+import type { FileBucket } from '@tars/core/services/files'
 import type { Database as ApiDatabase } from '@tars/db/client'
 import { user } from '@tars/db/schema'
 import * as schema from '@tars/db/schema'
@@ -51,6 +52,38 @@ export async function createTestDb(): Promise<ApiDatabase> {
   return db
 }
 
+export type TestFiles = FileBucket & {
+  put: (key: string, bytes: Uint8Array, contentType: string) => void
+  has: (key: string) => boolean
+}
+
+export function createTestFiles(): TestFiles {
+  const objects = new Map<string, { bytes: ArrayBuffer; contentType: string }>()
+
+  return {
+    put: (key, bytes, contentType) => {
+      const buffer = new ArrayBuffer(bytes.byteLength)
+
+      new Uint8Array(buffer).set(bytes)
+      objects.set(key, { bytes: buffer, contentType })
+    },
+    has: (key) => objects.has(key),
+    get: async (key) => {
+      const object = objects.get(key)
+
+      if (!object) return null
+
+      return {
+        body: new Blob([object.bytes]).stream(),
+        httpMetadata: { contentType: object.contentType }
+      }
+    },
+    delete: async (keys) => {
+      for (const key of Array.isArray(keys) ? keys : [keys]) objects.delete(key)
+    }
+  }
+}
+
 const session = {
   user: {
     id: TEST_USER_ID,
@@ -76,7 +109,8 @@ const session = {
 export async function callRpcRaw(
   db: ApiDatabase,
   path: string,
-  input?: unknown
+  input?: unknown,
+  files: FileBucket = createTestFiles()
 ): Promise<{ status: number; text: string }> {
   const { matched, response } = await rpcHandler.handle(
     new Request(`http://test/api/rpc/${path}`, {
@@ -90,7 +124,8 @@ export async function callRpcRaw(
         db,
         auth: { api: { getSession: async () => session } } as unknown as Auth,
         metaAiApiKey: '',
-        measureImages: {} as never
+        fileSecret: 'file-secret-file-secret-file-secret-32',
+        files
       }
     }
   )
@@ -103,9 +138,10 @@ export async function callRpcRaw(
 export async function callRpc(
   db: ApiDatabase,
   path: string,
-  input?: unknown
+  input?: unknown,
+  files?: FileBucket
 ): Promise<{ status: number; body: unknown }> {
-  const { status, text } = await callRpcRaw(db, path, input)
+  const { status, text } = await callRpcRaw(db, path, input, files)
 
   return { status, body: text ? JSON.parse(text) : null }
 }

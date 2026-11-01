@@ -1,22 +1,26 @@
 import type {
+  MeasureHistoryBeginOutput,
   MeasureHistoryDetailOutput,
   MeasureHistoryListOutput,
   MeasureResultOutput,
   MeasureUnit
 } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
-import {
-  measureHistoryIdSchema,
-  measureHistoryImageOutputSchema,
-  measureHistoryImageSchema,
-  measureHistorySaveSchema,
-  measureHistoryUploadSchema
-} from '@tars/core/schemas/measure'
+import { measureHistoryIdSchema, measureHistorySaveSchema } from '@tars/core/schemas/measure'
+import { deleteFiles, signFileKey } from '@tars/core/services/files'
+import { fileKey, signedFilePath } from '@tars/core/utils/files'
 import { measureRun, measureRunItem } from '@tars/db/schema'
 import { and, desc, eq } from '@tars/db/sql'
 
 import { protectedProcedure } from '../context'
-import { BadRequestError, InternalServerError, NotFoundError } from '../errors'
+import { InternalServerError, NotFoundError } from '../errors'
+
+function measureFileKeys(userId: string, runId: string, itemId: string) {
+  return {
+    imageKey: fileKey('measure', userId, runId, `${itemId}.jpg`),
+    thumbKey: fileKey('measure', userId, runId, `${itemId}-thumb.jpg`)
+  }
+}
 
 const summaryColumns = {
   id: measureRun.id,
@@ -71,7 +75,7 @@ export const measureHistoryRouter = {
 
       if (!run) throw errors.NOT_FOUND()
 
-      const items = await context.db
+      const rows = await context.db
         .select({
           id: measureRunItem.id,
           name: measureRunItem.name,
@@ -79,81 +83,34 @@ export const measureHistoryRouter = {
           error: measureRunItem.error,
           imageWidth: measureRunItem.imageWidth,
           imageHeight: measureRunItem.imageHeight,
-          result: measureRunItem.result
+          result: measureRunItem.result,
+          imageKey: measureRunItem.imageKey,
+          thumbKey: measureRunItem.thumbKey
         })
         .from(measureRunItem)
         .where(eq(measureRunItem.runId, input.id))
         .orderBy(measureRunItem.sortOrder)
 
+      const items = await Promise.all(
+        rows.map(async ({ imageKey, thumbKey, ...item }) => ({
+          ...item,
+          result: item.result as MeasureResultOutput | null,
+          imageUrl: signedFilePath(imageKey, await signFileKey(context.fileSecret, imageKey)),
+          thumbUrl: signedFilePath(thumbKey, await signFileKey(context.fileSecret, thumbKey))
+        }))
+      )
+
       return {
         ...run,
         unit: run.unit as MeasureUnit,
         createdAt: run.createdAt.toISOString(),
-        items: items.map((item) => ({
-          ...item,
-          result: item.result as MeasureResultOutput | null
-        }))
+        items
       }
-    }),
-
-  upload: protectedProcedure
-    .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError })
-    .input(measureHistoryUploadSchema)
-    .handler(async ({ input, context, errors }): Promise<void> => {
-      const userId = context.session.user.id
-      const [item] = await context.db
-        .select({ imageKey: measureRunItem.imageKey, thumbKey: measureRunItem.thumbKey })
-        .from(measureRunItem)
-        .innerJoin(measureRun, eq(measureRun.id, measureRunItem.runId))
-        .where(and(eq(measureRunItem.id, input.itemId), eq(measureRun.userId, userId)))
-        .limit(1)
-
-      if (!item) throw errors.NOT_FOUND()
-
-      if (!input.file.type.startsWith('image/')) {
-        throw errors.BAD_REQUEST({ message: ERRORS.imageTypeInvalid })
-      }
-
-      if (input.file.size > 25 * 1024 * 1024) {
-        throw errors.BAD_REQUEST({ message: ERRORS.imageTooLarge })
-      }
-
-      const key = input.variant === 'thumb' ? item.thumbKey : item.imageKey
-
-      await context.measureImages.put(key, input.file.stream(), {
-        httpMetadata: { contentType: input.file.type }
-      })
-    }),
-
-  image: protectedProcedure
-    .errors({ NOT_FOUND: NotFoundError })
-    .input(measureHistoryImageSchema)
-    .output(measureHistoryImageOutputSchema)
-    .handler(async ({ input, context, errors }): Promise<ReadableStream> => {
-      const userId = context.session.user.id
-      const [item] = await context.db
-        .select({ imageKey: measureRunItem.imageKey, thumbKey: measureRunItem.thumbKey })
-        .from(measureRunItem)
-        .innerJoin(measureRun, eq(measureRun.id, measureRunItem.runId))
-        .where(and(eq(measureRunItem.id, input.itemId), eq(measureRun.userId, userId)))
-        .limit(1)
-
-      if (!item) throw errors.NOT_FOUND()
-
-      const key = input.variant === 'thumb' ? item.thumbKey : item.imageKey
-      const object = await context.measureImages.get(key)
-
-      if (!object) throw errors.NOT_FOUND()
-
-      context.resHeaders?.set('content-type', object.httpMetadata?.contentType ?? 'image/jpeg')
-      context.resHeaders?.set('cache-control', 'private, max-age=3600')
-
-      return object.body
     }),
 
   begin: protectedProcedure
     .input(measureHistorySaveSchema)
-    .handler(async ({ input, context }): Promise<{ runId: string }> => {
+    .handler(async ({ input, context }): Promise<MeasureHistoryBeginOutput> => {
       const userId = context.session.user.id
       const runId = crypto.randomUUID()
       const measuredCount = input.items.filter((item) => item.status === 'done').length
@@ -185,12 +142,17 @@ export const measureHistoryRouter = {
           imageWidth: item.imageWidth,
           imageHeight: item.imageHeight,
           result: item.result,
-          imageKey: `measure/${userId}/${runId}/${item.id}.jpg`,
-          thumbKey: `measure/${userId}/${runId}/${item.id}-thumb.jpg`
+          ...measureFileKeys(userId, runId, item.id)
         }))
       )
 
-      return { runId }
+      return {
+        runId,
+        items: input.items.map((item) => ({
+          itemId: item.id,
+          ...measureFileKeys(userId, runId, item.id)
+        }))
+      }
     }),
 
   complete: protectedProcedure
@@ -226,7 +188,7 @@ export const measureHistoryRouter = {
 
       if (keys.length > 0) {
         try {
-          await context.measureImages.delete(keys)
+          await deleteFiles(context.files, keys)
         } catch {
           throw errors.INTERNAL_SERVER_ERROR({
             message: ERRORS.historyDeleteFailed

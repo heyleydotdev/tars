@@ -5,9 +5,12 @@ import type {
   IncidentDetailOutput,
   IncidentEventOutput,
   IncidentEvidenceOutput,
+  IncidentEvidenceUploadOutput,
+  IncidentImageUrlOutput,
   IncidentQuestionOutput,
   IncidentSummaryOutput
 } from '@tars/core/schemas/incident'
+import type { FileBucket, FileObject } from '@tars/core/services/files'
 import type { Database } from '@tars/db/client'
 import type {
   IncidentAnalysisSelect,
@@ -51,6 +54,8 @@ import {
   incidentReadinessJsonSchema,
   incidentRootCauseJsonSchema
 } from '@tars/core/schemas/incident-ai'
+import { deleteFiles, signFileKey } from '@tars/core/services/files'
+import { fileKey, signedFilePath } from '@tars/core/utils/files'
 import { formatZonedIso } from '@tars/core/utils/format'
 import {
   parseIncidentExtraction,
@@ -301,20 +306,19 @@ async function insertEvents(db: Database, rows: Array<IncidentEventInsert>): Pro
   }
 }
 
-function dataUrlBytes(dataUrl: string): { bytes: Uint8Array; contentType: string } {
-  const [header, payload] = dataUrl.split(',')
+async function dataUrlFromFile(object: FileObject): Promise<string> {
+  const bytes = new Uint8Array(await new Response(object.body).arrayBuffer())
+  let binary = ''
 
-  if (!header || payload === undefined) throw new Error(ERRORS.imageUnreadable)
+  for (const byte of bytes) binary += String.fromCharCode(byte)
 
-  const contentType = /data:([^;]+)/.exec(header)?.[1] ?? 'image/jpeg'
-  const binary = atob(payload)
-  const bytes = new Uint8Array(binary.length)
+  return `data:${object.httpMetadata?.contentType ?? 'image/jpeg'};base64,${btoa(binary)}`
+}
 
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index)
-  }
-
-  return { bytes, contentType }
+async function deleteImages(bucket: FileBucket, keys: Array<string>): Promise<void> {
+  await deleteFiles(bucket, keys).catch((error: unknown) => {
+    console.error('incident image cleanup failed', error)
+  })
 }
 
 async function mergeTimeline(
@@ -444,13 +448,56 @@ export const incidentRouter = {
       loadDetail(context.db, context.session.user.id, input.incidentId)
     ),
 
+  imageUrl: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(incidentEvidenceIdSchema)
+    .handler(async ({ input, context }): Promise<IncidentImageUrlOutput> => {
+      const [row] = await context.db
+        .select({ imageKey: incidentEvidence.imageKey })
+        .from(incidentEvidence)
+        .innerJoin(incident, eq(incident.id, incidentEvidence.incidentId))
+        .where(
+          and(
+            eq(incidentEvidence.id, input.evidenceId),
+            eq(incident.userId, context.session.user.id)
+          )
+        )
+        .limit(1)
+
+      if (!row?.imageKey) throw new NotFoundError()
+
+      const signature = await signFileKey(context.fileSecret, row.imageKey)
+
+      return { url: signedFilePath(row.imageKey, signature) }
+    }),
+
+  evidenceUpload: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(incidentIdSchema)
+    .handler(async ({ input, context }): Promise<IncidentEvidenceUploadOutput> => {
+      const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
+      const evidenceId = crypto.randomUUID()
+
+      return {
+        evidenceId,
+        imageKey: fileKey('incident', context.session.user.id, owner.id, `${evidenceId}.jpg`)
+      }
+    }),
+
   remove: protectedProcedure
     .errors({ NOT_FOUND: NotFoundError })
     .input(incidentIdSchema)
     .handler(async ({ input, context }): Promise<void> => {
       const row = await loadIncident(context.db, context.session.user.id, input.incidentId)
+      const images = await context.db
+        .select({ imageKey: incidentEvidence.imageKey })
+        .from(incidentEvidence)
+        .where(eq(incidentEvidence.incidentId, row.id))
+      const keys = images.flatMap((item) => (item.imageKey ? [item.imageKey] : []))
 
       await context.db.delete(incident).where(eq(incident.id, row.id))
+
+      await deleteImages(context.files, keys)
     }),
 
   addEvidence: protectedProcedure
@@ -463,7 +510,7 @@ export const incidentRouter = {
     .use(openAiMiddleware)
     .handler(async ({ input, context, errors }): Promise<IncidentDetailOutput> => {
       const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
-      const evidenceId = crypto.randomUUID()
+      const evidenceId = input.evidenceId ?? crypto.randomUUID()
       const id = owner.id
 
       const [countRow] = await context.db
@@ -475,16 +522,32 @@ export const incidentRouter = {
         throw errors.BAD_REQUEST({ message: ERRORS.incidentEvidenceFull })
       }
 
+      if (input.evidenceId) {
+        const [existing] = await context.db
+          .select({ id: incidentEvidence.id })
+          .from(incidentEvidence)
+          .where(eq(incidentEvidence.id, evidenceId))
+          .limit(1)
+
+        if (existing) throw errors.BAD_REQUEST({ message: ERRORS.uploadRejected })
+      }
+
       let imageKey: string | null = null
+      let image: string | null = null
 
-      if (input.kind === 'screenshot' && input.image) {
-        const { bytes, contentType } = dataUrlBytes(input.image)
+      if (input.kind === 'screenshot' && input.imageKey) {
+        const expected = fileKey('incident', context.session.user.id, id, `${evidenceId}.jpg`)
 
-        imageKey = `incident/${context.session.user.id}/${id}/${evidenceId}.jpg`
+        if (input.imageKey !== expected) {
+          throw errors.BAD_REQUEST({ message: ERRORS.uploadRejected })
+        }
 
-        await context.measureImages.put(imageKey, bytes.buffer as ArrayBuffer, {
-          httpMetadata: { contentType }
-        })
+        const object = await context.files.get(input.imageKey)
+
+        if (!object) throw errors.BAD_REQUEST({ message: ERRORS.uploadMissing })
+
+        imageKey = input.imageKey
+        image = await dataUrlFromFile(object)
       }
 
       const occurredAt = parseIncidentTime(input.occurredAt)
@@ -508,7 +571,7 @@ export const incidentRouter = {
       const offset = Number(existingEvents?.count ?? 0)
 
       try {
-        if (!input.image && !input.content) {
+        if (!image && !input.content) {
           throw new Error(ERRORS.incidentEvidenceRequired)
         }
 
@@ -523,14 +586,14 @@ export const incidentRouter = {
             fileName: null,
             timezone: input.timezone
           }),
-          input: input.image
+          input: image
             ? [
                 {
                   type: 'message',
                   role: 'user',
                   content: [
                     { type: 'input_text', text: 'Extract incident events from this screenshot.' },
-                    { type: 'input_image', image_url: input.image, detail: 'auto' }
+                    { type: 'input_image', image_url: image, detail: 'auto' }
                   ]
                 }
               ]
@@ -588,7 +651,11 @@ export const incidentRouter = {
     .input(incidentEvidenceIdSchema)
     .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
       const [row] = await context.db
-        .select({ id: incidentEvidence.id, incidentId: incidentEvidence.incidentId })
+        .select({
+          id: incidentEvidence.id,
+          incidentId: incidentEvidence.incidentId,
+          imageKey: incidentEvidence.imageKey
+        })
         .from(incidentEvidence)
         .innerJoin(incident, eq(incident.id, incidentEvidence.incidentId))
         .where(
@@ -602,6 +669,8 @@ export const incidentRouter = {
       if (!row) throw new NotFoundError()
 
       await context.db.delete(incidentEvidence).where(eq(incidentEvidence.id, row.id))
+
+      if (row.imageKey) await deleteImages(context.files, [row.imageKey])
 
       const events = await context.db
         .select()
@@ -875,33 +944,5 @@ export const incidentRouter = {
       await touchIncident(context.db, owner.id)
 
       return loadDetail(context.db, context.session.user.id, owner.id)
-    }),
-
-  evidenceImage: protectedProcedure
-    .errors({ NOT_FOUND: NotFoundError })
-    .input(incidentEvidenceIdSchema)
-    .handler(async ({ input, context }): Promise<ReadableStream> => {
-      const [row] = await context.db
-        .select({ imageKey: incidentEvidence.imageKey })
-        .from(incidentEvidence)
-        .innerJoin(incident, eq(incident.id, incidentEvidence.incidentId))
-        .where(
-          and(
-            eq(incidentEvidence.id, input.evidenceId),
-            eq(incident.userId, context.session.user.id)
-          )
-        )
-        .limit(1)
-
-      if (!row?.imageKey) throw new NotFoundError()
-
-      const object = await context.measureImages.get(row.imageKey)
-
-      if (!object) throw new NotFoundError()
-
-      context.resHeaders?.set('content-type', object.httpMetadata?.contentType ?? 'image/jpeg')
-      context.resHeaders?.set('cache-control', 'private, max-age=3600')
-
-      return object.body
     })
 }

@@ -6,29 +6,19 @@ import { os } from '@orpc/server'
 import OpenAIClient from 'openai'
 
 import type { Auth } from '@tars/auth/server'
+import type { FileBucket } from '@tars/core/services/files'
 import type { Database } from '@tars/db/client'
 import { META_MODEL_API_URL } from '@tars/core/constants'
 
 import { UnauthorizedError } from './errors'
-
-export type MeasureImageBucket = {
-  put: (
-    key: string,
-    value: ArrayBuffer | ReadableStream,
-    options?: { httpMetadata?: { contentType?: string } }
-  ) => Promise<unknown>
-  get: (
-    key: string
-  ) => Promise<{ body: ReadableStream; httpMetadata?: { contentType?: string } } | null>
-  delete: (key: string | Array<string>) => Promise<void>
-}
 
 type RpcServerContext = RequestHeadersHandlerPluginContext &
   ResponseHeadersHandlerPluginContext & {
     db: Database
     auth: Auth
     metaAiApiKey: string
-    measureImages: MeasureImageBucket
+    fileSecret: string
+    files: FileBucket
   }
 
 export const base = os.$context<RpcServerContext>()

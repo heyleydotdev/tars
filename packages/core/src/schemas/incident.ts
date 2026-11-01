@@ -108,6 +108,7 @@ export const incidentPromptSchema = z.object({
 export const addIncidentEvidenceSchema = z
   .object({
     incidentId: z.string().min(1),
+    evidenceId: z.string().uuid().optional(),
     kind: z.enum(['screenshot', 'log', 'text', 'voice']),
     content: z
       .string()
@@ -115,17 +116,12 @@ export const addIncidentEvidenceSchema = z
       .max(INCIDENT_EVIDENCE_CHARS, ERRORS.incidentEvidenceTooLong)
       .nullable()
       .default(null),
-    image: z
-      .string()
-      .startsWith('data:image/', ERRORS.imageTypeInvalid)
-      .max(8_000_000, ERRORS.imageTooLarge)
-      .nullable()
-      .default(null),
+    imageKey: z.string().max(256).nullable().default(null),
     occurredAt: z.string().nullable().default(null),
     timezone: z.string().max(64).optional()
   })
   .refine(
-    (input) => (input.kind === 'screenshot' ? Boolean(input.image) : Boolean(input.content)),
+    (input) => (input.kind === 'screenshot' ? Boolean(input.imageKey) : Boolean(input.content)),
     {
       message: ERRORS.incidentEvidenceRequired
     }
@@ -148,6 +144,15 @@ export const saveIncidentPostmortemSchema = z.object({
 
 export const incidentEvidenceIdSchema = z.object({
   evidenceId: z.string().min(1)
+})
+
+export const incidentImageUrlOutputSchema = z.object({
+  url: z.string().min(1)
+})
+
+export const incidentEvidenceUploadOutputSchema = z.object({
+  evidenceId: z.string(),
+  imageKey: z.string()
 })
 
 export type IncidentStatus = z.output<typeof incidentStatusSchema>
@@ -186,3 +191,5 @@ export type SaveIncidentPostmortemInput = z.input<typeof saveIncidentPostmortemS
 export type SaveIncidentPostmortemOutput = z.output<typeof saveIncidentPostmortemSchema>
 export type IncidentEvidenceIdInput = z.input<typeof incidentEvidenceIdSchema>
 export type IncidentEvidenceIdOutput = z.output<typeof incidentEvidenceIdSchema>
+export type IncidentImageUrlOutput = z.output<typeof incidentImageUrlOutputSchema>
+export type IncidentEvidenceUploadOutput = z.output<typeof incidentEvidenceUploadOutputSchema>

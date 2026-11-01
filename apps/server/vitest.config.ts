@@ -12,6 +12,7 @@ export default defineConfig({
       miniflare: {
         bindings: {
           BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-32',
+          FILE_SIGNING_SECRET: 'file-secret-file-secret-file-secret-32',
           BETTER_AUTH_URL: 'http://localhost:3001',
           BETTER_AUTH_TRUSTED_ORIGINS: 'http://localhost:3000,com.tars.desktop:/',
           META_AI_API: ''

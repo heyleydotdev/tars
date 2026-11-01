@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { IncidentDetailOutput, IncidentListOutput } from '@tars/core/schemas/incident'
 import type { Database } from '@tars/db/client'
-import { incident, incidentEvent, incidentQuestion } from '@tars/db/schema'
+import { verifyFileKey } from '@tars/core/services/files'
+import { incident, incidentEvent, incidentEvidence, incidentQuestion } from '@tars/db/schema'
 
-import { callRpc, createTestDb, TEST_USER_ID } from '../helpers/rpc'
+import { callRpc, createTestDb, createTestFiles, TEST_USER_ID } from '../helpers/rpc'
 
 const INCIDENT_ID = 'incident-1'
 const QUESTION_ID = 'question-1'
@@ -79,5 +80,84 @@ describe('incident.answerQuestion', () => {
       occurredAt: null,
       content: 'No flag changed.'
     })
+  })
+})
+
+const IMAGE_KEY = `incident/${TEST_USER_ID}/${INCIDENT_ID}/evidence-1.jpg`
+
+describe('incident.imageUrl', () => {
+  it('signs an image URL for owned evidence', async () => {
+    await db.insert(incidentEvidence).values({
+      id: 'evidence-1',
+      incidentId: INCIDENT_ID,
+      kind: 'screenshot',
+      source: 'upload',
+      imageKey: IMAGE_KEY,
+      status: 'ready'
+    })
+
+    const response = await callRpc(db, 'incident/imageUrl', { evidenceId: 'evidence-1' })
+    const { url } = (response.body as { json: { url: string } }).json
+    const signature = new URL(url, 'http://test').searchParams.get('sig') ?? ''
+
+    expect(url).toMatch(/^\/api\/files\/incident\/user-test\/incident-1\/evidence-1\.jpg\?sig=/)
+    expect(
+      await verifyFileKey('file-secret-file-secret-file-secret-32', IMAGE_KEY, signature)
+    ).toBe(true)
+  })
+
+  it('rejects evidence without an image', async () => {
+    await db.insert(incidentEvidence).values({
+      id: 'evidence-text',
+      incidentId: INCIDENT_ID,
+      kind: 'text',
+      source: 'upload',
+      content: 'note',
+      status: 'ready'
+    })
+
+    const response = await callRpc(db, 'incident/imageUrl', { evidenceId: 'evidence-text' })
+
+    expect(response.status).toBe(404)
+  })
+})
+
+describe('incident.evidenceUpload', () => {
+  it('reserves a key owned by the session user', async () => {
+    const response = await callRpc(db, 'incident/evidenceUpload', { incidentId: INCIDENT_ID })
+    const target = (response.body as { json: { evidenceId: string; imageKey: string } }).json
+
+    expect(response.status).toBe(200)
+    expect(target.imageKey).toBe(`incident/${TEST_USER_ID}/${INCIDENT_ID}/${target.evidenceId}.jpg`)
+  })
+})
+
+describe('incident.addEvidence', () => {
+  it('rejects an image key that is not the reserved evidence key', async () => {
+    const response = await callRpc(db, 'incident/addEvidence', {
+      incidentId: INCIDENT_ID,
+      evidenceId: 'evidence-2',
+      kind: 'screenshot',
+      imageKey: `incident/${TEST_USER_ID}/${INCIDENT_ID}/other.jpg`
+    })
+
+    expect(response.status).toBe(400)
+  })
+
+  it('rejects a key that was never uploaded', async () => {
+    const files = createTestFiles()
+    const response = await callRpc(
+      db,
+      'incident/addEvidence',
+      {
+        incidentId: INCIDENT_ID,
+        evidenceId: 'evidence-3',
+        kind: 'screenshot',
+        imageKey: `incident/${TEST_USER_ID}/${INCIDENT_ID}/evidence-3.jpg`
+      },
+      files
+    )
+
+    expect(response.status).toBe(400)
   })
 })

@@ -21,8 +21,8 @@
   ],
   "r2_buckets": [
     {
-      "binding": "MEASURE_IMAGES",
-      "bucket_name": "tars-measure-images"
+      "binding": "FILES",
+      "bucket_name": "tars-files"
     }
   ],
   "dev": {
@@ -34,7 +34,7 @@
     "BETTER_AUTH_TRUSTED_ORIGINS": "http://localhost:3000,com.tars.desktop:/"
   },
   "secrets": {
-    "required": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "META_AI_API"]
+    "required": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "META_AI_API", "FILE_SIGNING_SECRET"]
   }
   /**
    * Smart Placement
