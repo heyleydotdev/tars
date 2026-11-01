@@ -5,6 +5,7 @@ import { Link, useLoaderData, useNavigate } from 'react-router'
 import type { IncidentSummaryOutput } from '@tars/core/schemas/incident'
 import { ERRORS } from '@tars/core/errors'
 import { formatTime, toDateKey } from '@tars/core/utils/format'
+import { titleCase } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
 import {
   ContextMenu,
@@ -140,6 +141,18 @@ export default function Incidents() {
           count={String(items.length)}
           accent="bg-sky-400"
           className="bg-background"
+          headerRight={
+            <div className="text-muted-foreground flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden className="size-1.5 bg-amber-300" />
+                Open
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden className="size-1.5 bg-emerald-400" />
+                Closed
+              </span>
+            </div>
+          }
           footer={
             <>
               <span>
@@ -195,24 +208,23 @@ export default function Incidents() {
                           >
                             <span className="min-w-0 flex-1">
                               <span className="flex items-center gap-2">
-                                <span className="text-foreground line-clamp-1 text-xs/6 font-medium">
-                                  {incident.title}
-                                </span>
                                 <span
+                                  aria-hidden
                                   className={
                                     incident.status === 'open'
-                                      ? 'font-mono text-xs/6 text-amber-300 uppercase'
-                                      : 'font-mono text-xs/6 text-emerald-400 uppercase'
+                                      ? 'size-1.5 shrink-0 bg-amber-300'
+                                      : 'size-1.5 shrink-0 bg-emerald-400'
                                   }
-                                >
-                                  {incident.status}
+                                />
+                                <span className="text-foreground line-clamp-1 text-xs/6 font-medium">
+                                  {titleCase(incident.title)}
                                 </span>
                               </span>
                               <span className="text-muted-foreground mt-0.5 line-clamp-1 text-xs/6">
                                 {incident.summary ?? 'Timeline not merged yet.'}
                               </span>
                             </span>
-                            <span className="text-muted-foreground shrink-0 text-right font-mono text-xs/6">
+                            <span className="text-muted-foreground shrink-0 text-right font-mono text-xs/6 tabular-nums">
                               {incident.evidenceCount} evidence
                               <span className="block">{formatTime(incident.updatedAt)}</span>
                             </span>
