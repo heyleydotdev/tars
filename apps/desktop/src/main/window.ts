@@ -6,6 +6,12 @@ import { WINDOW_BACKGROUND } from '@tars/core/constants'
 
 import icon from '../../resources/icon.png?asset'
 import { requestMicrophoneAccess } from './ipc/media'
+import {
+  loadWindowState,
+  MIN_WINDOW_HEIGHT,
+  MIN_WINDOW_WIDTH,
+  trackWindowState
+} from './window-state'
 
 let quitting = false
 
@@ -52,13 +58,15 @@ function openExternal(url: string): void {
 export function createWindow(): BrowserWindow {
   // 80% of the work area, capped so large monitors don't open a full-desktop window.
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
+  const saved = loadWindowState()
 
   const window = new BrowserWindow({
-    width: Math.min(1280, Math.round(screenWidth * 0.8)),
-    height: Math.min(800, Math.round(screenHeight * 0.8)),
-    minWidth: 640,
-    minHeight: 480,
-    center: true,
+    width: saved?.bounds.width ?? Math.min(1280, Math.round(screenWidth * 0.8)),
+    height: saved?.bounds.height ?? Math.min(800, Math.round(screenHeight * 0.8)),
+    ...(saved ? { x: saved.bounds.x, y: saved.bounds.y } : {}),
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
+    center: !saved,
     show: false,
     autoHideMenuBar: true,
     frame: false,
@@ -69,6 +77,10 @@ export function createWindow(): BrowserWindow {
       sandbox: false
     }
   })
+
+  if (saved?.maximized) window.maximize()
+
+  trackWindowState(window)
 
   window.webContents.session.setPermissionCheckHandler(
     (_webContents, permission, _origin, details) =>
