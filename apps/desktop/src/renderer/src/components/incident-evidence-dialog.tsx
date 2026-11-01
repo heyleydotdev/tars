@@ -38,16 +38,25 @@ export default function IncidentEvidenceDialog({
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs/6">
               <dt className="text-muted-foreground">Time</dt>
               <dd>
-                {evidence.occurredAt ? formatDateTime(evidence.occurredAt) : 'No time'}
+                {evidence.occurredAt ? (
+                  <span className="font-mono tabular-nums">
+                    {formatDateTime(evidence.occurredAt)}
+                  </span>
+                ) : (
+                  'No time'
+                )}
                 {evidence.timeSource ? (
-                  <span className="text-muted-foreground"> · {evidence.timeSource}</span>
+                  <span className="text-muted-foreground">
+                    {' · '}
+                    <span className="font-mono uppercase">{evidence.timeSource}</span>
+                  </span>
                 ) : null}
               </dd>
               <dt className="text-muted-foreground">Source</dt>
               <dd>{evidence.source === 'user' ? 'Provided by you' : 'Uploaded'}</dd>
               <dt className="text-muted-foreground">Status</dt>
               <dd>
-                {evidence.status}
+                <span className="font-mono uppercase">{evidence.status}</span>
                 {evidence.error ? (
                   <span className="text-destructive"> · {evidence.error}</span>
                 ) : null}

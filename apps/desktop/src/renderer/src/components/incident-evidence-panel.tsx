@@ -442,7 +442,7 @@ export default function IncidentEvidencePanel({
                                 ? formatTime(item.occurredAt)
                                 : isReceivedAnswer(item)
                                   ? formatTime(item.createdAt)
-                                  : 'undated'}
+                                  : 'Undated'}
                             </span>
                             {isGuessedTime(item.timeSource) ? (
                               <span className="ml-auto font-mono text-xs/6 text-amber-300/80 uppercase">
@@ -455,7 +455,7 @@ export default function IncidentEvidencePanel({
                           </span>
                           {item.status === 'pending' ? (
                             <span className="text-muted-foreground mt-1 flex items-center gap-1 text-xs/6">
-                              <Spinner className="size-3" /> reading…
+                              <Spinner className="size-3" /> Reading…
                             </span>
                           ) : null}
                           {item.status === 'error' ? (

@@ -156,9 +156,12 @@ export default function Incidents() {
           footer={
             <>
               <span>
-                {items.length} incident{items.length === 1 ? '' : 's'}
+                <span className="font-mono tabular-nums">{items.length}</span> Incident
+                {items.length === 1 ? '' : 's'}
               </span>
-              <span className="ml-auto">{openCount} open</span>
+              <span className="ml-auto">
+                <span className="font-mono tabular-nums">{openCount}</span> Open
+              </span>
             </>
           }
         >
@@ -224,9 +227,14 @@ export default function Incidents() {
                                 {incident.summary ?? 'Timeline not merged yet.'}
                               </span>
                             </span>
-                            <span className="text-muted-foreground shrink-0 text-right font-mono text-xs/6 tabular-nums">
-                              {incident.evidenceCount} evidence
-                              <span className="block">{formatTime(incident.updatedAt)}</span>
+                            <span className="text-muted-foreground shrink-0 text-right text-xs/6">
+                              <span className="font-mono tabular-nums">
+                                {incident.evidenceCount}
+                              </span>{' '}
+                              Evidence
+                              <span className="block font-mono tabular-nums">
+                                {formatTime(incident.updatedAt)}
+                              </span>
                             </span>
                           </ContextMenuTrigger>
                           <ContextMenuContent>
