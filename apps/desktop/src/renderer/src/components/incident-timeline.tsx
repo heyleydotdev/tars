@@ -119,9 +119,11 @@ export default function IncidentTimeline({
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 text-xs/6">{event.description}</p>
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="text-muted-foreground font-mono text-xs/6 whitespace-nowrap uppercase">
-                            {event.sourceEvidenceIds.length} source
-                            {event.sourceEvidenceIds.length === 1 ? '' : 's'}
+                          <span className="text-muted-foreground text-xs/6 whitespace-nowrap">
+                            <span className="font-mono tabular-nums">
+                              {event.sourceEvidenceIds.length}
+                            </span>{' '}
+                            source{event.sourceEvidenceIds.length === 1 ? '' : 's'}
                           </span>
                           <span
                             className={cn(

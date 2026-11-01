@@ -53,7 +53,7 @@ export default function JournalActivityRow({ entry }: { entry: JournalItemOutput
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-muted-foreground font-mono text-xs/6 uppercase">{type}</span>
           {entry.title ? (
-            <span className="text-foreground text-xs/6 font-medium">{entry.title}</span>
+            <span className="text-foreground font-sans text-xs/6 font-medium">{entry.title}</span>
           ) : null}
         </div>
         <p className="text-muted-foreground mt-1 font-sans text-xs/6 wrap-break-word whitespace-pre-line select-text">

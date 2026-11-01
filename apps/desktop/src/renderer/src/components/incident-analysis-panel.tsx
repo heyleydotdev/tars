@@ -167,17 +167,19 @@ export default function IncidentAnalysisPanel({
             <span
               className={
                 analysis.outcome === 'proposed'
-                  ? 'border border-emerald-400/60 bg-emerald-400/10 px-1.5 py-0.5 font-mono text-xs/6 text-emerald-300'
-                  : 'border border-amber-400/60 bg-amber-400/10 px-1.5 py-0.5 font-mono text-xs/6 text-amber-300'
+                  ? 'border border-emerald-400/60 bg-emerald-400/10 px-1.5 py-0.5 font-mono text-xs/6 text-emerald-300 uppercase'
+                  : 'border border-amber-400/60 bg-amber-400/10 px-1.5 py-0.5 font-mono text-xs/6 text-amber-300 uppercase'
               }
             >
               {outcomeLabel(analysis.outcome)}
             </span>
-            <span className="text-muted-foreground font-mono text-xs/6">
-              confidence {analysis.confidence}
+            <span className="text-muted-foreground text-xs/6">
+              Confidence <span className="font-mono uppercase">{analysis.confidence}</span>
             </span>
             {analysis.status === 'approved' ? (
-              <span className="text-muted-foreground ml-auto font-mono text-xs/6">approved</span>
+              <span className="text-muted-foreground ml-auto font-mono text-xs/6 uppercase">
+                approved
+              </span>
             ) : null}
           </div>
           <p className="text-xs/6">{analysis.rootCause}</p>
@@ -188,17 +190,19 @@ export default function IncidentAnalysisPanel({
                   key={event.id}
                   type="button"
                   onClick={() => onHighlightEvents(new Set([event.id]))}
-                  className="border border-emerald-400/40 px-1.5 py-0.5 font-mono text-xs/6 hover:bg-emerald-400/10"
+                  className="border border-emerald-400/40 px-1.5 py-0.5 text-xs/6 hover:bg-emerald-400/10"
                 >
-                  {event.occurredAt ? formatTime(event.occurredAt) : 'undated'} ·{' '}
-                  {event.description.slice(0, 42)}
+                  <span className="font-mono tabular-nums">
+                    {event.occurredAt ? formatTime(event.occurredAt) : 'undated'}
+                  </span>{' '}
+                  · {event.description.slice(0, 42)}
                 </button>
               ))}
             </div>
           ) : null}
           {analysis.alternatives.length > 0 ? (
             <div className="space-y-1">
-              <p className="text-muted-foreground font-mono text-xs/6">ruled out</p>
+              <p className="text-muted-foreground text-xs/6">Ruled out</p>
               <ul className="text-muted-foreground list-disc space-y-1 pl-4 text-xs/6">
                 {analysis.alternatives.map((alternative) => (
                   <li key={alternative.text}>
@@ -244,7 +248,7 @@ export default function IncidentAnalysisPanel({
           <Textarea
             value={postmortem}
             onChange={(event) => setDraft({ text: event.target.value, version: serverVersion })}
-            className="min-h-72 font-mono text-xs/6"
+            className="min-h-72 text-xs/6"
           />
         </section>
       ) : null}

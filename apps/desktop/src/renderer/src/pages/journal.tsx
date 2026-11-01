@@ -223,7 +223,7 @@ export default function Journal() {
 
   return (
     <>
-      <div className="flex min-h-full flex-col font-mono lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <div className="flex min-h-full flex-col lg:h-full lg:min-h-0 lg:overflow-hidden">
         <JournalStats
           notes={journals.length}
           openTasks={openTasks}

@@ -26,7 +26,8 @@ export default function JournalActivityDialog({
         <DialogHeader>
           <DialogTitle>{entry.title ?? 'Activity'}</DialogTitle>
           <DialogDescription>
-            <span className="font-mono uppercase">{type}</span> · {formatDateTime(entry.occurredAt)}
+            <span className="font-mono uppercase">{type}</span> ·{' '}
+            <span className="font-mono tabular-nums">{formatDateTime(entry.occurredAt)}</span>
           </DialogDescription>
         </DialogHeader>
         <p className="text-sm/6 wrap-break-word whitespace-pre-line select-text">{entry.content}</p>

@@ -57,7 +57,7 @@ export default function Incident() {
         right={
           <div className="flex items-center gap-2">
             {demo.running && demo.incidentId === detail.incident.id ? (
-              <span className="text-muted-foreground font-mono text-xs/6">
+              <span className="text-muted-foreground font-mono text-xs/6 tabular-nums">
                 ({demo.done}/{demo.total}) Building...
               </span>
             ) : null}

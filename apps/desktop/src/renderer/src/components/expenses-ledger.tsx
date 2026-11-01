@@ -34,7 +34,7 @@ function ExpenseRow({
           <div className="hover:bg-muted grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-start gap-3 px-3 py-2 transition-colors" />
         }
       >
-        <time dateTime={at} className="text-muted-foreground pt-0.5 text-xs tabular-nums">
+        <time dateTime={at} className="text-muted-foreground pt-0.5 font-mono text-xs tabular-nums">
           {formatTime(at)}
         </time>
         <div className="min-w-0">
@@ -44,9 +44,12 @@ function ExpenseRow({
               {item.description}
             </p>
           ) : null}
-          <span className="mt-0.5 block text-xs" style={{ color }}>{`#${item.category}`}</span>
+          <span
+            className="mt-0.5 block font-mono text-xs uppercase"
+            style={{ color }}
+          >{`#${item.category}`}</span>
         </div>
-        <span className="text-foreground text-right text-[0.8rem] tabular-nums">
+        <span className="text-foreground text-right font-mono text-[0.8rem] tabular-nums">
           {formatCurrency(item.amountCents, item.currency)}
         </span>
       </ContextMenuTrigger>
@@ -102,7 +105,7 @@ export default function ExpensesLedger({
     <div className="flex h-full flex-col">
       {selectedDay ? (
         <div className="bg-muted/10 flex items-center gap-2 border-b px-3 py-1.5 text-xs">
-          <span className="text-muted-foreground">filter=</span>
+          <span className="text-muted-foreground">Filter</span>
           <Button
             variant="outline"
             size="xs"
@@ -112,7 +115,9 @@ export default function ExpensesLedger({
             day:{toDateKey(selectedDay)}
             <XIcon className="size-3" />
           </Button>
-          <span className="text-muted-foreground ml-auto tabular-nums">{items.length} items</span>
+          <span className="text-muted-foreground ml-auto">
+            <span className="font-mono tabular-nums">{items.length}</span> items
+          </span>
         </div>
       ) : null}
 
@@ -129,8 +134,8 @@ export default function ExpensesLedger({
             {groups.map((group) => (
               <section key={group.key}>
                 <div className="bg-muted/20 flex items-center justify-between border-b px-3 py-1.5 text-xs backdrop-blur lg:sticky lg:top-0 lg:z-10">
-                  <span className="text-foreground tabular-nums">{group.key}</span>
-                  <span className="text-muted-foreground tabular-nums">
+                  <span className="text-foreground font-mono tabular-nums">{group.key}</span>
+                  <span className="text-muted-foreground font-mono tabular-nums">
                     {group.items.length} · {formatCurrency(group.total, currency)}
                   </span>
                 </div>

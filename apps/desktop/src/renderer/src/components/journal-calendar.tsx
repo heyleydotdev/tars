@@ -12,7 +12,7 @@ import {
 import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
-const WEEKDAYS = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 export default function JournalCalendar({
   selected,
@@ -41,7 +41,7 @@ export default function JournalCalendar({
   return (
     <div className="p-3">
       <div className="flex items-center justify-between border-b pb-2">
-        <span className="text-foreground text-xs tabular-nums">
+        <span className="text-foreground font-mono text-xs tabular-nums">
           {toMonthKey(view).replace('-', '.')}
         </span>
         <div className="flex items-center gap-1">
@@ -64,7 +64,7 @@ export default function JournalCalendar({
         </div>
       </div>
 
-      <div className="text-muted-foreground mt-2 grid grid-cols-7 text-xs uppercase">
+      <div className="text-muted-foreground mt-2 grid grid-cols-7 text-xs">
         {WEEKDAYS.map((weekday) => (
           <span key={weekday} className="py-1 text-center">
             {weekday}
@@ -89,7 +89,7 @@ export default function JournalCalendar({
                 if (outside) setView(startOfMonth(date))
               }}
               className={cn(
-                'bg-background hover:bg-muted/40 focus-visible:ring-ring/50 relative flex h-8 flex-col items-center justify-center gap-0.5 text-xs tabular-nums transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset',
+                'bg-background hover:bg-muted/40 focus-visible:ring-ring/50 relative flex h-8 flex-col items-center justify-center gap-0.5 font-mono text-xs tabular-nums transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset',
                 outside
                   ? 'text-muted'
                   : isToday && !isSelected
@@ -114,18 +114,6 @@ export default function JournalCalendar({
             </button>
           )
         })}
-      </div>
-
-      <div className="text-muted-foreground mt-2 flex items-center gap-4 text-xs">
-        <span className="flex items-center gap-1.5">
-          <span aria-hidden className="size-1 bg-amber-400" />
-          reminder
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span aria-hidden className="size-1 bg-sky-400" />
-          task
-        </span>
-        <span className="ml-auto tabular-nums">{toDateKey(selected)}</span>
       </div>
     </div>
   )

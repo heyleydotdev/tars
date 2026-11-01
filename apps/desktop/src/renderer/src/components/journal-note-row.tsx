@@ -31,7 +31,7 @@ export default function JournalNoteRow({
       }
     >
       {entry.mood || entry.tags.length > 0 ? (
-        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs/6 font-medium uppercase">
+        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs/6 font-medium uppercase">
           {entry.mood ? <span className="text-amber-300">::{entry.mood}</span> : null}
           {entry.tags.map((tag) => (
             <span

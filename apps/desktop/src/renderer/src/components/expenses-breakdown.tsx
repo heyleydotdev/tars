@@ -34,14 +34,14 @@ export default function ExpensesBreakdown({
                   {capitalize(category.label)}
                 </span>
               </span>
-              <span className="text-foreground tabular-nums">
+              <span className="text-foreground font-mono tabular-nums">
                 {formatCurrency(category.amountCents, currency)}
               </span>
             </div>
             <div className="bg-muted mt-1.5 h-1">
               <div className="h-full" style={{ width: `${width}%`, backgroundColor: color }} />
             </div>
-            <div className="text-muted-foreground mt-1 flex items-center justify-between text-xs tabular-nums">
+            <div className="text-muted-foreground mt-1 flex items-center justify-between font-mono text-xs tabular-nums">
               <span>{share}%</span>
               <span>
                 {category.count} {category.count === 1 ? 'entry' : 'entries'}

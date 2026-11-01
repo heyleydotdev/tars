@@ -11,7 +11,7 @@ import {
 import { Button } from '@tars/ui/components/button'
 import { cn } from '@tars/ui/lib/utils'
 
-const WEEKDAYS = ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 export default function ExpensesCalendar({
   month,
@@ -45,12 +45,12 @@ export default function ExpensesCalendar({
   return (
     <div className="p-3">
       <div className="flex items-center justify-between border-b pb-2">
-        <span className="text-foreground text-xs tabular-nums">
+        <span className="text-foreground font-mono text-xs tabular-nums">
           {toMonthKey(month).replace('-', '.')}
         </span>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="sm" onClick={onToday}>
-            today
+            Today
           </Button>
           <Button
             variant="outline"
@@ -71,7 +71,7 @@ export default function ExpensesCalendar({
         </div>
       </div>
 
-      <div className="text-muted-foreground mt-2 grid grid-cols-7 text-xs uppercase">
+      <div className="text-muted-foreground mt-2 grid grid-cols-7 text-xs">
         {WEEKDAYS.map((weekday) => (
           <span key={weekday} className="py-1 text-center">
             {weekday}
@@ -96,7 +96,7 @@ export default function ExpensesCalendar({
               title={spend > 0 ? formatCurrency(spend, currency) : undefined}
               onClick={() => onSelect(date)}
               className={cn(
-                'bg-background hover:bg-muted/40 focus-visible:ring-ring/50 relative flex h-9 flex-col items-center justify-center gap-0.5 text-xs tabular-nums transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset',
+                'bg-background hover:bg-muted/40 focus-visible:ring-ring/50 relative flex h-9 flex-col items-center justify-center gap-0.5 font-mono text-xs tabular-nums transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset',
                 outside
                   ? 'text-muted'
                   : isToday && !isSelected
@@ -128,9 +128,11 @@ export default function ExpensesCalendar({
       <div className="text-muted-foreground mt-2 flex items-center gap-4 text-xs">
         <span className="flex items-center gap-1.5">
           <span aria-hidden className="h-0.5 w-4 bg-emerald-400" />
-          daily spend
+          Daily spend
         </span>
-        <span className="ml-auto tabular-nums">{selected ? toDateKey(selected) : 'all month'}</span>
+        <span className="ml-auto font-mono tabular-nums">
+          {selected ? toDateKey(selected) : 'All month'}
+        </span>
       </div>
     </div>
   )

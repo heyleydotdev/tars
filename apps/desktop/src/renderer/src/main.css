@@ -2,6 +2,12 @@
 
 @source '../../../../../packages/ui/src';
 
+/* Let the OS render text: ClearType on Windows stays sharper than forced grayscale. */
+html {
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
 :root {
   --title-bar-height: 2.25rem;
 }

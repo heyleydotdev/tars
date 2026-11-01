@@ -58,7 +58,7 @@ export default function IncidentEvidenceDialog({
 
             {evidence.content ? (
               <div className="space-y-1">
-                <p className="text-muted-foreground font-mono text-xs/6">raw</p>
+                <p className="text-muted-foreground text-xs/6">Raw</p>
                 <pre className="bg-muted/20 border-border max-h-64 overflow-auto border p-2 font-mono text-xs/6 whitespace-pre-wrap">
                   {evidence.content}
                 </pre>

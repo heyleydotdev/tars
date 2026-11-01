@@ -52,7 +52,7 @@ export default function RouteError() {
 
         {stack ? (
           <div className="border-border mt-5 border-t pt-4 text-left">
-            <p className="text-muted-foreground font-mono text-xs">stack trace</p>
+            <p className="text-muted-foreground text-xs">Stack trace</p>
             <pre className="text-muted-foreground bg-muted/30 mt-2 max-h-48 overflow-auto p-2 font-mono text-xs wrap-break-word whitespace-pre-wrap">
               {stack}
             </pre>

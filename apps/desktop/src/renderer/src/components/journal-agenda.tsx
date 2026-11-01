@@ -90,7 +90,7 @@ export default function JournalAgenda({
             >
               <span
                 className={cn(
-                  'mt-px text-xs tabular-nums',
+                  'mt-px font-mono text-xs tabular-nums',
                   item.done
                     ? 'text-emerald-400'
                     : 'text-muted-foreground group-hover:text-foreground'
@@ -98,7 +98,7 @@ export default function JournalAgenda({
               >
                 {item.done ? '[x]' : '[ ]'}
               </span>
-              <span className="text-muted-foreground mt-0.5 w-10 shrink-0 text-xs tabular-nums">
+              <span className="text-muted-foreground mt-0.5 w-10 shrink-0 font-mono text-xs tabular-nums">
                 {formatTime(item.at)}
               </span>
               <span className="min-w-0 flex-1">
@@ -116,7 +116,7 @@ export default function JournalAgenda({
               </span>
               <span
                 className={cn(
-                  'pt-0.5 text-xs tracking-widest uppercase',
+                  'pt-0.5 font-mono text-xs tracking-widest uppercase',
                   item.kind === 'rem' ? 'text-amber-300' : 'text-sky-400'
                 )}
               >

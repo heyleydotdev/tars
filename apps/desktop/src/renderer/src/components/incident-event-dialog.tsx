@@ -53,7 +53,7 @@ export default function IncidentEventDialog({
             <p className="text-xs/6">{event.description}</p>
 
             <div className="space-y-1">
-              <p className="text-muted-foreground font-mono text-xs/6">sources</p>
+              <p className="text-muted-foreground text-xs/6">Sources</p>
               {sources.length === 0 ? (
                 <p className="text-muted-foreground text-xs/6">No source evidence.</p>
               ) : (
