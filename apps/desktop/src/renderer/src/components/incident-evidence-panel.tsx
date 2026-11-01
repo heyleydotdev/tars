@@ -6,10 +6,12 @@ import {
   InfoIcon,
   ListTreeIcon,
   Maximize2Icon,
+  MessageSquareIcon,
   MicIcon,
   MicOffIcon,
   PaperclipIcon,
   SendIcon,
+  TerminalIcon,
   Trash2Icon
 } from 'lucide-react'
 
@@ -18,6 +20,7 @@ import { INCIDENT_EVIDENCE_CHARS, VOICE_CAPTURE_SETTINGS } from '@tars/core/cons
 import { ERRORS } from '@tars/core/errors'
 import { formatTime, toDateKey } from '@tars/core/utils/format'
 import { isGuessedTime } from '@tars/core/utils/incident'
+import { capitalize } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
 import {
@@ -48,8 +51,9 @@ import IncidentEvidenceViewer from './incident-evidence-viewer'
 
 function kindIcon(kind: IncidentEvidenceOutput['kind']) {
   if (kind === 'screenshot') return <ImageIcon />
+  if (kind === 'log') return <TerminalIcon />
   if (kind === 'voice') return <MicIcon />
-  if (kind === 'answer') return <SendIcon />
+  if (kind === 'answer') return <MessageSquareIcon />
 
   return <FileTextIcon />
 }
@@ -67,6 +71,10 @@ function TooltipButton({
   )
 }
 
+function isReceivedAnswer(item: IncidentEvidenceOutput): boolean {
+  return item.kind === 'answer' && !item.occurredAt
+}
+
 function groupEvidenceByDay(
   evidence: Array<IncidentEvidenceOutput>
 ): Array<{ key: string; label: string; items: Array<IncidentEvidenceOutput> }> {
@@ -79,7 +87,11 @@ function groupEvidenceByDay(
   const groups: Array<{ key: string; label: string; items: Array<IncidentEvidenceOutput> }> = []
 
   for (const item of sorted) {
-    const key = item.occurredAt ? toDateKey(item.occurredAt) : 'no-time'
+    const key = item.occurredAt
+      ? toDateKey(item.occurredAt)
+      : isReceivedAnswer(item)
+        ? 'received'
+        : 'undated'
     const last = groups[groups.length - 1]
 
     if (last?.key === key) {
@@ -87,11 +99,7 @@ function groupEvidenceByDay(
       continue
     }
 
-    groups.push({
-      key,
-      label: key === 'no-time' ? 'no time' : key,
-      items: [item]
-    })
+    groups.push({ key, label: key, items: [item] })
   }
 
   return groups
@@ -306,7 +314,7 @@ export default function IncidentEvidencePanel({
           <ButtonGroup>
             <TooltipButton
               type="button"
-              size="icon-xs"
+              size="icon-sm"
               variant="outline"
               label="Add screenshot"
               aria-label="Add screenshot"
@@ -317,7 +325,7 @@ export default function IncidentEvidencePanel({
             </TooltipButton>
             <TooltipButton
               type="button"
-              size="icon-xs"
+              size="icon-sm"
               variant="outline"
               label={recording ? 'Stop recording' : 'Record voice note'}
               aria-label="Record voice note"
@@ -330,7 +338,7 @@ export default function IncidentEvidencePanel({
           <ButtonGroup>
             <TooltipButton
               type="button"
-              size="xs"
+              size="sm"
               variant={kind === 'log' ? 'default' : 'outline'}
               label="Log"
               onClick={() => setKind('log')}
@@ -340,7 +348,7 @@ export default function IncidentEvidencePanel({
             </TooltipButton>
             <TooltipButton
               type="button"
-              size="xs"
+              size="sm"
               variant={kind === 'text' ? 'default' : 'outline'}
               label="Note"
               onClick={() => setKind('text')}
@@ -352,7 +360,7 @@ export default function IncidentEvidencePanel({
           <ButtonGroup className="ml-auto">
             <TooltipButton
               type="button"
-              size="xs"
+              size="sm"
               label="Add evidence"
               disabled={busy || recording || content.trim().length === 0}
               onClick={() => void submitContent()}
@@ -393,7 +401,7 @@ export default function IncidentEvidencePanel({
                         render={
                           <div
                             className={cn(
-                              'flex gap-2 px-3 py-2 transition-colors',
+                              'flex items-center gap-2 px-3 py-2 transition-colors',
                               item.id === selectedId ? 'bg-muted/40' : 'hover:bg-muted'
                             )}
                           />
@@ -412,9 +420,21 @@ export default function IncidentEvidencePanel({
                             </span>
                           </button>
                         ) : (
-                          <span className="bg-muted/30 text-muted-foreground flex h-11 w-11 shrink-0 items-center justify-center border [&_svg]:size-4">
-                            {kindIcon(item.kind)}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  type="button"
+                                  aria-label={`Select ${item.kind} evidence`}
+                                  onClick={() => onSelect(item.id)}
+                                  className="bg-muted/30 text-muted-foreground flex h-11 w-11 shrink-0 items-center justify-center border [&_svg]:size-4"
+                                />
+                              }
+                            >
+                              {kindIcon(item.kind)}
+                            </TooltipTrigger>
+                            <TooltipContent>{capitalize(item.kind)}</TooltipContent>
+                          </Tooltip>
                         )}
                         <button
                           type="button"
@@ -422,14 +442,17 @@ export default function IncidentEvidencePanel({
                           className="min-w-0 flex-1 text-left"
                         >
                           <span className="flex items-center gap-2">
-                            <span className="text-muted-foreground font-mono text-xs/6 uppercase">
-                              {item.kind}
-                            </span>
                             <span className="text-muted-foreground font-mono text-xs/6">
-                              {item.occurredAt ? formatTime(item.occurredAt) : 'no time'}
+                              {item.occurredAt
+                                ? formatTime(item.occurredAt)
+                                : isReceivedAnswer(item)
+                                  ? formatTime(item.createdAt)
+                                  : 'undated'}
                             </span>
                             {isGuessedTime(item.timeSource) ? (
-                              <span className="font-mono text-xs/6 text-amber-300/80">guessed</span>
+                              <span className="ml-auto font-mono text-xs/6 text-amber-300/80 uppercase">
+                                guessed
+                              </span>
                             ) : null}
                           </span>
                           <span className="text-foreground mt-0.5 line-clamp-1 text-xs/6">
