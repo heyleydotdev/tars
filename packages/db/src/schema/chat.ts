@@ -38,6 +38,12 @@ export const chatMessage = sqliteTable(
     })
       .notNull()
       .default('completed'),
+    kind: text('kind', { enum: ['chat', 'summary'] })
+      .notNull()
+      .default('chat'),
+    period: text('period', { enum: ['day', 'week', 'month', 'year'] }),
+    rangeStart: integer('range_start', { mode: 'timestamp_ms' }),
+    rangeEnd: integer('range_end', { mode: 'timestamp_ms' }),
     createdAt
   },
   (table) => [index('chat_message_chatId_idx').on(table.chatId)]
