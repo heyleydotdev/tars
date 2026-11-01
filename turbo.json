@@ -40,6 +40,10 @@
     "//#format:write:root": {
       "cache": false,
       "inputs": ["*.md", "*.json", ".vscode/*.json"]
+    },
+    "test": {
+      "cache": false
     }
-  }
+  },
+  "globalEnv": ["VITE_BETTER_AUTH_URL", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "META_AI_API"]
 }

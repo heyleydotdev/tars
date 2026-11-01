@@ -12,7 +12,8 @@
     "typecheck": "bun check --no-script",
     "lint": "eslint .",
     "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore",
-    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore"
+    "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore",
+    "test": "bun test"
   },
   "dependencies": {
     "@orpc/client": "catalog:",
@@ -30,7 +31,10 @@
     "@tars/tsconfig": "workspace:*",
     "eslint": "catalog:",
     "prettier": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "drizzle-orm": "catalog:",
+    "@types/node": "catalog:",
+    "@types/bun": "catalog:"
   },
   "prettier": "@tars/prettier"
 }

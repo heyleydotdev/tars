@@ -19,7 +19,8 @@
     "build:unpack": "bun run build && electron-builder --dir",
     "build:win": "bun run build && electron-builder --win",
     "build:mac": "bun run build && electron-builder --mac",
-    "build:linux": "bun run build && electron-builder --linux"
+    "build:linux": "bun run build && electron-builder --linux",
+    "test": "bun test"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -58,8 +59,8 @@
     "react-router": "8.5.0",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "zustand": "5.0.16"
+    "zustand": "5.0.16",
+    "@types/bun": "catalog:"
   },
   "prettier": "@tars/prettier"
 }

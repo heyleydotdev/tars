@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.web.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node", "bun"]
+  },
+  "include": ["test/**/*.ts", "src/preload/env.d.ts"]
+}

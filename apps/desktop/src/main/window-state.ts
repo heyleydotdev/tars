@@ -26,7 +26,7 @@ function getStore(): Store<WindowState> {
   return store
 }
 
-function fitToDisplay(bounds: Rectangle): Rectangle | null {
+export function fitToDisplay(bounds: Rectangle): Rectangle | null {
   const { workArea } = screen.getDisplayMatching(bounds)
   const width = Math.min(bounds.width, workArea.width)
   const height = Math.min(bounds.height, workArea.height)
