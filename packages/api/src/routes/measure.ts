@@ -1,5 +1,6 @@
 import type OpenAI from 'openai'
 import { APIConnectionError, APIError } from 'openai'
+import pLimit from 'p-limit'
 
 import type {
   MeasurePromptObjects,
@@ -23,6 +24,7 @@ import { measureHistoryRouter } from './measure-history'
 const SAM_RETRY_LIMIT = 2
 const SAM_RETRY_BASE_MS = 1_000
 const SAM_RETRY_MAX_MS = 15_000
+const SEGMENT_CONCURRENCY = 2
 
 const referenceColumns = {
   id: measureReference.id,
@@ -99,34 +101,21 @@ async function segment(
   }
 }
 
-async function segmentPrompts(
+function segmentPrompts(
   openAi: OpenAI,
   image: string,
   prompts: Array<string>
 ): Promise<Array<MeasurePromptObjects>> {
-  const results = new Array<MeasurePromptObjects>(prompts.length)
-  const concurrency = Math.min(2, prompts.length)
-  let next = 0
+  const limit = pLimit(SEGMENT_CONCURRENCY)
 
-  async function worker(): Promise<void> {
-    while (next < prompts.length) {
-      const index = next
-      const prompt = prompts[index]
-
-      next += 1
-
-      if (prompt === undefined) return
-
-      results[index] = {
+  return Promise.all(
+    prompts.map((prompt) =>
+      limit(async () => ({
         prompt,
         objects: await segment(openAi, image, prompt)
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: concurrency }, () => worker()))
-
-  return results
+      }))
+    )
+  )
 }
 
 export const measureRouter = {
