@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { MeasureFormOutput, MeasureResultOutput } from '@tars/core/schemas/measure'
+import type { MeasureFormOutput } from '@tars/core/schemas/measure'
 
 import type { MeasureBatchItem, PreparedMeasureImage } from '../lib/measure'
 
@@ -19,7 +19,6 @@ type MeasureWorkspaceStore = {
   selectPhoto: (id: string) => void
   updateItem: (id: string, patch: Partial<Omit<MeasureBatchItem, 'id' | 'photo'>>) => void
   setPrompts: (id: string, prompts: Array<string> | null) => void
-  setPhotoResult: (id: string, result: MeasureResultOutput) => void
   clearResults: (ids?: Array<string>) => void
   setRunning: (running: boolean) => void
   setSavedRunId: (runId: string | null) => void
@@ -106,12 +105,6 @@ export const useMeasureWorkspace = create<MeasureWorkspaceStore>()((set) => ({
     set((state) => ({
       items: state.items.map((item) =>
         item.id === id ? { ...item, prompts, ...clearedResult() } : item
-      )
-    })),
-  setPhotoResult: (id, result) =>
-    set((state) => ({
-      items: state.items.map((item) =>
-        item.id === id ? { ...item, result, status: 'done' as const, notice: null } : item
       )
     })),
   clearResults: (ids) =>

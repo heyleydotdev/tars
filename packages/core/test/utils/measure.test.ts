@@ -11,7 +11,6 @@ import {
   measureWarnings,
   parseSamBoxes,
   pickLargestDetection,
-  recalculateMeasureResult,
   scaleFromBoxes
 } from '../../src/utils/measure'
 
@@ -100,28 +99,6 @@ describe('buildMeasureResult', () => {
       { prompt: 'cup', box: box(10, 10, 50, 30), widthMm: 200, heightMm: 100 }
     ])
     expect(result.missingPrompts).toEqual(['laptop'])
-  })
-})
-
-describe('recalculateMeasureResult', () => {
-  it('rescales objects and falls back to the previous box', () => {
-    const result = buildMeasureResult({
-      reference,
-      referenceBox: detection(0, 0, 200, 100),
-      referenceMatches: 1,
-      prompts: ['cup'],
-      promptObjects: [{ prompt: 'cup', objects: [detection(10, 10, 50, 30)] }]
-    })
-    const next = recalculateMeasureResult(result, {
-      reference: box(0, 0, 100, 50),
-      objects: []
-    })
-
-    expect(next.scaleMmPerPx).toBe(10)
-    expect(next.reference.box).toEqual(box(0, 0, 100, 50))
-    expect(next.objects[0]?.box).toEqual(box(10, 10, 50, 30))
-    expect(next.objects[0]?.widthMm).toBe(400)
-    expect(next.objects[0]?.heightMm).toBe(200)
   })
 })
 

@@ -8,7 +8,7 @@ export default function ConsoleHeader({
 }: React.PropsWithChildren<{
   title: string
   titleClassName?: string
-  right: React.ReactNode
+  right?: React.ReactNode
 }>) {
   return (
     <header className="bg-background/95 sticky top-0 z-20 border-b backdrop-blur">
@@ -28,7 +28,11 @@ export default function ConsoleHeader({
 
         {children}
 
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-3 text-xs">{right}</div>
+        {right ? (
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-3 text-xs">
+            {right}
+          </div>
+        ) : null}
       </div>
     </header>
   )

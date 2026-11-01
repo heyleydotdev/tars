@@ -110,35 +110,6 @@ export function buildMeasureResult(input: {
   }
 }
 
-export function recalculateMeasureResult(
-  result: MeasureResultOutput,
-  boxes: {
-    reference: MeasureBoxOutput
-    objects: Array<MeasureBoxOutput>
-  }
-): MeasureResultOutput {
-  const scaleMmPerPx = scaleFromBoxes(result.reference, boxes.reference)
-
-  return {
-    ...result,
-    scaleMmPerPx: round(scaleMmPerPx, 4),
-    reference: {
-      ...result.reference,
-      box: boxes.reference
-    },
-    objects: result.objects.map((object, index) => {
-      const box = boxes.objects[index] ?? object.box
-
-      return {
-        ...object,
-        box,
-        widthMm: round(box.width * scaleMmPerPx),
-        heightMm: round(box.height * scaleMmPerPx)
-      }
-    })
-  }
-}
-
 export function measureWarnings(
   result: MeasureResultOutput,
   scaleBaseline?: number

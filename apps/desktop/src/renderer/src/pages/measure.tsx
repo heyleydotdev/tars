@@ -19,7 +19,6 @@ import { Checkbox } from '@tars/ui/components/checkbox'
 import type { MeasureLoaderData } from '../lib/loaders'
 import type { MeasureBatchItem, MeasureRequest, PreparedMeasureImage } from '../lib/measure'
 import ConfirmDialog from '../components/confirm-dialog'
-import ConsoleEnd from '../components/console-end'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import MeasureAnnotationSettings from '../components/measure-annotation-settings'
@@ -61,7 +60,6 @@ export default function Measure() {
     selectPhoto,
     updateItem,
     setPrompts,
-    setPhotoResult,
     clearResults,
     setRunning,
     confirmRestore,
@@ -71,7 +69,6 @@ export default function Measure() {
       selectPhoto: state.selectPhoto,
       updateItem: state.updateItem,
       setPrompts: state.setPrompts,
-      setPhotoResult: state.setPhotoResult,
       clearResults: state.clearResults,
       setRunning: state.setRunning,
       confirmRestore: state.confirmRestore,
@@ -177,14 +174,6 @@ export default function Measure() {
   )
 
   useEffect(() => () => flushSaves(), [flushSaves])
-
-  const handleResultChange = useCallback(
-    (id: string, result: MeasureResultOutput) => {
-      setPhotoResult(id, result)
-      scheduleSave(id)
-    },
-    [scheduleSave, setPhotoResult]
-  )
 
   const logCompleted = useCallback(
     async (completed: Array<MeasureBatchItem>, runId: string): Promise<void> => {
@@ -407,7 +396,7 @@ export default function Measure() {
   }
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col lg:h-full lg:min-h-0">
       <ConsoleHeader
         title="measure"
         right={
@@ -419,7 +408,7 @@ export default function Measure() {
         }
       />
 
-      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:grid-cols-12">
+      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
         <ConsolePanel
           title="photo.input"
           count={String(items.length)}
@@ -449,12 +438,9 @@ export default function Measure() {
             pending={running}
             onRetry={retryPhoto}
             onPromptsChange={setPrompts}
-            onResultChange={handleResultChange}
           />
         </ConsolePanel>
       </div>
-
-      <ConsoleEnd />
 
       <MeasureForm
         key={draftSeed}

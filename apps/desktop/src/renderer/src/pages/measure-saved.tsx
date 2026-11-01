@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArchiveIcon, CopyIcon, FileSpreadsheetIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
+import { CopyIcon, FileSpreadsheetIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 import { useNavigate } from 'react-router'
 
 import type { MeasureSavedOutput, MeasureUnit } from '@tars/core/schemas/measure'
@@ -12,15 +12,12 @@ import { Spinner } from '@tars/ui/components/spinner'
 import { cn } from '@tars/ui/lib/utils'
 
 import ConfirmDialog from '../components/confirm-dialog'
-import ConsoleEnd from '../components/console-end'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
-import MeasureAnnotationSettings from '../components/measure-annotation-settings'
 import MeasurePreview from '../components/measure-preview'
 import { fileSrc } from '../lib/files'
 import { downloadText, measureCsv } from '../lib/measure'
-import { exportAllSavedMeasures } from '../lib/measure-export'
 import {
   fetchMeasureImage,
   measureSavedKey,
@@ -29,7 +26,6 @@ import {
   useSavedMeasures
 } from '../lib/measure-history'
 import { useShellAlertStore } from '../stores/alert'
-import { useMeasureAnnotations } from '../stores/measure-annotations'
 import { useMeasurePreferences } from '../stores/measure-preferences'
 import { useMeasureWorkspace } from '../stores/measure-workspace'
 
@@ -45,16 +41,12 @@ export default function MeasureSaved() {
   const saved = useSavedMeasures()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const annotations = useMeasureAnnotations()
   const unit = useMeasurePreferences((state) => state.unit)
-  const includeDetails = useMeasurePreferences((state) => state.includeDetails)
   const requestRestore = useMeasureWorkspace((state) => state.requestRestore)
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<MeasureSavedOutput | null>(null)
   const [deletePending, setDeletePending] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [exported, setExported] = useState(0)
   const measures = useMemo(
     () => saved.data?.pages.flatMap((page) => page.items) ?? [],
     [saved.data]
@@ -95,24 +87,6 @@ export default function MeasureSaved() {
     })
   }
 
-  async function exportAll(): Promise<void> {
-    setExporting(true)
-    setExported(0)
-
-    try {
-      await exportAllSavedMeasures({
-        annotations,
-        unit,
-        includeDetails,
-        onProgress: setExported
-      })
-    } catch (error) {
-      reportError(error)
-    } finally {
-      setExporting(false)
-    }
-  }
-
   function exportCsv(): void {
     if (!item) return
 
@@ -137,9 +111,20 @@ export default function MeasureSaved() {
     if (!item || !selected) return
 
     requestRestore(
-      [item],
-      item.request
-        ? { referenceId: item.request.referenceId, prompts: item.request.prompts }
+      [
+        {
+          id: item.id,
+          photo: item.photo,
+          status: 'idle',
+          result: null,
+          error: null,
+          prompts: null,
+          notice: null,
+          request: null
+        }
+      ],
+      selected.referenceId
+        ? { referenceId: selected.referenceId, prompts: selected.prompts }
         : null,
       selected.runId
     )
@@ -171,35 +156,10 @@ export default function MeasureSaved() {
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <ConsoleHeader
-        title="measure.saved"
-        right={
-          <>
-            {exporting ? (
-              <span className="text-muted-foreground font-mono text-xs tabular-nums">
-                Exporting {exported}…
-              </span>
-            ) : null}
-            <ButtonGroup>
-              <MeasureAnnotationSettings objectCount={0} />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                aria-label="Export all saved measurements"
-                title="Export all saved measurements"
-                disabled={exporting || measures.length === 0}
-                onClick={() => void exportAll()}
-              >
-                {exporting ? <Spinner className="size-3.5" /> : <ArchiveIcon />}
-              </Button>
-            </ButtonGroup>
-          </>
-        }
-      />
+    <div className="flex min-h-full flex-col lg:h-full lg:min-h-0">
+      <ConsoleHeader title="measure.saved" />
 
-      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:grid-cols-12">
+      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
         <ConsolePanel
           title="measure.saved"
           count={String(measures.length)}
@@ -226,8 +186,8 @@ export default function MeasureSaved() {
                     type="button"
                     onClick={() => setSelectedId(measure.id)}
                     className={cn(
-                      'flex w-full items-center gap-2 p-2 text-left',
-                      measure.id === selected?.id ? 'bg-muted/40' : 'hover:bg-muted'
+                      'hover:bg-muted/60 flex w-full items-center gap-2 p-2 text-left transition-colors',
+                      measure.id === selected?.id ? 'bg-muted/40' : ''
                     )}
                   >
                     <img
@@ -335,8 +295,6 @@ export default function MeasureSaved() {
           )}
         </ConsolePanel>
       </div>
-
-      <ConsoleEnd />
 
       <ConfirmDialog
         title="Delete saved measurement?"

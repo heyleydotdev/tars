@@ -3,14 +3,15 @@ import {
   CopyIcon,
   DownloadIcon,
   Maximize2Icon,
-  PencilIcon,
   RotateCcwIcon,
   TriangleAlertIcon
 } from 'lucide-react'
 
-import type { MeasureResultOutput, MeasureUnit } from '@tars/core/schemas/measure'
+import type { MeasureUnit } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
+import { formatLength } from '@tars/core/utils/format'
 import { measureWarnings } from '@tars/core/utils/measure'
+import { titleCase } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
 import { Spinner } from '@tars/ui/components/spinner'
 import { cn } from '@tars/ui/lib/utils'
@@ -21,11 +22,22 @@ import { useShellAlertStore } from '../stores/alert'
 import { useMeasureAnnotations } from '../stores/measure-annotations'
 import { useMeasurePreferences } from '../stores/measure-preferences'
 import EmptyState from './empty-state'
-import MeasureBoxEditor from './measure-box-editor'
 import MeasureOverlay from './measure-overlay'
 import MeasurePhotoPrompts from './measure-photo-prompts'
-import MeasureResult from './measure-result'
 import MeasureViewer from './measure-viewer'
+
+function DetailRow({
+  label,
+  mono = true,
+  children
+}: React.PropsWithChildren<{ label: string; mono?: boolean }>) {
+  return (
+    <div className="grid grid-cols-[6.5rem_1fr] items-start gap-3 px-3 py-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className={cn('min-w-0', mono ? 'font-mono tabular-nums' : '')}>{children}</dd>
+    </div>
+  )
+}
 
 export function MeasurePreviewImage({
   item,
@@ -77,7 +89,6 @@ export default function MeasurePreview({
   pending = false,
   onRetry,
   onPromptsChange,
-  onResultChange,
   emptyHint = 'Browse photos and name an object.'
 }: {
   items: Array<MeasureBatchItem>
@@ -86,11 +97,9 @@ export default function MeasurePreview({
   pending?: boolean
   onRetry?: (id: string) => void
   onPromptsChange?: (id: string, prompts: Array<string> | null) => void
-  onResultChange?: (id: string, result: MeasureResultOutput) => void
   emptyHint?: string
 }) {
   const [enlarged, setEnlarged] = useState(false)
-  const [editing, setEditing] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const annotations = useMeasureAnnotations()
   const includeDetails = useMeasurePreferences((state) => state.includeDetails)
@@ -102,6 +111,7 @@ export default function MeasurePreview({
   const measured = items.filter((item) => item.status === 'done').length
   const failed = items.filter((item) => item.status === 'error').length
   const warnings = selected.result ? measureWarnings(selected.result) : []
+  const prompts = selected.prompts ?? selected.request?.prompts ?? selected.result?.prompts ?? []
 
   async function copyMeasurement(item: MeasureBatchItem): Promise<void> {
     try {
@@ -130,23 +140,6 @@ export default function MeasurePreview({
 
   return (
     <div className="space-y-3 p-3">
-      {items.length > 1 ? (
-        <dl className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
-          <div>
-            <dt className="text-muted-foreground">Photos</dt>
-            <dd className="text-foreground font-mono tabular-nums">{items.length}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Measured</dt>
-            <dd className="font-mono text-emerald-400 tabular-nums">{measured}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Failed</dt>
-            <dd className="text-destructive font-mono tabular-nums">{failed}</dd>
-          </div>
-        </dl>
-      ) : null}
-
       <MeasurePreviewImage item={selected} unit={unit} className="aspect-4/3">
         <div className="absolute top-2 right-2 z-20 flex gap-1">
           {onRetry &&
@@ -177,17 +170,6 @@ export default function MeasurePreview({
               >
                 <CopyIcon />
               </Button>
-              {onResultChange ? (
-                <Button
-                  variant="secondary"
-                  size="icon-xs"
-                  aria-label="Adjust boxes"
-                  title="Adjust boxes"
-                  onClick={() => setEditing(true)}
-                >
-                  <PencilIcon />
-                </Button>
-              ) : null}
               <Button
                 variant="secondary"
                 size="icon-xs"
@@ -212,46 +194,106 @@ export default function MeasurePreview({
         </div>
       </MeasurePreviewImage>
 
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="text-foreground min-w-0 truncate" title={selected.photo.name}>
-          {selected.photo.name}
-        </span>
-        <span className="text-muted-foreground font-mono tabular-nums">
+      <dl className="divide-border border-border divide-y border text-xs">
+        {items.length > 1 ? (
+          <>
+            <DetailRow label="Photos">{items.length}</DetailRow>
+            <DetailRow label="Measured">
+              <span className="text-emerald-400">{measured}</span>
+            </DetailRow>
+            <DetailRow label="Failed">
+              <span className="text-destructive">{failed}</span>
+            </DetailRow>
+          </>
+        ) : null}
+
+        <DetailRow label="File" mono={false}>
+          <span className="block truncate" title={selected.photo.name}>
+            {selected.photo.name}
+          </span>
+        </DetailRow>
+        <DetailRow label="Size">
           {selected.photo.width}×{selected.photo.height}px
-        </span>
-      </div>
+        </DetailRow>
 
-      {onPromptsChange ? (
-        <MeasurePhotoPrompts
-          item={selected}
-          disabled={pending}
-          onChange={(prompts) => onPromptsChange(selected.id, prompts)}
-        />
-      ) : null}
+        {selected.result ? (
+          <>
+            <DetailRow label="Reference" mono={false}>
+              {titleCase(selected.result.reference.label)}
+            </DetailRow>
+            {selected.result.objects.map((object, index) => (
+              <DetailRow
+                key={`${object.box.x1}-${object.box.y1}-${index}`}
+                label={
+                  selected.result && selected.result.objects.length > 1
+                    ? `#${index + 1} ${titleCase(object.prompt)}`
+                    : titleCase(object.prompt)
+                }
+              >
+                {formatLength(object.widthMm, unit)} × {formatLength(object.heightMm, unit)}
+              </DetailRow>
+            ))}
+            <DetailRow label="Matches">{selected.result.reference.matches}</DetailRow>
+            <DetailRow label="Scale">
+              <span className="text-sky-400">{selected.result.scaleMmPerPx.toFixed(3)} mm/px</span>
+            </DetailRow>
+            <DetailRow label="Ref box">
+              {Math.round(selected.result.reference.box.width)}×
+              {Math.round(selected.result.reference.box.height)}px
+            </DetailRow>
+          </>
+        ) : (
+          <DetailRow label="Status" mono={false}>
+            {selected.status === 'measuring'
+              ? 'Measuring…'
+              : selected.status === 'error'
+                ? (selected.error ?? 'Measurement failed.')
+                : 'Not measured yet.'}
+          </DetailRow>
+        )}
 
-      {selected.error ? <p className="text-destructive text-xs">{selected.error}</p> : null}
+        {prompts.length > 0 ? (
+          <DetailRow label="Prompts" mono={false}>
+            {onPromptsChange ? (
+              <MeasurePhotoPrompts
+                item={selected}
+                disabled={pending}
+                onChange={(next) => onPromptsChange(selected.id, next)}
+              />
+            ) : (
+              <span>{prompts.join(', ')}</span>
+            )}
+          </DetailRow>
+        ) : null}
 
-      {exportError ? <p className="text-destructive text-xs">{exportError}</p> : null}
+        {warnings.length > 0 ? (
+          <DetailRow label="Warnings" mono={false}>
+            <ul className="space-y-1">
+              {warnings.map((warning, index) => (
+                <li
+                  key={`${warning.code}-${index}`}
+                  className="flex items-start gap-1.5 text-amber-300"
+                >
+                  <TriangleAlertIcon className="mt-0.5 size-3 shrink-0" />
+                  <span>{warning.message}</span>
+                </li>
+              ))}
+            </ul>
+          </DetailRow>
+        ) : null}
 
-      {warnings.length > 0 ? (
-        <ul className="space-y-1 text-xs">
-          {warnings.map((warning, index) => (
-            <li
-              key={`${warning.code}-${index}`}
-              className="flex items-start gap-1.5 text-amber-300"
-            >
-              <TriangleAlertIcon className="mt-0.5 size-3 shrink-0" />
-              <span>{warning.message}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+        {selected.error && selected.result ? (
+          <DetailRow label="Error" mono={false}>
+            <span className="text-destructive">{selected.error}</span>
+          </DetailRow>
+        ) : null}
 
-      {selected.result ? (
-        <MeasureResult result={selected.result} unit={unit} />
-      ) : selected.status === 'idle' ? (
-        <p className="text-muted-foreground text-xs">Not measured yet.</p>
-      ) : null}
+        {exportError ? (
+          <DetailRow label="Export" mono={false}>
+            <span className="text-destructive">{exportError}</span>
+          </DetailRow>
+        ) : null}
+      </dl>
 
       <MeasureViewer
         item={selected}
@@ -260,16 +302,6 @@ export default function MeasurePreview({
         unit={unit}
         onClose={() => setEnlarged(false)}
       />
-
-      {onResultChange ? (
-        <MeasureBoxEditor
-          key={`${selected.id}-${editing}-${selected.result?.scaleMmPerPx ?? 0}`}
-          item={selected}
-          open={editing}
-          onOpenChange={setEditing}
-          onSave={(result) => onResultChange(selected.id, result)}
-        />
-      ) : null}
     </div>
   )
 }

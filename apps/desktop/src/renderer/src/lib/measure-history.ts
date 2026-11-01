@@ -132,7 +132,3 @@ export function savedMeasureItem(measure: MeasureSavedOutput, dataUrl: string): 
       : null
   }
 }
-
-export function fetchSavedMeasuresPage(cursor: string | null, limit = 50) {
-  return orpc.measure.saved.list.call({ cursor, limit })
-}

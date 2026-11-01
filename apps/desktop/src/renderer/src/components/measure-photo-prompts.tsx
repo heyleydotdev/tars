@@ -35,74 +35,71 @@ export default function MeasurePhotoPrompts({
   if (prompts.length === 0) return null
 
   return (
-    <div className="flex items-center justify-between gap-3 text-xs">
-      <span className="text-muted-foreground shrink-0">Prompts</span>
-      <Popover
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next)
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
 
-          if (next) setDraft(effectivePrompts(item))
-        }}
-      >
-        <PopoverTrigger
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              className="min-w-0 justify-end font-mono"
-              disabled={disabled}
-            />
-          }
-        >
-          <span className="truncate">{prompts.join(', ')}</span>
-          {item.prompts ? (
-            <span className="text-emerald-400" title="Custom prompts">
-              •
-            </span>
-          ) : null}
-        </PopoverTrigger>
-        <PopoverContent side="bottom" align="end" className="w-72">
-          <PopoverHeader>
-            <PopoverTitle>Photo prompts</PopoverTitle>
-            <PopoverDescription>Override the batch prompts for this photo only.</PopoverDescription>
-          </PopoverHeader>
-          <MeasurePromptEditor
-            value={draft}
-            max={MEASURE_PROMPT_LIMIT}
+        if (next) setDraft(effectivePrompts(item))
+      }}
+    >
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="min-w-0 justify-start"
             disabled={disabled}
-            placeholder="Cardboard Box"
-            onChange={setDraft}
           />
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              disabled={disabled}
-              onClick={() => {
-                onChange(null)
-                setOpen(false)
-              }}
-            >
-              <RotateCcwIcon />
-              Use batch
-            </Button>
-            <Button
-              type="button"
-              size="xs"
-              disabled={disabled || draft.length === 0}
-              onClick={() => {
-                onChange(draft)
-                setOpen(false)
-              }}
-            >
-              Apply
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+        }
+      >
+        <span className="truncate">{prompts.join(', ')}</span>
+        {item.prompts ? (
+          <span className="text-emerald-400" title="Custom prompts">
+            •
+          </span>
+        ) : null}
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="end" className="w-72">
+        <PopoverHeader>
+          <PopoverTitle>Photo prompts</PopoverTitle>
+          <PopoverDescription>Override the batch prompts for this photo only.</PopoverDescription>
+        </PopoverHeader>
+        <MeasurePromptEditor
+          value={draft}
+          max={MEASURE_PROMPT_LIMIT}
+          disabled={disabled}
+          placeholder="Cardboard Box"
+          onChange={setDraft}
+        />
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            disabled={disabled}
+            onClick={() => {
+              onChange(null)
+              setOpen(false)
+            }}
+          >
+            <RotateCcwIcon />
+            Use batch
+          </Button>
+          <Button
+            type="button"
+            size="xs"
+            disabled={disabled || draft.length === 0}
+            onClick={() => {
+              onChange(draft)
+              setOpen(false)
+            }}
+          >
+            Apply
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
