@@ -45,10 +45,10 @@ export default function StatsSpendChart({
   return (
     <div className="p-3">
       <div className="flex items-baseline justify-between text-xs">
-        <span className="text-emerald-400 tabular-nums">
+        <span className="font-mono text-emerald-400 tabular-nums">
           {formatCurrency(totalCents, currency)}
         </span>
-        <span className="text-muted-foreground">last {points.length} months</span>
+        <span className="text-muted-foreground">Last {points.length} months</span>
       </div>
 
       <svg
@@ -94,7 +94,7 @@ export default function StatsSpendChart({
         {coords.map((point) => (
           <span
             key={point.key}
-            className="absolute -translate-x-1/2 tabular-nums"
+            className="absolute -translate-x-1/2 font-mono tabular-nums"
             style={{ left: `${(point.x / WIDTH) * 100}%` }}
           >
             {point.label}

@@ -1,7 +1,6 @@
 import { cn } from '@tars/ui/lib/utils'
 
 import { ACTIVITY_STATE_TONES } from '../lib/stats-tones'
-import StatsMetric from './stats-metric'
 import StatsRing from './stats-ring'
 import StatsSwatch from './stats-swatch'
 
@@ -42,22 +41,62 @@ export default function StatsProgress({
         label="Tasks completed"
         segments={[{ key: 'done', value: completion, tone: 'stroke-emerald-400' }]}
       >
-        <span className="text-foreground text-xl tabular-nums">{completion}%</span>
-        <span className="text-muted-foreground text-xs tracking-wide uppercase">done</span>
+        <span className="text-foreground font-mono text-xl tabular-nums">{completion}%</span>
+        <span className="text-muted-foreground font-mono text-xs tracking-wide uppercase">
+          done
+        </span>
       </StatsRing>
 
       <div className="w-full">
-        <dl className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs">
-          <StatsMetric label="tasks.open" value={openTasks} tone="text-sky-400" />
-          <StatsMetric label="tasks.done" value={doneTasks} tone="text-emerald-400" />
-          <StatsMetric label="rem.pending" value={pendingReminders} tone="text-amber-300" />
-          <StatsMetric label="rem.sent" value={sentReminders} />
-        </dl>
+        <table className="border-border w-full border-collapse border text-xs">
+          <tbody>
+            <tr>
+              <th
+                scope="row"
+                className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left align-top font-sans font-medium"
+              >
+                Open tasks
+              </th>
+              <td className="border-border text-foreground border-r border-b px-2 py-1.5 text-center font-mono text-sky-400 tabular-nums">
+                {openTasks}
+              </td>
+              <th
+                scope="row"
+                className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left align-top font-sans font-medium"
+              >
+                Done tasks
+              </th>
+              <td className="border-border text-foreground border-b px-2 py-1.5 text-center font-mono text-emerald-400 tabular-nums">
+                {doneTasks}
+              </td>
+            </tr>
+            <tr>
+              <th
+                scope="row"
+                className="border-border text-muted-foreground border-r px-2 py-1.5 text-left align-top font-sans font-medium"
+              >
+                Pending reminders
+              </th>
+              <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono text-amber-300 tabular-nums">
+                {pendingReminders}
+              </td>
+              <th
+                scope="row"
+                className="border-border text-muted-foreground border-r px-2 py-1.5 text-left align-top font-sans font-medium"
+              >
+                Sent reminders
+              </th>
+              <td className="border-border text-foreground px-2 py-1.5 text-center font-mono tabular-nums">
+                {sentReminders}
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         <div className="mt-4">
-          <div className="text-muted-foreground flex items-center justify-between text-xs tracking-wide uppercase">
+          <div className="text-muted-foreground flex items-center justify-between font-mono text-xs tracking-wide uppercase">
             <span>reminders</span>
-            <span className="tabular-nums">{reminderTotal}</span>
+            <span className="font-mono tabular-nums">{reminderTotal}</span>
           </div>
           <div className="bg-muted mt-1.5 flex h-1.5 overflow-hidden">
             {segments.map((segment) => (
@@ -71,12 +110,12 @@ export default function StatsProgress({
               />
             ))}
           </div>
-          <ul className="text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs uppercase">
+          <ul className="text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs uppercase">
             {segments.map((segment) => (
               <li key={segment.label} className="flex items-center gap-1.5">
                 <StatsSwatch tone={segment.tone} />
                 {segment.label}
-                <span className="text-foreground tabular-nums">{segment.count}</span>
+                <span className="text-foreground font-mono tabular-nums">{segment.count}</span>
               </li>
             ))}
           </ul>

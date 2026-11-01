@@ -3,7 +3,6 @@ import { cn } from '@tars/ui/lib/utils'
 import type { ActivitySummary } from '../lib/stats'
 import { dayLabel } from '../lib/stats'
 import EmptyState from './empty-state'
-import StatsMetric from './stats-metric'
 import StatsSwatch from './stats-swatch'
 
 const LEVELS = [
@@ -37,14 +36,21 @@ export default function StatsHeatmap({ activity }: { activity: ActivitySummary }
 
   const start = activity.cells[0]?.date
   const end = [...activity.cells].reverse().find((cell) => !cell.future)?.date
+  const busiest = activity.busiest
+    ? `${activity.busiest.count} · ${dayLabel(activity.busiest.date)}`
+    : '—'
+  const average =
+    activity.activeDays > 0 ? (activity.total / activity.activeDays).toFixed(1) : '0.0'
 
   return (
     <div className="p-3">
       <div className="text-muted-foreground flex items-center justify-between gap-4 text-xs">
-        <span className="tabular-nums">
+        <span className="font-mono tabular-nums">
           {start ? dayLabel(start) : '—'} → {end ? dayLabel(end) : '—'}
         </span>
-        <span className="tabular-nums">{activity.total} records</span>
+        <span>
+          <span className="font-mono tabular-nums">{activity.total}</span> Records
+        </span>
       </div>
 
       <div className="mt-3 flex gap-2">
@@ -52,7 +58,7 @@ export default function StatsHeatmap({ activity }: { activity: ActivitySummary }
           {WEEKDAYS.map((weekday, index) => (
             <span
               key={index}
-              className="text-muted-foreground flex h-5 items-center text-xs uppercase"
+              className="text-muted-foreground flex h-5 items-center font-mono text-xs uppercase"
             >
               {weekday}
             </span>
@@ -75,32 +81,59 @@ export default function StatsHeatmap({ activity }: { activity: ActivitySummary }
       </div>
 
       <div className="text-muted-foreground mt-3 flex items-center gap-1.5 text-xs">
-        <span>less</span>
+        <span>Less</span>
         {LEVELS.map((tone) => (
           <StatsSwatch key={tone} tone={tone} className="size-2.5" />
         ))}
-        <span>more</span>
+        <span>More</span>
       </div>
 
-      <dl className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs">
-        <StatsMetric label="active days" value={activity.activeDays} />
-        <StatsMetric label="streak" value={`${activity.streak}d`} tone="text-emerald-400" />
-        <StatsMetric
-          label="busiest"
-          value={
-            activity.busiest
-              ? `${activity.busiest.count} · ${dayLabel(activity.busiest.date)}`
-              : '—'
-          }
-        />
-        <StatsMetric
-          label="avg.active"
-          value={
-            activity.activeDays > 0 ? (activity.total / activity.activeDays).toFixed(1) : '0.0'
-          }
-          tone="text-sky-400"
-        />
-      </dl>
+      <table className="border-border mt-4 w-full table-fixed border-collapse border text-xs">
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
+            >
+              Active days
+            </th>
+            <th
+              scope="col"
+              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
+            >
+              Streak
+            </th>
+            <th
+              scope="col"
+              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
+            >
+              Busiest day
+            </th>
+            <th
+              scope="col"
+              className="border-border text-muted-foreground border-b px-2 py-1.5 text-center font-sans font-medium"
+            >
+              Avg. active
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono tabular-nums">
+              {activity.activeDays}
+            </td>
+            <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono text-emerald-400 tabular-nums">
+              {activity.streak}d
+            </td>
+            <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono tabular-nums">
+              {busiest}
+            </td>
+            <td className="border-border text-foreground px-2 py-1.5 text-center font-mono text-sky-400 tabular-nums">
+              {average}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   )
 }

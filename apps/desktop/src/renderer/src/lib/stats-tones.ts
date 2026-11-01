@@ -1,5 +1,12 @@
 import type { ActivityKind, ActivityState } from './stats'
 
+export const STAT_COLORS = {
+  sky: '#38bdf8',
+  emerald: '#34d399',
+  amber: '#fcd34d',
+  muted: '#a1a1aa'
+}
+
 export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
   note: 'NOTE',
   expense: 'EXP',

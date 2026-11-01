@@ -1,5 +1,6 @@
 import { formatCurrency } from '@tars/core/utils/format'
 import { capitalize } from '@tars/core/utils/string'
+import { cn } from '@tars/ui/lib/utils'
 
 import type { ExpenseCategory } from '../lib/expenses'
 import { categoryColor } from '../lib/expenses'
@@ -66,26 +67,72 @@ export default function StatsCategoryChart({
           title: `${capitalize(segment.label)}: ${formatCurrency(segment.amountCents, currency)}`
         }))}
       >
-        <span className="text-foreground text-lg tabular-nums">{entries}</span>
-        <span className="text-muted-foreground text-xs tracking-wide uppercase">entries</span>
+        <span className="text-foreground font-mono text-lg tabular-nums">{entries}</span>
+        <span className="text-muted-foreground font-mono text-xs tracking-wide uppercase">
+          entries
+        </span>
       </StatsRing>
 
-      <ul className="w-full space-y-1.5">
-        {segments.map((segment) => (
-          <li key={segment.label} className="flex items-center gap-2 text-xs">
-            <StatsSwatch color={segment.color} />
-            <span className="min-w-0 flex-1 truncate" style={{ color: segment.color }}>
-              {capitalize(segment.label)}
-            </span>
-            <span className="text-muted-foreground w-8 text-right tabular-nums">
-              {Math.round(segment.share)}%
-            </span>
-            <span className="text-foreground text-right tabular-nums">
-              {formatCurrency(segment.amountCents, currency)}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <table className="border-border w-full border-collapse border text-xs">
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left font-sans font-medium"
+            >
+              Category
+            </th>
+            <th
+              scope="col"
+              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
+            >
+              Share
+            </th>
+            <th
+              scope="col"
+              className="border-border text-muted-foreground border-b px-2 py-1.5 text-center font-sans font-medium"
+            >
+              Amount
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {segments.map((segment, index) => (
+            <tr key={segment.label}>
+              <th
+                scope="row"
+                className={cn(
+                  'border-border px-2 py-1.5 text-left align-top font-sans font-medium',
+                  index < segments.length - 1 ? 'border-r border-b' : 'border-r'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <StatsSwatch color={segment.color} />
+                  <span className="truncate" style={{ color: segment.color }}>
+                    {capitalize(segment.label)}
+                  </span>
+                </span>
+              </th>
+              <td
+                className={cn(
+                  'border-border text-muted-foreground px-2 py-1.5 text-center font-mono tabular-nums',
+                  index < segments.length - 1 ? 'border-r border-b' : 'border-r'
+                )}
+              >
+                {Math.round(segment.share)}%
+              </td>
+              <td
+                className={cn(
+                  'border-border text-foreground px-2 py-1.5 text-center font-mono tabular-nums',
+                  index < segments.length - 1 ? 'border-b' : ''
+                )}
+              >
+                {formatCurrency(segment.amountCents, currency)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

@@ -39,7 +39,7 @@ export default function StatsRecent({ events }: { events: Array<ActivityEvent> }
               <time
                 dateTime={event.at}
                 title={formatDateTime(event.at)}
-                className="text-muted-foreground tabular-nums"
+                className="text-muted-foreground font-mono tabular-nums"
               >
                 {formatTime(event.at)}
               </time>

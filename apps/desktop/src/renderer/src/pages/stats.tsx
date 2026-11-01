@@ -88,7 +88,7 @@ export default function Stats() {
         }
       />
 
-      <div className="bg-border grid flex-1 grid-cols-1 gap-px font-mono lg:grid-cols-3">
+      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:grid-cols-3">
         <StatsPanel
           title="activity.map"
           count={String(activity.total)}
