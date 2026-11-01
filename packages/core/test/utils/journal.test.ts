@@ -5,6 +5,7 @@ import {
   activityContent,
   activityId,
   activityIncidentId,
+  activityKind,
   activityTags,
   activityTitle,
   taskActivityId
@@ -80,6 +81,12 @@ describe('activity rendering', () => {
     expect(activityTags(task)).toEqual(['activity', 'task'])
     expect(activityTags(opened)).toEqual(['activity', 'incident'])
     expect(activityTags(measured)).toEqual(['activity', 'measure'])
+  })
+
+  it('reads the activity kind from the tags', () => {
+    expect(activityKind(activityTags(task))).toBe('task')
+    expect(activityKind(['activity'])).toBe('activity')
+    expect(activityKind(['activity', 'unknown'])).toBe('activity')
   })
 })
 

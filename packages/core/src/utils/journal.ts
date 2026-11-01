@@ -50,3 +50,11 @@ export function activityIncidentId(activityEntryId: string): string | null {
 
   return activityEntryId.slice('activity-incident-'.length).replace(/-(opened|approved)$/, '')
 }
+
+export type ActivityKind = 'task' | 'incident' | 'measure' | 'activity'
+
+export function activityKind(tags: Array<string>): ActivityKind {
+  const tag = tags.find((item) => item !== 'activity')
+
+  return tag === 'task' || tag === 'incident' || tag === 'measure' ? tag : 'activity'
+}
