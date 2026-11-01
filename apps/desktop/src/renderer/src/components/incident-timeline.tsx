@@ -31,7 +31,7 @@ function groupEventsByDay(
   const groups: Array<{ key: string; label: string; events: Array<IncidentEventOutput> }> = []
 
   for (const event of events) {
-    const key = event.occurredAt ? toDateKey(event.occurredAt) : 'no-time'
+    const key = event.occurredAt ? toDateKey(event.occurredAt) : 'undated'
     const last = groups[groups.length - 1]
 
     if (last?.key === key) {
@@ -41,7 +41,7 @@ function groupEventsByDay(
 
     groups.push({
       key,
-      label: event.occurredAt ? toDateKey(event.occurredAt) : 'no time',
+      label: event.occurredAt ? toDateKey(event.occurredAt) : 'undated',
       events: [event]
     })
   }
@@ -105,7 +105,7 @@ export default function IncidentTimeline({
                           onClick={() => setEditingTime(event)}
                           className="text-left font-mono text-xs/6 hover:underline"
                         >
-                          {event.occurredAt ? formatTime(event.occurredAt) : 'no time'}
+                          {event.occurredAt ? formatTime(event.occurredAt) : 'set time'}
                         </button>
                         <span className="text-muted-foreground block font-mono text-xs/6 uppercase">
                           {fromUser

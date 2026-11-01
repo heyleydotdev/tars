@@ -69,7 +69,12 @@ export default function IncidentEventDialog({
                         className="hover:bg-muted block w-full px-2 py-1.5 text-left"
                       >
                         <span className="text-muted-foreground font-mono text-xs/6 uppercase">
-                          {item.kind} · {item.occurredAt ? formatTime(item.occurredAt) : 'no time'}
+                          {item.kind} ·{' '}
+                          {item.occurredAt
+                            ? formatTime(item.occurredAt)
+                            : item.kind === 'answer'
+                              ? `received ${formatTime(item.createdAt)}`
+                              : 'undated'}
                         </span>
                         <span className="mt-0.5 line-clamp-2 block text-xs/6">
                           {item.summary ?? item.content ?? 'Screenshot'}

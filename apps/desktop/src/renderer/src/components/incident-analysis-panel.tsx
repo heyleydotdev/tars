@@ -75,9 +75,26 @@ export default function IncidentAnalysisPanel({
 
     if (!answer) return
 
-    await answerQuestion.mutateAsync({ questionId, answer })
+    try {
+      await answerQuestion.mutateAsync({ questionId, answer })
+    } catch {
+      showAlert({
+        title: ERRORS.saveFailedTitle,
+        description: ERRORS.incidentAnalysisFailed,
+        variant: 'destructive'
+      })
+      return
+    }
+
     setAnswers((current) => ({ ...current, [questionId]: '' }))
-    await rebuild.mutateAsync({ incidentId }).catch(() => undefined)
+
+    await rebuild.mutateAsync({ incidentId }).catch(() => {
+      showAlert({
+        title: ERRORS.saveFailedTitle,
+        description: ERRORS.incidentMergeFailed,
+        variant: 'destructive'
+      })
+    })
   }
 
   const supporting = analysis
@@ -173,7 +190,7 @@ export default function IncidentAnalysisPanel({
                   onClick={() => onHighlightEvents(new Set([event.id]))}
                   className="border border-emerald-400/40 px-1.5 py-0.5 font-mono text-xs/6 hover:bg-emerald-400/10"
                 >
-                  {event.occurredAt ? formatTime(event.occurredAt) : 'no time'} ·{' '}
+                  {event.occurredAt ? formatTime(event.occurredAt) : 'undated'} ·{' '}
                   {event.description.slice(0, 42)}
                 </button>
               ))}

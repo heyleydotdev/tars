@@ -92,7 +92,13 @@ export default function IncidentEvidenceViewer({
           src,
           alt: `${evidence?.kind ?? 'evidence'} screenshot`,
           title: evidence
-            ? `${evidence.kind} · ${evidence.occurredAt ? formatDateTime(evidence.occurredAt) : 'no time'}`
+            ? `${evidence.kind} · ${
+                evidence.occurredAt
+                  ? formatDateTime(evidence.occurredAt)
+                  : evidence.kind === 'answer'
+                    ? `received ${formatDateTime(evidence.createdAt)}`
+                    : 'undated'
+              }`
             : 'Evidence',
           description: evidence?.summary ?? evidence?.content ?? ''
         }
