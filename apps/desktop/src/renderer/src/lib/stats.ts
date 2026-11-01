@@ -213,6 +213,7 @@ export type ActivityEvent = {
   at: string
   kind: ActivityKind
   title: string
+  content: string | null
   meta: string | null
   state: ActivityState | null
 }
@@ -224,6 +225,7 @@ export function buildRecentActivity(records: StatsRecords, limit = 8): Array<Act
       at: entry.occurredAt,
       kind: 'note' as const,
       title: entry.title ?? entry.content,
+      content: entry.content,
       meta: entry.mood,
       state: null
     })),
@@ -232,6 +234,7 @@ export function buildRecentActivity(records: StatsRecords, limit = 8): Array<Act
       at: item.occurredAt,
       kind: 'expense' as const,
       title: item.title,
+      content: item.description || null,
       meta: formatCurrency(item.amountCents, item.currency),
       state: null
     })),
@@ -240,6 +243,7 @@ export function buildRecentActivity(records: StatsRecords, limit = 8): Array<Act
       at: item.createdAt,
       kind: 'task' as const,
       title: item.title,
+      content: null,
       meta: null,
       state: item.done ? ('done' as const) : ('open' as const)
     })),
@@ -248,6 +252,7 @@ export function buildRecentActivity(records: StatsRecords, limit = 8): Array<Act
       at: item.createdAt,
       kind: 'reminder' as const,
       title: item.title,
+      content: null,
       meta: null,
       state: item.status
     }))

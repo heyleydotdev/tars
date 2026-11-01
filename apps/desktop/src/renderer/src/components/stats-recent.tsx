@@ -1,17 +1,12 @@
-import { formatTime, toDateKey } from '@tars/core/utils/format'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
-import { cn } from '@tars/ui/lib/utils'
+import { useState } from 'react'
 
-import type { ActivityEvent, ActivityKind, ActivityState } from '../lib/stats'
-import { ACTIVITY_STATE_TONES } from '../lib/stats-tones'
+import { formatDateTime, formatTime } from '@tars/core/utils/format'
+
+import type { ActivityEvent, ActivityKind } from '../lib/stats'
+import { activateRow } from '../lib/row-activation'
+import { ACTIVITY_KIND_LABELS } from '../lib/stats-tones'
 import EmptyState from './empty-state'
-
-const KIND_LABELS: Record<ActivityKind, string> = {
-  note: 'NOTE',
-  expense: 'EXP',
-  task: 'TASK',
-  reminder: 'REM'
-}
+import StatsActivityDialog from './stats-activity-dialog'
 
 const KIND_TONES: Record<ActivityKind, string> = {
   note: 'text-sky-400',
@@ -20,67 +15,43 @@ const KIND_TONES: Record<ActivityKind, string> = {
   reminder: 'text-amber-300'
 }
 
-const STATE_LABELS: Record<ActivityState, string> = {
-  open: 'Open',
-  done: 'Done',
-  pending: 'Pending',
-  sent: 'Sent',
-  dismissed: 'Dismissed'
-}
-
-function timeLabel(at: string, todayKey: string): string {
-  const key = toDateKey(at)
-
-  return key === todayKey ? formatTime(at) : key.slice(5)
-}
-
 export default function StatsRecent({ events }: { events: Array<ActivityEvent> }) {
+  const [selected, setSelected] = useState<ActivityEvent | null>(null)
+  const [open, setOpen] = useState(false)
+
   if (events.length === 0) {
     return <EmptyState title="No Activity" hint="Records will show up here." />
   }
 
-  const todayKey = toDateKey(new Date())
-
   return (
-    <ol className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2">
-      {events.map((event) => (
-        <li
-          key={event.id}
-          className="bg-background grid grid-cols-[2.5rem_2.5rem_minmax(0,1fr)_auto] items-baseline gap-2 px-3 py-2 text-xs"
-        >
-          <time dateTime={event.at} className="text-muted-foreground tabular-nums">
-            {timeLabel(event.at, todayKey)}
-          </time>
-          <span className={KIND_TONES[event.kind]}>{KIND_LABELS[event.kind]}</span>
-          <span className="min-w-0">
-            <span className="text-foreground block truncate font-sans" title={event.title}>
-              {event.title}
-            </span>
-            {event.meta ? (
-              <span className="text-muted-foreground block truncate text-xs">{event.meta}</span>
-            ) : null}
-          </span>
-          <span className="flex justify-end self-start pt-1">
-            {event.state ? (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <span
-                      tabIndex={0}
-                      aria-label={STATE_LABELS[event.state]}
-                      className={cn(
-                        'border-border size-2 border',
-                        ACTIVITY_STATE_TONES[event.state]
-                      )}
-                    />
-                  }
-                />
-                <TooltipContent side="left">{STATE_LABELS[event.state]}</TooltipContent>
-              </Tooltip>
-            ) : null}
-          </span>
-        </li>
-      ))}
-    </ol>
+    <>
+      <ol className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2">
+        {events.map((event) => (
+          <li key={event.id} className="bg-background hover:bg-muted transition-colors">
+            <button
+              type="button"
+              {...activateRow(() => {
+                setSelected(event)
+                setOpen(true)
+              })}
+              className="focus-visible:bg-muted grid w-full grid-cols-[2.5rem_2.5rem_minmax(0,1fr)] items-baseline gap-2 px-3 py-2 text-left text-xs focus-visible:outline-none"
+            >
+              <time
+                dateTime={event.at}
+                title={formatDateTime(event.at)}
+                className="text-muted-foreground tabular-nums"
+              >
+                {formatTime(event.at)}
+              </time>
+              <span className={KIND_TONES[event.kind]}>{ACTIVITY_KIND_LABELS[event.kind]}</span>
+              <span className="text-foreground min-w-0 truncate font-sans" title={event.title}>
+                {event.title}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      <StatsActivityDialog event={selected} open={open} onOpenChange={setOpen} />
+    </>
   )
 }

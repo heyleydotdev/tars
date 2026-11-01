@@ -1,4 +1,26 @@
-import type { ActivityState } from './stats'
+import type { ActivityKind, ActivityState } from './stats'
+
+export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
+  note: 'NOTE',
+  expense: 'EXP',
+  task: 'TASK',
+  reminder: 'REM'
+}
+
+export const ACTIVITY_STATE_LABELS: Record<ActivityState, string> = {
+  open: 'Open',
+  done: 'Done',
+  pending: 'Pending',
+  sent: 'Sent',
+  dismissed: 'Dismissed'
+}
+
+export const ACTIVITY_META_LABELS: Record<ActivityKind, string> = {
+  note: 'Mood',
+  expense: 'Amount',
+  task: 'Details',
+  reminder: 'Details'
+}
 
 export const ACTIVITY_STATE_TONES: Record<ActivityState, string> = {
   open: 'bg-sky-400',
