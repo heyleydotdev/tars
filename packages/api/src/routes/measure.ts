@@ -20,6 +20,7 @@ import { and, asc, eq, isNull, or } from '@tars/db/sql'
 import { openAiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, InternalServerError, RateLimitedError } from '../errors'
 import { measureHistoryRouter } from './measure-history'
+import { measureSavedRouter } from './measure-saved'
 
 const SAM_RETRY_LIMIT = 2
 const SAM_RETRY_BASE_MS = 1_000
@@ -120,6 +121,7 @@ function segmentPrompts(
 
 export const measureRouter = {
   history: measureHistoryRouter,
+  saved: measureSavedRouter,
 
   references: protectedProcedure.handler(
     async ({ context }): Promise<MeasureReferenceListOutput> => {

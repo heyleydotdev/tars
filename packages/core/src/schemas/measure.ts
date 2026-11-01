@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { MEASURE_PROMPT_LIMIT, MEASURE_UNITS } from '../constants'
+import { MEASURE_BATCH_LIMIT, MEASURE_PROMPT_LIMIT, MEASURE_UNITS } from '../constants'
 import { ERRORS } from '../errors'
 
 export const measureUnitSchema = z.enum(MEASURE_UNITS)
@@ -196,11 +196,51 @@ export const measureHistorySaveSchema = z.object({
     .max(MEASURE_PROMPT_LIMIT, ERRORS.objectsTooMany),
   unit: measureUnitSchema,
   coverThumb: z.string().startsWith('data:image/'),
-  items: z.array(measureHistoryItemSchema).min(1).max(50)
+  items: z.array(measureHistoryItemSchema).min(1).max(MEASURE_BATCH_LIMIT)
 })
 
-export const measureHistoryListSchema = z.object({
-  items: z.array(measureHistorySummarySchema)
+export const measureSavedListInputSchema = z.object({
+  cursor: z.string().nullable().default(null),
+  limit: z.number().int().min(1).max(50).default(12)
+})
+
+export const measureSavedSchema = z.object({
+  id: z.string(),
+  runId: z.string(),
+  name: z.string(),
+  referenceId: z.string().nullable(),
+  referenceLabel: z.string(),
+  prompts: z.array(z.string()),
+  unit: measureUnitSchema,
+  status: measureHistoryItemStatusSchema,
+  error: z.string().nullable(),
+  result: measureResultSchema.nullable(),
+  imageWidth: z.number().int().positive(),
+  imageHeight: z.number().int().positive(),
+  imageUrl: z.string(),
+  thumbUrl: z.string(),
+  createdAt: z.string()
+})
+
+export const measureSavedListSchema = z.object({
+  items: z.array(measureSavedSchema),
+  nextCursor: z.string().nullable()
+})
+
+export const measureSavedIdSchema = z.object({
+  id: z.string().min(1)
+})
+
+export const measureSavedUpdateSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        result: measureResultSchema
+      })
+    )
+    .min(1)
+    .max(MEASURE_BATCH_LIMIT)
 })
 
 export const measureHistoryIdSchema = z.object({
@@ -237,8 +277,14 @@ export type MeasureHistorySummaryInput = z.input<typeof measureHistorySummarySch
 export type MeasureHistorySummaryOutput = z.output<typeof measureHistorySummarySchema>
 export type MeasureHistorySaveInput = z.input<typeof measureHistorySaveSchema>
 export type MeasureHistorySaveOutput = z.output<typeof measureHistorySaveSchema>
-export type MeasureHistoryListInput = z.input<typeof measureHistoryListSchema>
-export type MeasureHistoryListOutput = z.output<typeof measureHistoryListSchema>
+export type MeasureSavedListInput = z.input<typeof measureSavedListInputSchema>
+export type MeasureSavedListOutput = z.output<typeof measureSavedListSchema>
+export type MeasureSavedInput = z.input<typeof measureSavedSchema>
+export type MeasureSavedOutput = z.output<typeof measureSavedSchema>
+export type MeasureSavedIdInput = z.input<typeof measureSavedIdSchema>
+export type MeasureSavedIdOutput = z.output<typeof measureSavedIdSchema>
+export type MeasureSavedUpdateInput = z.input<typeof measureSavedUpdateSchema>
+export type MeasureSavedUpdateOutput = z.output<typeof measureSavedUpdateSchema>
 export type MeasureHistoryIdInput = z.input<typeof measureHistoryIdSchema>
 export type MeasureHistoryIdOutput = z.output<typeof measureHistoryIdSchema>
 export type MeasureHistoryBeginItemInput = z.input<typeof measureHistoryBeginItemSchema>

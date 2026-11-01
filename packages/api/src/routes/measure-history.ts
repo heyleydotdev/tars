@@ -1,16 +1,10 @@
-import type {
-  MeasureHistoryBeginOutput,
-  MeasureHistoryDetailOutput,
-  MeasureHistoryListOutput,
-  MeasureResultOutput,
-  MeasureUnit
-} from '@tars/core/schemas/measure'
+import type { MeasureHistoryBeginOutput } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
 import { measureHistoryIdSchema, measureHistorySaveSchema } from '@tars/core/schemas/measure'
-import { deleteFiles, signFileKey } from '@tars/core/services/files'
-import { fileKey, signedFilePath } from '@tars/core/utils/files'
+import { deleteFiles } from '@tars/core/services/files'
+import { fileKey } from '@tars/core/utils/files'
 import { measureRun, measureRunItem } from '@tars/db/schema'
-import { and, desc, eq } from '@tars/db/sql'
+import { and, eq } from '@tars/db/sql'
 
 import { protectedProcedure } from '../context'
 import { InternalServerError, NotFoundError } from '../errors'
@@ -22,92 +16,7 @@ function measureFileKeys(userId: string, runId: string, itemId: string) {
   }
 }
 
-const summaryColumns = {
-  id: measureRun.id,
-  referenceLabel: measureRun.referenceLabel,
-  prompts: measureRun.prompts,
-  unit: measureRun.unit,
-  itemCount: measureRun.itemCount,
-  measuredCount: measureRun.measuredCount,
-  coverThumb: measureRun.coverThumb,
-  createdAt: measureRun.createdAt
-}
-
 export const measureHistoryRouter = {
-  list: protectedProcedure.handler(async ({ context }): Promise<MeasureHistoryListOutput> => {
-    const runs = await context.db
-      .select(summaryColumns)
-      .from(measureRun)
-      .where(and(eq(measureRun.userId, context.session.user.id), eq(measureRun.status, 'ready')))
-      .orderBy(desc(measureRun.createdAt))
-      .limit(50)
-
-    return {
-      items: runs.map((run) => ({
-        ...run,
-        unit: run.unit as MeasureUnit,
-        createdAt: run.createdAt.toISOString()
-      }))
-    }
-  }),
-
-  get: protectedProcedure
-    .errors({ NOT_FOUND: NotFoundError })
-    .input(measureHistoryIdSchema)
-    .handler(async ({ input, context, errors }): Promise<MeasureHistoryDetailOutput> => {
-      const [run] = await context.db
-        .select({
-          ...summaryColumns,
-          referenceId: measureRun.referenceId,
-          referencePrompt: measureRun.referencePrompt,
-          referenceWidthMm: measureRun.referenceWidthMm,
-          referenceHeightMm: measureRun.referenceHeightMm
-        })
-        .from(measureRun)
-        .where(
-          and(
-            eq(measureRun.id, input.id),
-            eq(measureRun.userId, context.session.user.id),
-            eq(measureRun.status, 'ready')
-          )
-        )
-        .limit(1)
-
-      if (!run) throw errors.NOT_FOUND()
-
-      const rows = await context.db
-        .select({
-          id: measureRunItem.id,
-          name: measureRunItem.name,
-          status: measureRunItem.status,
-          error: measureRunItem.error,
-          imageWidth: measureRunItem.imageWidth,
-          imageHeight: measureRunItem.imageHeight,
-          result: measureRunItem.result,
-          imageKey: measureRunItem.imageKey,
-          thumbKey: measureRunItem.thumbKey
-        })
-        .from(measureRunItem)
-        .where(eq(measureRunItem.runId, input.id))
-        .orderBy(measureRunItem.sortOrder)
-
-      const items = await Promise.all(
-        rows.map(async ({ imageKey, thumbKey, ...item }) => ({
-          ...item,
-          result: item.result as MeasureResultOutput | null,
-          imageUrl: signedFilePath(imageKey, await signFileKey(context.fileSecret, imageKey)),
-          thumbUrl: signedFilePath(thumbKey, await signFileKey(context.fileSecret, thumbKey))
-        }))
-      )
-
-      return {
-        ...run,
-        unit: run.unit as MeasureUnit,
-        createdAt: run.createdAt.toISOString(),
-        items
-      }
-    }),
-
   begin: protectedProcedure
     .input(measureHistorySaveSchema)
     .handler(async ({ input, context }): Promise<MeasureHistoryBeginOutput> => {
