@@ -140,7 +140,7 @@ export const journalRouter = {
       context.db
         .select(journalColumns)
         .from(journalEntry)
-        .where(and(eq(journalEntry.userId, userId), notLike(journalEntry.tags, '%"activity"%')))
+        .where(and(eq(journalEntry.userId, userId), notLike(journalEntry.id, 'activity-%')))
         .orderBy(desc(journalEntry.occurredAt))
         .limit(JOURNAL_ITEM_LIMIT)
     ])
