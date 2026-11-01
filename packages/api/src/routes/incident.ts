@@ -833,22 +833,6 @@ export const incidentRouter = {
         status: 'ready'
       })
 
-      const [eventCount] = await context.db
-        .select({ count: sql<number>`count(*)` })
-        .from(incidentEvent)
-        .where(eq(incidentEvent.incidentId, row.incidentId))
-
-      await context.db.insert(incidentEvent).values({
-        id: crypto.randomUUID(),
-        incidentId: row.incidentId,
-        occurredAt: null,
-        timeSource: null,
-        description: `User answered: ${input.answer}`,
-        confidence: 'high',
-        sourceEvidenceIds: [evidenceId],
-        sortOrder: Number(eventCount?.count ?? 0)
-      })
-
       await touchIncident(context.db, row.incidentId)
 
       return loadDetail(context.db, context.session.user.id, row.incidentId)
