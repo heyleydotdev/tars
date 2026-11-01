@@ -40,6 +40,7 @@
 | Task                 | Command                                         |
 | -------------------- | ----------------------------------------------- |
 | Install              | `bun install`                                   |
+| Test                 | `bun run test`                                  |
 | One task             | `bunx turbo <task> --filter=@tars/<name>`       |
 | Desktop dev          | `bunx turbo dev --filter=@tars/desktop`         |
 | Server dev           | `bunx turbo dev --filter=@tars/server`          |
@@ -50,10 +51,11 @@
 
 ## Verify Before Reporting
 
-`bun run format` → `bun run typecheck` → `bun run lint`. Add `--force` when editing `packages/*` or `tooling/*`; Turbo hashes a task on the workspace's own files, not its dependencies' source.
+`bun run format` → `bun run test` → `bun run typecheck` → `bun run lint`. Add `--force` when editing `packages/*` or `tooling/*`; Turbo hashes a task on the workspace's own files, not its dependencies' source.
 
 ## Traps
 
+- Tests live in `<workspace>/test`. Packages run with `bun test` and `bunfig.toml` pins the root; `apps/server` uses the Cloudflare Vitest plugin (`vitest.config.ts`) with `bun:test` aliased to `vitest`.
 - `typecheck` is `bun check` (Bun's TypeScript 7); catalog `typescript` 5.9.3 is only for editors and ESLint.
 - `bun fmt` reads only the current directory's `.gitignore`; workspace scripts pass `--ignore-path ../../.gitignore`.
 - Do not edit generated files: `packages/db/src/auth-schema.ts` (regenerate with `bun run generate`) or `worker-configuration.d.ts` (regenerate with `bun run typegen` in `apps/server`).
