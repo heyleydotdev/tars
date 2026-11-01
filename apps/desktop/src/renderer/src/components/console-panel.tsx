@@ -32,7 +32,7 @@ export default function ConsolePanel({
       </header>
       <div className="console-scroll min-h-0 flex-1 lg:overflow-y-auto">{children}</div>
       {footer ? (
-        <footer className="text-muted-foreground flex h-8 shrink-0 items-center gap-2 border-t px-3 font-mono text-xs/6">
+        <footer className="text-muted-foreground flex h-8 shrink-0 items-center gap-2 border-t px-3 text-xs/6">
           {footer}
         </footer>
       ) : null}

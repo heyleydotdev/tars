@@ -82,9 +82,14 @@ export default function Incident() {
           className="lg:col-span-4"
           footer={
             <>
-              <span>{detail.evidence.length} evidence</span>
+              <span>
+                <span className="font-mono tabular-nums">{detail.evidence.length}</span> Evidence
+              </span>
               <span className="ml-auto">
-                {detail.evidence.filter((item) => item.status === 'ready').length} read
+                <span className="font-mono tabular-nums">
+                  {detail.evidence.filter((item) => item.status === 'ready').length}
+                </span>{' '}
+                Read
               </span>
             </>
           }
@@ -103,8 +108,10 @@ export default function Incident() {
           className="lg:col-span-4"
           footer={
             <>
-              <span>{detail.events.length} events</span>
-              <span className="ml-auto">{detail.incident.summary ? 'merged' : 'not merged'}</span>
+              <span>
+                <span className="font-mono tabular-nums">{detail.events.length}</span> Events
+              </span>
+              <span className="ml-auto">{detail.incident.summary ? 'Merged' : 'Not merged'}</span>
             </>
           }
         >
@@ -124,14 +131,18 @@ export default function Incident() {
             detail.analysis ? (
               <>
                 <span>
-                  {detail.analysis.outcome === 'proposed' ? 'cause proposed' : 'inconclusive'}
+                  {detail.analysis.outcome === 'proposed' ? 'Cause proposed' : 'Inconclusive'}
                 </span>
                 <span className="ml-auto">
-                  {detail.analysis.status === 'approved' ? 'approved' : detail.analysis.confidence}
+                  {detail.analysis.status === 'approved' ? (
+                    'Approved'
+                  ) : (
+                    <span className="font-mono uppercase">{detail.analysis.confidence}</span>
+                  )}
                 </span>
               </>
             ) : (
-              <span>no analysis yet</span>
+              <span>No analysis yet</span>
             )
           }
         >
