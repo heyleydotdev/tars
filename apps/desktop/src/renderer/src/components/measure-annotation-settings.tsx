@@ -10,6 +10,7 @@ import {
   PopoverTitle,
   PopoverTrigger
 } from '@tars/ui/components/popover'
+import { Slider } from '@tars/ui/components/slider'
 
 import type { MeasureFrameSetting } from '../stores/measure-annotations'
 import {
@@ -112,15 +113,17 @@ export default function MeasureAnnotationSettings({ objectCount }: { objectCount
             Label size
           </label>
           <div className="flex items-center gap-2">
-            <input
+            <Slider
               id="measure-frame-font"
-              type="range"
+              aria-label="Label size"
               min={MIN_FRAME_FONT_SIZE}
               max={MAX_FRAME_FONT_SIZE}
               step={1}
-              value={fontSize}
-              className="w-24 cursor-pointer accent-emerald-400"
-              onChange={(event) => setFontSize(event.target.valueAsNumber)}
+              value={[fontSize]}
+              className="w-24"
+              onValueChange={(value) =>
+                setFontSize(Array.isArray(value) ? (value[0] ?? fontSize) : value)
+              }
             />
             <span className="text-foreground w-9 text-right font-mono tabular-nums">
               {fontSize}px
