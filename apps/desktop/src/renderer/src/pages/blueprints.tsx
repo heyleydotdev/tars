@@ -25,6 +25,7 @@ import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import { logAction } from '../lib/activity'
 import { BLUEPRINT_STATUS_TONES } from '../lib/badge-tones'
 import { useBlueprints, useCreateBlueprint, useDeleteBlueprint } from '../lib/blueprint'
 import { groupByDay } from '../lib/group-by-day'
@@ -58,6 +59,7 @@ export default function Blueprints() {
 
     try {
       await remove.mutateAsync({ id: deleting.id })
+      logAction('blueprint.deleted', deleting.id, deleting.title)
       setDeleting(null)
     } catch {
       setDeleting(null)
@@ -90,6 +92,7 @@ export default function Blueprints() {
         client: client.trim() || null
       })
 
+      logAction('blueprint.created', detail.blueprint.id, detail.blueprint.title)
       if (!mounted.current) return
 
       setTitle('')

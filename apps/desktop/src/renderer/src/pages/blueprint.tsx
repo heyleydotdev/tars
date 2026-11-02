@@ -52,6 +52,7 @@ import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
 import QuestionField from '../components/question-field'
+import { logAction } from '../lib/activity'
 import { REQUIREMENT_CONFIDENCE_TONES, REQUIREMENT_STATUS_TONES } from '../lib/badge-tones'
 import {
   useAddBlueprintEvidence,
@@ -144,6 +145,12 @@ export default function Blueprint() {
 
     try {
       await add.mutateAsync({ blueprintId: detail.blueprint.id, kind: 'text', content: value })
+      logAction(
+        'blueprint.evidence.added',
+        crypto.randomUUID(),
+        'Blueprint evidence',
+        value.slice(0, 80)
+      )
       setContent('')
     } catch (error) {
       report(error)
@@ -157,6 +164,7 @@ export default function Blueprint() {
 
     try {
       await answer.mutateAsync({ questionId, answer: value })
+      logAction('blueprint.answered', questionId, 'Question answered', value.slice(0, 80))
       setAnswers((current) => ({ ...current, [questionId]: '' }))
     } catch (error) {
       report(error)
@@ -186,6 +194,7 @@ export default function Blueprint() {
 
     try {
       await removeEvidence.mutateAsync({ evidenceId: removing.id })
+      logAction('blueprint.evidence.removed', removing.id, 'Blueprint evidence')
       setRemoving(null)
     } catch (error) {
       setRemoving(null)
@@ -199,6 +208,12 @@ export default function Blueprint() {
         requirementId: item.id,
         enabled: !item.enabled
       })
+      logAction(
+        'blueprint.requirement.toggled',
+        item.id,
+        item.text,
+        item.enabled ? 'Disabled' : 'Enabled'
+      )
     } catch (error) {
       report(error)
     }
@@ -209,6 +224,7 @@ export default function Blueprint() {
 
     try {
       await removeRequirement.mutateAsync({ requirementId: removingRequirement.id })
+      logAction('blueprint.requirement.removed', removingRequirement.id, removingRequirement.text)
       setRemovingRequirement(null)
     } catch (error) {
       setRemovingRequirement(null)
@@ -389,7 +405,12 @@ export default function Blueprint() {
                   variant="outline"
                   size="xs"
                   disabled={running || detail.evidence.length === 0}
-                  onClick={() => void run(() => extract.mutateAsync({ id: detail.blueprint.id }))}
+                  onClick={() =>
+                    void run(async () => {
+                      await extract.mutateAsync({ id: detail.blueprint.id })
+                      logAction('blueprint.mapped', detail.blueprint.id, detail.blueprint.title)
+                    })
+                  }
                 >
                   {extract.isPending ? <Spinner className="size-3.5" /> : <ListChecksIcon />}
                   Map requirements
@@ -479,6 +500,7 @@ export default function Blueprint() {
                   onClick={() =>
                     void run(async () => {
                       await gaps.mutateAsync({ id: detail.blueprint.id })
+                      logAction('blueprint.gaps', detail.blueprint.id, detail.blueprint.title)
                       setSection('output')
                     })
                   }
@@ -531,6 +553,7 @@ export default function Blueprint() {
                       draftSave.cancel()
                       void run(async () => {
                         await draftIt.mutateAsync({ id: detail.blueprint.id })
+                        logAction('blueprint.drafted', detail.blueprint.id, detail.blueprint.title)
                         setDraft(null)
                         setSection('output')
                       })
@@ -614,7 +637,14 @@ export default function Blueprint() {
                     size="xs"
                     disabled={running || detail.requirements.length === 0}
                     onClick={() =>
-                      void run(() => hierarchyIt.mutateAsync({ id: detail.blueprint.id }))
+                      void run(async () => {
+                        await hierarchyIt.mutateAsync({ id: detail.blueprint.id })
+                        logAction(
+                          'blueprint.hierarchy',
+                          detail.blueprint.id,
+                          detail.blueprint.title
+                        )
+                      })
                     }
                   >
                     {hierarchyIt.isPending ? (
@@ -672,7 +702,12 @@ export default function Blueprint() {
                     type="button"
                     size="xs"
                     disabled={running || detail.requirements.length === 0}
-                    onClick={() => void run(() => flowIt.mutateAsync({ id: detail.blueprint.id }))}
+                    onClick={() =>
+                      void run(async () => {
+                        await flowIt.mutateAsync({ id: detail.blueprint.id })
+                        logAction('blueprint.flow', detail.blueprint.id, detail.blueprint.title)
+                      })
+                    }
                   >
                     {flowIt.isPending ? <Spinner className="size-3.5" /> : <WandSparklesIcon />}
                     Generate
