@@ -13,6 +13,12 @@ declare global {
     error: string | null
   }
 
+  interface AppInfo {
+    version: string
+    electron: string
+    packaged: boolean
+  }
+
   interface WindowControlsApi {
     minimize: () => void
     toggleMaximize: () => void
@@ -32,6 +38,11 @@ declare global {
     getSession: () => Promise<Session | null>
     signIn: (email: string, password: string) => Promise<AuthResult>
     signUp: (input: RegisterInput) => Promise<AuthResult>
+    changePassword: (input: {
+      currentPassword: string
+      newPassword: string
+    }) => Promise<{ error: string | null }>
+    getAppInfo: () => Promise<AppInfo>
     requestMicrophoneAccess: () => Promise<boolean>
     transcribeAudio: (audio: ArrayBuffer) => Promise<string | null>
     copyText: (text: string) => Promise<void>

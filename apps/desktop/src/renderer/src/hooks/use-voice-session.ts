@@ -62,8 +62,8 @@ export function useVoiceSession() {
     }
   }, [setWindowFocused])
 
-  // Listening is always on while hidden/unfocused; the user only controls it
-  // while the window is focused.
+  // Background listening follows the wake preference; focused dictation
+  // follows the composer toggle.
   useEffect(() => {
     if (isPaused) {
       stop()

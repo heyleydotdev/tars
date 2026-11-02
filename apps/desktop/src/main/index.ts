@@ -4,6 +4,7 @@ import { app, nativeTheme } from 'electron'
 import { APP_ID, APP_NAME } from '@tars/core/constants'
 
 import { authClient } from '../lib/auth-client'
+import { registerApp } from './ipc/app'
 import { registerAuth } from './ipc/auth'
 import { registerClipboard } from './ipc/clipboard'
 import { registerMedia } from './ipc/media'
@@ -25,6 +26,7 @@ app.whenReady().then(() => {
   })
 
   registerWindowControls()
+  registerApp()
   registerAuth()
   registerClipboard()
   registerMedia()

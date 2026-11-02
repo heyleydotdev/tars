@@ -31,4 +31,16 @@ export function registerAuth(): void {
       ? { session: null, error: error.message ?? ERRORS.tryAgain }
       : { session: await currentSession(), error: null }
   })
+
+  ipcMain.handle(
+    'auth:change-password',
+    async (
+      _event,
+      input: { currentPassword: string; newPassword: string }
+    ): Promise<{ error: string | null }> => {
+      const { error } = await authClient.changePassword(input)
+
+      return { error: error ? (error.message ?? ERRORS.passwordChangeFailed) : null }
+    }
+  )
 }

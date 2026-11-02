@@ -3,6 +3,10 @@ export const ERRORS = {
   passwordRequired: 'Enter your password.',
   nameRequired: 'Enter your name.',
   passwordTooShort: 'Your password must be at least 8 characters.',
+  passwordMismatch: 'New passwords do not match.',
+  passwordChangeFailed:
+    'Could not change your password. Check your current password and try again.',
+  passwordChanged: 'Password changed.',
   signInFailed: 'We couldn’t sign you in. Check your email and password, then try again.',
   signUpFailed: 'We couldn’t create your account. Please try again.',
   tryAgain: 'Something went wrong. Please try again.',

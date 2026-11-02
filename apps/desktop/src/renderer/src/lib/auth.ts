@@ -44,6 +44,12 @@ export async function signUp(input: RegisterInput): Promise<void> {
   useAuthStore.getState().setSession(session)
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const { error } = await window.changePassword({ currentPassword, newPassword })
+
+  if (error) throw new Error(error)
+}
+
 export async function signOut(): Promise<void> {
   try {
     await window.signOut()

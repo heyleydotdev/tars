@@ -8,12 +8,14 @@ import {
   RulerIcon,
   ScanEyeIcon,
   SearchIcon,
+  SettingsIcon,
   SirenIcon,
   WalletIcon
 } from 'lucide-react'
-import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
+import { Outlet, useLocation, useNavigate, useNavigation, useOutletContext } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
+import type { Session } from '@tars/auth/server'
 import { ERRORS } from '@tars/core/errors'
 import { getInitials } from '@tars/core/utils/string'
 import { Avatar, AvatarFallback } from '@tars/ui/components/avatar'
@@ -89,6 +91,8 @@ const navigation: Array<{ label: string; items: Array<NavItem> }> = [
 const destinations = navigation.flatMap((group) => group.items)
 
 function activeDestination(pathname: string): string {
+  if (pathname === '/settings') return 'Settings'
+
   const exact = destinations.find((item) => item.to === pathname)
 
   if (exact) return exact.title
@@ -185,6 +189,16 @@ function AppSidebar({
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    onSelect('/settings')
+                    if (isMobile) setOpenMobile(false)
+                  }}
+                >
+                  <SettingsIcon />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onSignOut}>
                   <LogOutIcon />
                   Log out
@@ -213,6 +227,7 @@ export default function DashboardLayout() {
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const setDeskChatOpen = useDeskChatStore((state) => state.setOpen)
+  const session = useOutletContext<Session>()
   const active = activeDestination(pathname)
 
   async function confirmSignOut() {
@@ -254,7 +269,7 @@ export default function DashboardLayout() {
             <span className="text-sm font-medium">{active}</span>
           </header>
           <div className="relative flex min-h-0 flex-1 flex-col overflow-auto">
-            <Outlet />
+            <Outlet context={session} />
             {isNavigating ? (
               <div className="bg-background absolute inset-0 z-30">
                 <LoadingScreen />

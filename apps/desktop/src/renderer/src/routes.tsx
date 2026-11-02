@@ -26,6 +26,7 @@ import Login from './pages/login'
 import Measure from './pages/measure'
 import MeasureSaved from './pages/measure-saved'
 import Register from './pages/register'
+import Settings from './pages/settings'
 import Stats from './pages/stats'
 import UiReview from './pages/ui-review'
 
@@ -97,7 +98,8 @@ export function createAppRouter(queryClient: QueryClient) {
                       path: '/incidents/:id',
                       element: <Incident />,
                       loader: incidentLoader(queryClient)
-                    }
+                    },
+                    { path: '/settings', element: <Settings /> }
                   ]
                 }
               ]
