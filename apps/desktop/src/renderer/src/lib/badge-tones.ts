@@ -2,6 +2,7 @@ import type {
   BlueprintRequirementOutput,
   BlueprintSummaryOutput
 } from '@tars/core/schemas/blueprint'
+import type { UiFindingOutput, UiReviewSummaryOutput } from '@tars/core/schemas/ui-review'
 import type { ActivityKind as JournalActivityKind } from '@tars/core/utils/journal'
 
 import type { ActivityKind as StatsActivityKind } from './stats'
@@ -40,4 +41,15 @@ export const REQUIREMENT_CONFIDENCE_TONES: Record<
   high: 'capitalize bg-emerald-400/15 text-emerald-300',
   medium: 'capitalize bg-amber-400/15 text-amber-300',
   low: 'capitalize bg-muted text-muted-foreground'
+}
+
+export const UI_REVIEW_STATUS_TONES: Record<UiReviewSummaryOutput['status'], string> = {
+  created: 'capitalize bg-amber-400/15 text-amber-300',
+  explained: 'capitalize bg-emerald-400/15 text-emerald-300'
+}
+
+export const SEVERITY_BADGE_TONES: Record<UiFindingOutput['severity'], string> = {
+  significant: 'capitalize bg-destructive/15 text-destructive',
+  moderate: 'capitalize bg-amber-400/15 text-amber-300',
+  minor: 'capitalize bg-muted text-muted-foreground'
 }

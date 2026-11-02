@@ -1,11 +1,18 @@
 import { useRef, useState } from 'react'
-import { ImagePlusIcon, ScanEyeIcon, SparklesIcon } from 'lucide-react'
+import { ImagePlusIcon, ScanEyeIcon, SparklesIcon, Trash2Icon } from 'lucide-react'
 
+import type { UiReviewSummaryOutput } from '@tars/core/schemas/ui-review'
 import { UI_REVIEW_VARIANT_LIMIT } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
-import { formatDateTime } from '@tars/core/utils/format'
+import { formatTime } from '@tars/core/utils/format'
+import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
-import { Checkbox } from '@tars/ui/components/checkbox'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger
+} from '@tars/ui/components/context-menu'
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
 import { TabsContent } from '@tars/ui/components/tabs'
@@ -19,6 +26,7 @@ import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import ImageViewer from '../components/image-viewer'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import { SEVERITY_BADGE_TONES, UI_REVIEW_STATUS_TONES } from '../lib/badge-tones'
 import { fileSrc } from '../lib/files'
 import { dataUrlToBlob, prepareMeasureImage } from '../lib/measure'
 import {
@@ -32,12 +40,6 @@ import {
 } from '../lib/ui-review'
 import { useShellAlertStore } from '../stores/alert'
 
-const SEVERITY_TONES: Record<string, string> = {
-  significant: 'text-destructive',
-  moderate: 'text-amber-300',
-  minor: 'text-muted-foreground'
-}
-
 export default function UiReview() {
   const reviews = useUiReviews()
   const showAlert = useShellAlertStore((state) => state.showAlert)
@@ -50,7 +52,7 @@ export default function UiReview() {
   const [section, setSection] = useState('findings')
   const [instruction, setInstruction] = useState('')
   const [uploading, setUploading] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting, setDeleting] = useState<UiReviewSummaryOutput | null>(null)
   const [viewing, setViewing] = useState<ViewerImage | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const detail = useUiReview(activeId)
@@ -118,19 +120,6 @@ export default function UiReview() {
           count={String(items.length)}
           accent="bg-sky-400"
           className="lg:col-span-3"
-          footer={
-            data ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                disabled={remove.isPending}
-                onClick={() => setDeleting(true)}
-              >
-                Delete review
-              </Button>
-            ) : null
-          }
         >
           {reviews.isPending ? (
             <div className="text-muted-foreground flex items-center gap-2 p-4 text-xs">
@@ -138,35 +127,69 @@ export default function UiReview() {
               Loading…
             </div>
           ) : items.length === 0 ? (
-            <EmptyState title="No Reviews" hint="Upload a screenshot to critique it." />
+            <EmptyState
+              title="No Reviews"
+              hint="Upload a screenshot to critique it."
+              icon={ScanEyeIcon}
+            />
           ) : (
             <ul className="divide-border divide-y">
               {items.map((item) => (
                 <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveId(item.id)
-                      setSection('findings')
-                    }}
-                    className={cn(
-                      'hover:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left transition-colors',
-                      item.id === activeId ? 'bg-muted/40' : ''
-                    )}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="text-foreground block truncate text-xs/6 font-medium">
-                        {item.title ?? 'Screenshot'}
-                      </span>
-                      <span className="text-muted-foreground block truncate text-xs/6">
-                        {formatDateTime(item.updatedAt)}
-                      </span>
-                    </span>
-                    <span className="font-mono text-xs uppercase">{item.status}</span>
-                    <span className="text-muted-foreground text-right font-mono text-xs tabular-nums">
-                      {item.findingCount}/{item.variantCount}
-                    </span>
-                  </button>
+                  <ContextMenu>
+                    <ContextMenuTrigger
+                      render={
+                        <button
+                          type="button"
+                          aria-current={item.id === activeId ? 'true' : undefined}
+                          onClick={() => {
+                            setActiveId(item.id)
+                            setSection('findings')
+                          }}
+                          className={cn(
+                            'hover:bg-muted/60 relative flex w-full items-start gap-2 px-3 py-2 text-left transition-colors',
+                            item.id === activeId ? 'bg-muted/40' : ''
+                          )}
+                        >
+                          {item.id === activeId ? (
+                            <span
+                              aria-hidden
+                              className="absolute inset-y-0 left-0 w-px bg-emerald-400"
+                            />
+                          ) : null}
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <Badge
+                                variant="default"
+                                className={UI_REVIEW_STATUS_TONES[item.status]}
+                              >
+                                {item.status}
+                              </Badge>
+                              <span className="text-foreground truncate text-xs/6 font-medium">
+                                {item.title ?? 'Screenshot'}
+                              </span>
+                            </span>
+                            <span className="text-muted-foreground mt-0.5 line-clamp-1 text-xs/6">
+                              {item.summary ?? 'Not explained yet.'}
+                            </span>
+                            <span className="text-muted-foreground mt-0.5 block text-xs/6">
+                              {item.findingCount} finding{item.findingCount === 1 ? '' : 's'} ·{' '}
+                              {item.variantCount} variant{item.variantCount === 1 ? '' : 's'}
+                            </span>
+                          </span>
+                          <span className="text-muted-foreground shrink-0 text-right font-mono text-xs/6 tabular-nums">
+                            {formatTime(item.updatedAt)}
+                          </span>
+                        </button>
+                      }
+                    />
+                    <ContextMenuContent>
+                      <ContextMenuItem variant="destructive" onClick={() => setDeleting(item)}>
+                        <Trash2Icon />
+                        Delete review
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 </li>
               ))}
             </ul>
@@ -251,35 +274,46 @@ export default function UiReview() {
                       ) : (
                         <ul className="divide-border divide-y">
                           {data.findings.map((finding) => (
-                            <li key={finding.id} className="flex items-start gap-2 py-2 first:pt-0">
-                              <Checkbox
-                                checked={finding.included}
-                                disabled={busy}
-                                onCheckedChange={(checked) =>
-                                  updateFinding.mutate({
-                                    findingId: finding.id,
-                                    included: checked === true
-                                  })
-                                }
-                              />
-                              <span className="min-w-0 flex-1 text-xs/6">
-                                <span className="flex items-center gap-2">
-                                  <span className="text-foreground font-medium">
-                                    {finding.label}
+                            <li key={finding.id}>
+                              <label
+                                className={cn(
+                                  'hover:bg-muted/40 flex cursor-pointer items-start gap-3 py-2 transition-colors',
+                                  finding.included ? '' : 'opacity-60'
+                                )}
+                              >
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-2">
+                                    <span className="text-foreground text-xs/6 font-medium">
+                                      {finding.label}
+                                    </span>
+                                    <Badge
+                                      variant="default"
+                                      className={SEVERITY_BADGE_TONES[finding.severity]}
+                                    >
+                                      {finding.severity}
+                                    </Badge>
                                   </span>
-                                  <span
-                                    className={cn(
-                                      'font-mono text-xs uppercase',
-                                      SEVERITY_TONES[finding.severity]
-                                    )}
-                                  >
-                                    {finding.severity}
+                                  <span className="text-muted-foreground mt-0.5 line-clamp-2 block text-xs/6">
+                                    {finding.description}
                                   </span>
                                 </span>
-                                <span className="text-muted-foreground block">
-                                  {finding.description}
-                                </span>
-                              </span>
+                                <input
+                                  type="checkbox"
+                                  checked={finding.included}
+                                  disabled={busy}
+                                  onChange={(event) =>
+                                    updateFinding.mutate(
+                                      {
+                                        findingId: finding.id,
+                                        included: event.target.checked
+                                      },
+                                      { onError: report }
+                                    )
+                                  }
+                                  aria-label={`Include ${finding.label} in redesign`}
+                                  className="mt-1 size-3.5 shrink-0 cursor-pointer accent-emerald-400 disabled:cursor-not-allowed"
+                                />
+                              </label>
                             </li>
                           ))}
                         </ul>
@@ -440,18 +474,26 @@ export default function UiReview() {
         description="The screenshot and every generated concept will be removed."
         confirmLabel="Delete"
         destructive
-        open={deleting}
+        open={deleting !== null}
         pending={remove.isPending}
-        onOpenChange={setDeleting}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null)
+        }}
         onConfirm={() => {
-          if (!data) return
+          if (!deleting) return
+
+          const id = deleting.id
+
           void remove
-            .mutateAsync({ reviewId: data.review.id })
+            .mutateAsync({ reviewId: id })
             .then(() => {
-              setActiveId(null)
-              setDeleting(false)
+              if (id === activeId) setActiveId(null)
+              setDeleting(null)
             })
-            .catch(report)
+            .catch((error: unknown) => {
+              setDeleting(null)
+              report(error)
+            })
         }}
       />
     </div>
