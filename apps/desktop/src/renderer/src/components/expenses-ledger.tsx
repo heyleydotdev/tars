@@ -3,6 +3,7 @@ import { PencilIcon, Trash2Icon, XIcon } from 'lucide-react'
 
 import type { ExpenseItemOutput } from '@tars/core/schemas/expenses'
 import { formatCurrency, formatTime, toDateKey } from '@tars/core/utils/format'
+import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
 import {
   ContextMenu,
@@ -38,16 +39,26 @@ function ExpenseRow({
           {formatTime(at)}
         </time>
         <div className="min-w-0">
-          <p className="text-foreground font-sans text-[0.8rem]/6 wrap-break-word">{item.title}</p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge
+              variant="default"
+              className="capitalize"
+              style={{
+                color,
+                backgroundColor: `color-mix(in oklch, ${color} 14%, transparent)`
+              }}
+            >
+              {item.category}
+            </Badge>
+            <p className="text-foreground font-sans text-[0.8rem]/6 wrap-break-word">
+              {item.title}
+            </p>
+          </div>
           {item.description && item.description !== item.title ? (
             <p className="text-muted-foreground font-sans text-[0.8rem]/6 wrap-break-word">
               {item.description}
             </p>
           ) : null}
-          <span
-            className="mt-0.5 block font-mono text-xs uppercase"
-            style={{ color }}
-          >{`#${item.category}`}</span>
         </div>
         <span className="text-foreground text-right font-mono text-[0.8rem] tabular-nums">
           {formatCurrency(item.amountCents, item.currency)}

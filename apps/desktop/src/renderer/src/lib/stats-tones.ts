@@ -8,10 +8,10 @@ export const STAT_COLORS = {
 }
 
 export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
-  note: 'NOTE',
-  expense: 'EXP',
-  task: 'TASK',
-  reminder: 'REM'
+  note: 'note',
+  expense: 'exp',
+  task: 'task',
+  reminder: 'rem'
 }
 
 export const ACTIVITY_STATE_LABELS: Record<ActivityState, string> = {

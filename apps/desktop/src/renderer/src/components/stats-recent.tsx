@@ -1,19 +1,14 @@
 import { useState } from 'react'
 
 import { formatDateTime, formatTime } from '@tars/core/utils/format'
+import { Badge } from '@tars/ui/components/badge'
 
-import type { ActivityEvent, ActivityKind } from '../lib/stats'
+import type { ActivityEvent } from '../lib/stats'
+import { KIND_BADGE_TONES } from '../lib/badge-tones'
 import { activateRow } from '../lib/row-activation'
 import { ACTIVITY_KIND_LABELS } from '../lib/stats-tones'
 import EmptyState from './empty-state'
 import StatsActivityDialog from './stats-activity-dialog'
-
-const KIND_TONES: Record<ActivityKind, string> = {
-  note: 'text-sky-400',
-  expense: 'text-emerald-400',
-  task: 'text-violet-400',
-  reminder: 'text-amber-300'
-}
 
 export default function StatsRecent({ events }: { events: Array<ActivityEvent> }) {
   const [selected, setSelected] = useState<ActivityEvent | null>(null)
@@ -34,7 +29,7 @@ export default function StatsRecent({ events }: { events: Array<ActivityEvent> }
                 setSelected(event)
                 setOpen(true)
               })}
-              className="focus-visible:bg-muted grid w-full grid-cols-[2.5rem_2.5rem_minmax(0,1fr)] items-baseline gap-2 px-3 py-2 text-left text-xs focus-visible:outline-none"
+              className="focus-visible:bg-muted grid w-full grid-cols-[2.5rem_3rem_minmax(0,1fr)] items-baseline gap-2 px-3 py-2 text-left text-xs focus-visible:outline-none"
             >
               <time
                 dateTime={event.at}
@@ -43,7 +38,9 @@ export default function StatsRecent({ events }: { events: Array<ActivityEvent> }
               >
                 {formatTime(event.at)}
               </time>
-              <span className={KIND_TONES[event.kind]}>{ACTIVITY_KIND_LABELS[event.kind]}</span>
+              <Badge variant="default" className={KIND_BADGE_TONES[event.kind]}>
+                {ACTIVITY_KIND_LABELS[event.kind]}
+              </Badge>
               <span className="text-foreground min-w-0 truncate font-sans" title={event.title}>
                 {event.title}
               </span>

@@ -1,6 +1,7 @@
 import { PencilIcon, Trash2Icon } from 'lucide-react'
 
 import type { JournalItemOutput } from '@tars/core/schemas/journal'
+import { Badge } from '@tars/ui/components/badge'
 import { ContextMenuItem } from '@tars/ui/components/context-menu'
 
 import JournalRow from './journal-row'
@@ -31,16 +32,16 @@ export default function JournalNoteRow({
       }
     >
       {entry.mood || entry.tags.length > 0 ? (
-        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs/6 font-medium uppercase">
-          {entry.mood ? <span className="text-amber-300">::{entry.mood}</span> : null}
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+          {entry.mood ? (
+            <Badge variant="default" className="bg-amber-400/15 text-amber-300 capitalize">
+              ::{entry.mood}
+            </Badge>
+          ) : null}
           {entry.tags.map((tag) => (
-            <span
-              key={tag}
-              className="text-background relative inline-flex px-1.5 py-0.5 leading-none"
-            >
-              <span aria-hidden className="bg-foreground absolute inset-0 skew-x-12" />
-              <span className="relative">#{tag}</span>
-            </span>
+            <Badge key={tag} variant="default" className="bg-sky-400/15 text-sky-300 capitalize">
+              #{tag}
+            </Badge>
           ))}
         </div>
       ) : null}

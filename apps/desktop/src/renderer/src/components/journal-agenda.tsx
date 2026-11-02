@@ -2,6 +2,7 @@ import { PencilIcon, Trash2Icon } from 'lucide-react'
 
 import type { ReminderItemOutput, TodoItemOutput } from '@tars/core/schemas/journal'
 import { formatTime } from '@tars/core/utils/format'
+import { Badge } from '@tars/ui/components/badge'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -10,6 +11,7 @@ import {
 } from '@tars/ui/components/context-menu'
 import { cn } from '@tars/ui/lib/utils'
 
+import { KIND_BADGE_TONES } from '../lib/badge-tones'
 import ConsoleEnd from './console-end'
 import EmptyState from './empty-state'
 
@@ -51,7 +53,7 @@ export default function JournalAgenda({
       kind: 'task' as const,
       done: todo.done,
       createdAt: todo.createdAt,
-      meta: todo.priority ? `p=${todo.priority}` : null
+      meta: null
     }))
   ].sort(
     (left, right) =>
@@ -114,14 +116,9 @@ export default function JournalAgenda({
                   <span className="text-muted-foreground mt-0.5 block text-xs">{item.meta}</span>
                 ) : null}
               </span>
-              <span
-                className={cn(
-                  'pt-0.5 font-mono text-xs tracking-widest uppercase',
-                  item.kind === 'rem' ? 'text-amber-300' : 'text-sky-400'
-                )}
-              >
+              <Badge variant="default" className={KIND_BADGE_TONES[item.kind]}>
                 {item.kind}
-              </span>
+              </Badge>
             </ContextMenuTrigger>
             <ContextMenuContent>
               <ContextMenuItem

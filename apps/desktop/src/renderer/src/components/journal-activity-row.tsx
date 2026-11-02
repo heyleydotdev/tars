@@ -5,8 +5,10 @@ import { useNavigate } from 'react-router'
 import type { JournalItemOutput } from '@tars/core/schemas/journal'
 import { ERRORS } from '@tars/core/errors'
 import { activityIncidentId, activityKind } from '@tars/core/utils/journal'
+import { Badge } from '@tars/ui/components/badge'
 import { ContextMenuItem } from '@tars/ui/components/context-menu'
 
+import { KIND_BADGE_TONES } from '../lib/badge-tones'
 import { useShellAlertStore } from '../stores/alert'
 import JournalActivityDialog from './journal-activity-dialog'
 import JournalRow from './journal-row'
@@ -51,7 +53,9 @@ export default function JournalActivityRow({ entry }: { entry: JournalItemOutput
         }
       >
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-muted-foreground font-mono text-xs/6 uppercase">{type}</span>
+          <Badge variant="default" className={KIND_BADGE_TONES[type]}>
+            {type}
+          </Badge>
           {entry.title ? (
             <span className="text-foreground font-sans text-xs/6 font-medium">{entry.title}</span>
           ) : null}
