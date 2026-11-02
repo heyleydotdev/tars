@@ -50,6 +50,7 @@ import ConsolePanel from '../components/console-panel'
 import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import QuestionField from '../components/question-field'
 import { REQUIREMENT_CONFIDENCE_TONES, REQUIREMENT_STATUS_TONES } from '../lib/badge-tones'
 import {
   useAddBlueprintEvidence,
@@ -459,34 +460,16 @@ export default function Blueprint() {
               ) : (
                 <div className="space-y-3 p-3">
                   {openQuestions.map((question) => (
-                    <div key={question.id} className="space-y-1.5">
-                      <p className="text-xs/6">{question.text}</p>
-                      <p className="text-muted-foreground text-xs/6">{question.rationale}</p>
-                      <div className="flex items-start gap-2">
-                        <Textarea
-                          value={answers[question.id] ?? ''}
-                          onChange={(event) =>
-                            setAnswers((current) => ({
-                              ...current,
-                              [question.id]: event.target.value
-                            }))
-                          }
-                          placeholder="Answer with the fact only the client knows…"
-                          className="min-h-16 text-xs/6"
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={
-                            answer.isPending || (answers[question.id] ?? '').trim().length === 0
-                          }
-                          onClick={() => void submitAnswer(question.id)}
-                        >
-                          {answer.isPending ? <Spinner className="size-3.5" /> : null}
-                          Answer
-                        </Button>
-                      </div>
-                    </div>
+                    <QuestionField
+                      key={question.id}
+                      question={question}
+                      value={answers[question.id] ?? ''}
+                      pending={answer.isPending}
+                      onChange={(value) =>
+                        setAnswers((current) => ({ ...current, [question.id]: value }))
+                      }
+                      onSubmit={() => void submitAnswer(question.id)}
+                    />
                   ))}
                 </div>
               )}

@@ -17,6 +17,7 @@ import {
 } from '../lib/incident'
 import { useLogActivity } from '../lib/journal'
 import { useShellAlertStore } from '../stores/alert'
+import QuestionField from './question-field'
 
 function outcomeLabel(outcome: 'proposed' | 'inconclusive'): string {
   return outcome === 'proposed' ? 'likely cause' : 'inconclusive'
@@ -146,31 +147,16 @@ export default function IncidentAnalysisPanel({
         <section className="border-border space-y-3 border-t pt-3">
           <p className="text-foreground text-xs/6 font-medium">Needs more evidence</p>
           {openQuestions.map((question) => (
-            <div key={question.id} className="space-y-1.5">
-              <p className="text-xs/6">{question.text}</p>
-              <p className="text-muted-foreground text-xs/6">{question.rationale}</p>
-              <div className="flex items-start gap-2">
-                <Textarea
-                  value={answers[question.id] ?? ''}
-                  onChange={(event) =>
-                    setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
-                  }
-                  placeholder="Answer with the fact only you know…"
-                  className="min-h-16 text-xs/6"
-                />
-                <Button
-                  type="button"
-                  size="xs"
-                  disabled={
-                    answerQuestion.isPending || (answers[question.id] ?? '').trim().length === 0
-                  }
-                  onClick={() => void submitAnswer(question.id)}
-                >
-                  {answerQuestion.isPending ? <Spinner className="size-3.5" /> : <CheckIcon />}
-                  Answer
-                </Button>
-              </div>
-            </div>
+            <QuestionField
+              key={question.id}
+              question={question}
+              value={answers[question.id] ?? ''}
+              pending={answerQuestion.isPending}
+              placeholder="Answer with the fact only you know…"
+              size="xs"
+              onChange={(value) => setAnswers((current) => ({ ...current, [question.id]: value }))}
+              onSubmit={() => void submitAnswer(question.id)}
+            />
           ))}
         </section>
       ) : null}
