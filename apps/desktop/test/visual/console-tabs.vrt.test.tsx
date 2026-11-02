@@ -48,4 +48,7 @@ test('console tabs switch content', async () => {
 
   await userEvent.click(page.getByRole('tab', { name: 'About' }))
   await expect.element(page.getByText('About panel')).toBeInTheDocument()
+
+  // Park the pointer so hover styles do not leak into later screenshot tests.
+  await userEvent.unhover(document.body)
 })
