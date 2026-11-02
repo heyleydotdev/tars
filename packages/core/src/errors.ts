@@ -58,6 +58,9 @@ export const ERRORS = {
   copyFailedTitle: 'Copy failed',
   copyFailedDetail: 'Could not copy the measurement to the clipboard.',
   saveFailedTitle: 'Save failed',
+  pendingNavigationTitle: 'Request still running',
+  pendingNavigationDescription:
+    'Leave this page? The request will keep running in the background, and its result may not appear here.',
   boxTooSmall: 'Boxes must be at least 8 pixels wide and tall.',
   historySaveFailed: 'Could not save this measurement.',
   measureBatchFullTitle: 'Batch is full',
