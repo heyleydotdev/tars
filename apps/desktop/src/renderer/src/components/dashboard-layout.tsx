@@ -7,6 +7,7 @@ import {
   LogOutIcon,
   NotebookPenIcon,
   RulerIcon,
+  ScanEyeIcon,
   SearchIcon,
   SirenIcon,
   WalletIcon
@@ -87,6 +88,7 @@ const navigation: Array<{ label: string; items: Array<NavItem> }> = [
         children: [{ title: 'Saved', to: '/measure/saved' }]
       },
       { title: 'Blueprints', to: '/blueprints', icon: DraftingCompassIcon },
+      { title: 'UI Review', to: '/ui-review', icon: ScanEyeIcon },
       { title: 'Incidents', to: '/incidents', icon: SirenIcon }
     ]
   }

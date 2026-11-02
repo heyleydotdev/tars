@@ -27,6 +27,7 @@ import Measure from './pages/measure'
 import MeasureSaved from './pages/measure-saved'
 import Register from './pages/register'
 import Stats from './pages/stats'
+import UiReview from './pages/ui-review'
 
 export function createAppRouter(queryClient: QueryClient) {
   return createHashRouter([
@@ -86,6 +87,7 @@ export function createAppRouter(queryClient: QueryClient) {
                       element: <Blueprint />,
                       loader: blueprintLoader(queryClient)
                     },
+                    { path: '/ui-review', element: <UiReview /> },
                     {
                       path: '/incidents',
                       element: <Incidents />,
