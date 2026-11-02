@@ -28,7 +28,9 @@ Rules:
 - Each question targets one gap and asks for a fact only the client can confirm.
 - Keep each question under 300 characters and specific to the areas and integrations in the map.
 - rationale: one sentence on why the answer changes the proposal.
-- gap: the exact gap text this question closes.`
+- gap: the exact gap text this question closes.
+- kind: short for one short fact such as a name, host, or count; long when the answer needs a sentence or a list; select when the answer is one of a few known choices; date when the answer is a specific day.
+- options: for select only, the two to six allowed answers and nothing else. Leave it empty for every other kind.`
 
 const DRAFT_PROMPT = `Write a software project proposal in markdown from the requirement map.
 

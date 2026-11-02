@@ -72,6 +72,8 @@ describe('incident.answerQuestion', () => {
     expect(detail.questions[0]).toMatchObject({
       id: QUESTION_ID,
       status: 'answered',
+      kind: 'short',
+      options: null,
       answer: 'No flag changed.'
     })
     expect(detail.evidence).toHaveLength(1)

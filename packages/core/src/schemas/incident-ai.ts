@@ -11,6 +11,7 @@ import {
   incidentOutcomeSchema,
   incidentTimeSourceSchema
 } from './incident'
+import { questionKindSchema } from './question'
 
 export const incidentExtractedEventSchema = z.object({
   occurredAt: z.string().nullable(),
@@ -44,7 +45,9 @@ export const incidentReadinessSchema = z.object({
 export const incidentQuestionDraftSchema = z.object({
   text: z.string().min(1).max(300),
   rationale: z.string().min(1).max(300),
-  gap: z.string().min(1).max(300)
+  gap: z.string().min(1).max(300),
+  kind: questionKindSchema,
+  options: z.array(z.string().min(1).max(60)).max(6).default([])
 })
 
 export const incidentQuestionsSchema = z.object({

@@ -127,6 +127,20 @@
       "when": 1793652087562,
       "tag": "0017_light_the_order",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1793652696337,
+      "tag": "0018_yielding_tempest",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1793652993758,
+      "tag": "0019_slippery_calypso",
+      "breakpoints": true
     }
   ]
 }

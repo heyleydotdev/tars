@@ -201,7 +201,9 @@ describe('blueprint.answerQuestion', () => {
       blueprintId: id,
       text: 'Which site hosts the booking form?',
       rationale: 'Changes the task list.',
-      gap: 'hosting'
+      gap: 'hosting',
+      kind: 'select',
+      options: ['Existing WordPress site', 'New site']
     })
 
     const response = await callRpc(db, 'blueprint/answerQuestion', {
@@ -212,6 +214,8 @@ describe('blueprint.answerQuestion', () => {
 
     expect(response.status).toBe(200)
     expect(detail.questions[0]?.status).toBe('answered')
+    expect(detail.questions[0]?.kind).toBe('select')
+    expect(detail.questions[0]?.options).toEqual(['Existing WordPress site', 'New site'])
     expect(detail.draft).toBeNull()
     expect(detail.evidence.some((item) => item.kind === 'answer')).toBe(true)
   })

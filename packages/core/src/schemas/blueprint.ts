@@ -1,6 +1,7 @@
 import * as z from 'zod'
 
 import { ERRORS } from '../errors'
+import { questionKindSchema } from './question'
 
 export const blueprintStatusSchema = z.enum(['intake', 'mapped', 'ready', 'drafted'])
 export const blueprintRequirementStatusSchema = z.enum([
@@ -56,6 +57,8 @@ export const blueprintQuestionSchema = z.object({
   rationale: z.string().min(1),
   gap: z.string().min(1),
   status: blueprintQuestionStatusSchema,
+  kind: questionKindSchema,
+  options: z.array(z.string()).nullable(),
   answer: z.string().nullable(),
   answeredAt: z.string().nullable(),
   createdAt: z.string()

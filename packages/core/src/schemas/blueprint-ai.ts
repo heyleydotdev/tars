@@ -2,6 +2,7 @@ import * as z from 'zod'
 
 import { BLUEPRINT_QUESTION_LIMIT, BLUEPRINT_REQUIREMENT_LIMIT } from '../constants'
 import { blueprintConfidenceSchema, blueprintRequirementStatusSchema } from './blueprint'
+import { questionKindSchema } from './question'
 
 export const blueprintExtractedRequirementSchema = z.object({
   area: z.string().min(1).max(40),
@@ -24,7 +25,9 @@ export const blueprintReadinessSchema = z.object({
 export const blueprintQuestionDraftSchema = z.object({
   text: z.string().min(1).max(300),
   rationale: z.string().min(1).max(300),
-  gap: z.string().min(1).max(300)
+  gap: z.string().min(1).max(300),
+  kind: questionKindSchema,
+  options: z.array(z.string().min(1).max(60)).max(6).default([])
 })
 
 export const blueprintQuestionsSchema = z.object({

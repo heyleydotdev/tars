@@ -2,6 +2,7 @@ import * as z from 'zod'
 
 import { INCIDENT_EVIDENCE_CHARS } from '../constants'
 import { ERRORS } from '../errors'
+import { questionKindSchema } from './question'
 
 export const incidentStatusSchema = z.enum(['open', 'closed'])
 export const incidentEvidenceKindSchema = z.enum(['screenshot', 'log', 'text', 'voice', 'answer'])
@@ -58,6 +59,8 @@ export const incidentQuestionSchema = z.object({
   rationale: z.string().min(1),
   gap: z.string().min(1),
   status: incidentQuestionStatusSchema,
+  kind: questionKindSchema,
+  options: z.array(z.string()).nullable(),
   answer: z.string().nullable(),
   answeredAt: z.string().nullable(),
   createdAt: z.string()

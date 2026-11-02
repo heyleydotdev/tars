@@ -80,6 +80,8 @@ export const blueprintQuestion = sqliteTable(
     rationale: text('rationale').notNull(),
     gap: text('gap').notNull(),
     status: text('status').$type<'open' | 'answered' | 'dismissed'>().notNull().default('open'),
+    kind: text('kind').$type<'short' | 'long' | 'select' | 'date'>().notNull().default('short'),
+    options: text('options', { mode: 'json' }).$type<Array<string>>(),
     answer: text('answer'),
     answeredAt: integer('answered_at', { mode: 'timestamp_ms' }),
     createdAt

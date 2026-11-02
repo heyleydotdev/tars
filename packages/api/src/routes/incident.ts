@@ -129,6 +129,8 @@ function serializeQuestion(row: IncidentQuestionSelect): IncidentQuestionOutput 
     rationale: row.rationale,
     gap: row.gap,
     status: row.status,
+    kind: row.kind,
+    options: row.options,
     answer: row.answer,
     answeredAt: iso(row.answeredAt),
     createdAt: row.createdAt.toISOString()
@@ -779,13 +781,19 @@ export const incidentRouter = {
 
           if (drafted.questions.length > 0) {
             await context.db.insert(incidentQuestion).values(
-              drafted.questions.map((question) => ({
-                id: crypto.randomUUID(),
-                incidentId: owner.id,
-                text: question.text,
-                rationale: question.rationale,
-                gap: question.gap
-              }))
+              drafted.questions.map((question) => {
+                const hasOptions = question.options.length > 0
+
+                return {
+                  id: crypto.randomUUID(),
+                  incidentId: owner.id,
+                  text: question.text,
+                  rationale: question.rationale,
+                  gap: question.gap,
+                  kind: question.kind === 'select' && !hasOptions ? 'short' : question.kind,
+                  options: question.kind === 'select' && hasOptions ? question.options : null
+                }
+              })
             )
           }
 

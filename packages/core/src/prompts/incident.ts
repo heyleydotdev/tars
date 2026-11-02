@@ -45,7 +45,9 @@ Rules:
 - Each question targets one gap and asks for a fact only a human would know (what changed, who ran it, which flag, what the metric was), never for an explanation or a guess.
 - Keep each question under 300 characters and specific to timestamps, services, or hosts from the timeline.
 - rationale: one sentence on why the answer matters.
-- gap: the exact gap text this question closes.`
+- gap: the exact gap text this question closes.
+- kind: short for one short fact such as a host, flag, or time; long when the answer needs a sentence; select when the answer is one of a few known choices; date when the answer is a specific day.
+- options: for select only, the two to six allowed answers and nothing else. Leave it empty for every other kind.`
 
 const INCIDENT_ROOT_CAUSE_PROMPT = `You propose the most likely root cause for this incident from its timeline.
 
