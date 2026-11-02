@@ -38,6 +38,13 @@ export default function JournalCalendar({
     [todos]
   )
 
+  function goToday(): void {
+    const today = new Date()
+
+    setView(startOfMonth(today))
+    onSelect(today)
+  }
+
   return (
     <div className="p-3">
       <div className="flex items-center justify-between border-b pb-2">
@@ -45,6 +52,9 @@ export default function JournalCalendar({
           {toMonthKey(view).replace('-', '.')}
         </span>
         <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" onClick={goToday}>
+            Today
+          </Button>
           <Button
             variant="outline"
             size="icon-sm"
