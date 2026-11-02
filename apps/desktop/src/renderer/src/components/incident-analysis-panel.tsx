@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckIcon, SparklesIcon } from 'lucide-react'
 
 import type { IncidentDetailOutput } from '@tars/core/schemas/incident'
@@ -24,10 +24,12 @@ function outcomeLabel(outcome: 'proposed' | 'inconclusive'): string {
 
 export default function IncidentAnalysisPanel({
   detail,
-  onHighlightEvents
+  onHighlightEvents,
+  onPendingChange
 }: {
   detail: IncidentDetailOutput
   onHighlightEvents: (ids: Set<string>) => void
+  onPendingChange?: (pending: boolean) => void
 }) {
   const incidentId = detail.incident.id
   const analysis = detail.analysis
@@ -41,11 +43,23 @@ export default function IncidentAnalysisPanel({
   const approve = useApproveIncidentPostmortem()
   const logActivity = useLogActivity()
   const showAlert = useShellAlertStore((state) => state.showAlert)
+  const pending =
+    findRootCause.isPending ||
+    answerQuestion.isPending ||
+    rebuild.isPending ||
+    savePostmortem.isPending ||
+    approve.isPending
   const [draft, setDraft] = useState<{ text: string; version: string } | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const serverPostmortem = analysis?.postmortem ?? ''
   const serverVersion = analysis?.updatedAt ?? ''
   const postmortem = draft?.version === serverVersion ? draft.text : serverPostmortem
+
+  useEffect(() => {
+    onPendingChange?.(pending)
+  }, [onPendingChange, pending])
+
+  useEffect(() => () => onPendingChange?.(false), [onPendingChange])
 
   async function approvePostmortem(): Promise<void> {
     try {

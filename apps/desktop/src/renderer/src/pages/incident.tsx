@@ -3,12 +3,16 @@ import { ArrowLeftIcon } from 'lucide-react'
 import { Link, useLoaderData, useParams } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
+import { cn } from '@tars/ui/lib/utils'
+
 import type { IncidentLoaderData } from '../lib/loaders'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
+import ConsoleTabs from '../components/console-tabs'
 import IncidentAnalysisPanel from '../components/incident-analysis-panel'
 import IncidentEvidencePanel from '../components/incident-evidence-panel'
 import IncidentTimeline from '../components/incident-timeline'
+import PendingNavigationGuard from '../components/pending-navigation-guard'
 import { useIncident } from '../lib/incident'
 import { useIncidentDemoStore } from '../stores/incident-demo'
 
@@ -17,8 +21,11 @@ export default function Incident() {
   const { id } = useParams<{ id: string }>()
   const incident = useIncident(id ?? '', initial)
   const detail = incident.data ?? initial
+  const [section, setSection] = useState('activity')
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null)
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set())
+  const [evidencePending, setEvidencePending] = useState(false)
+  const [analysisPending, setAnalysisPending] = useState(false)
   const demo = useIncidentDemoStore(
     useShallow((state) => ({
       running: state.running,
@@ -40,6 +47,11 @@ export default function Incident() {
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }
 
+  function showEvents(ids: Set<string>): void {
+    setSection('activity')
+    window.setTimeout(() => highlightEvents(ids), 0)
+  }
+
   function selectEvidence(id: string): void {
     setSelectedEvidenceId(id)
 
@@ -47,7 +59,7 @@ export default function Incident() {
       .filter((event) => event.sourceEvidenceIds.includes(id))
       .map((event) => event.id)
 
-    highlightEvents(new Set(eventIds))
+    showEvents(new Set(eventIds))
   }
 
   return (
@@ -74,59 +86,80 @@ export default function Incident() {
         }
       />
 
-      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
-        <ConsolePanel
-          title="evidence.in"
-          count={String(detail.evidence.length)}
-          accent="bg-sky-400"
-          className="lg:col-span-4"
-          footer={
-            <>
-              <span>
-                <span className="font-mono tabular-nums">{detail.evidence.length}</span> Evidence
-              </span>
-              <span className="ml-auto">
-                <span className="font-mono tabular-nums">
-                  {detail.evidence.filter((item) => item.status === 'ready').length}
-                </span>{' '}
-                Read
-              </span>
-            </>
+      <ConsoleTabs
+        value={section}
+        onValueChange={setSection}
+        items={[
+          { value: 'activity', label: 'Evidence & Timeline' },
+          {
+            value: 'postmortem',
+            label: 'Postmortem',
+            count: detail.analysis?.status === 'approved' ? 'approved' : undefined
           }
-        >
-          <IncidentEvidencePanel
-            detail={detail}
-            selectedId={selectedEvidenceId}
-            onSelect={selectEvidence}
-          />
-        </ConsolePanel>
+        ]}
+      />
 
-        <ConsolePanel
-          title="timeline.log"
-          count={String(detail.events.length)}
-          accent="bg-emerald-400"
-          className="lg:col-span-4"
-          footer={
-            <>
-              <span>
-                <span className="font-mono tabular-nums">{detail.events.length}</span> Events
-              </span>
-              <span className="ml-auto">{detail.incident.summary ? 'Merged' : 'Not merged'}</span>
-            </>
-          }
+      <div className="flex flex-1 flex-col lg:min-h-0">
+        <div
+          className={cn(
+            'bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)]',
+            section !== 'activity' && 'hidden'
+          )}
         >
-          <IncidentTimeline
-            detail={detail}
-            highlightedEventIds={highlighted}
-            onSelectEvidence={selectEvidence}
-          />
-        </ConsolePanel>
+          <ConsolePanel
+            title="evidence.in"
+            count={String(detail.evidence.length)}
+            accent="bg-sky-400"
+            className="lg:col-span-4"
+            footer={
+              <>
+                <span>
+                  <span className="font-mono tabular-nums">{detail.evidence.length}</span> Evidence
+                </span>
+                <span className="ml-auto">
+                  <span className="font-mono tabular-nums">
+                    {detail.evidence.filter((item) => item.status === 'ready').length}
+                  </span>{' '}
+                  Read
+                </span>
+              </>
+            }
+          >
+            <IncidentEvidencePanel
+              detail={detail}
+              selectedId={selectedEvidenceId}
+              onSelect={selectEvidence}
+              onPendingChange={setEvidencePending}
+            />
+          </ConsolePanel>
+
+          <ConsolePanel
+            title="timeline.log"
+            count={String(detail.events.length)}
+            accent="bg-emerald-400"
+            className="lg:col-span-8"
+            footer={
+              <>
+                <span>
+                  <span className="font-mono tabular-nums">{detail.events.length}</span> Events
+                </span>
+                <span className="ml-auto">{detail.incident.summary ? 'Merged' : 'Not merged'}</span>
+              </>
+            }
+          >
+            <IncidentTimeline
+              detail={detail}
+              highlightedEventIds={highlighted}
+              onSelectEvidence={selectEvidence}
+            />
+          </ConsolePanel>
+        </div>
 
         <ConsolePanel
           title="postmortem.md"
           count={detail.events.length > 0 ? 'live' : '—'}
           accent="bg-amber-300"
-          className="lg:col-span-4"
+          className={cn('flex-1', section !== 'postmortem' && 'hidden')}
           footer={
             detail.analysis ? (
               <>
@@ -146,9 +179,15 @@ export default function Incident() {
             )
           }
         >
-          <IncidentAnalysisPanel detail={detail} onHighlightEvents={highlightEvents} />
+          <IncidentAnalysisPanel
+            detail={detail}
+            onHighlightEvents={showEvents}
+            onPendingChange={setAnalysisPending}
+          />
         </ConsolePanel>
       </div>
+
+      <PendingNavigationGuard when={evidencePending || analysisPending} />
     </div>
   )
 }

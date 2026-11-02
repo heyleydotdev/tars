@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CopyIcon, ExternalLinkIcon, PlusIcon, SirenIcon, Trash2Icon } from 'lucide-react'
 import { Link, useLoaderData, useNavigate } from 'react-router'
 
@@ -24,6 +24,7 @@ import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
 import IncidentDayHeader from '../components/incident-day-header'
 import IncidentDemoButton from '../components/incident-demo-button'
+import PendingNavigationGuard from '../components/pending-navigation-guard'
 import { useCreateIncident, useDeleteIncident, useIncidents } from '../lib/incident'
 import { useLogActivity } from '../lib/journal'
 import { useShellAlertStore } from '../stores/alert'
@@ -59,11 +60,20 @@ export default function Incidents() {
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const [title, setTitle] = useState('')
   const [deleting, setDeleting] = useState<IncidentSummaryOutput | null>(null)
+  const mounted = useRef(true)
   const items = incidents.data?.items ?? []
   const groups = groupIncidentsByDay(items)
   const openCount = items.filter((incident) => incident.status === 'open').length
   const demoRunning = useIncidentDemoStore((state) => state.running)
   const consumeIncidentId = useIncidentDemoStore((state) => state.consumeIncidentId)
+
+  useEffect(() => {
+    mounted.current = true
+
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   useEffect(() => {
     if (demoRunning) return
@@ -83,6 +93,8 @@ export default function Incidents() {
     try {
       const detail = await create.mutateAsync({ title: value })
 
+      if (!mounted.current) return
+
       logActivity.mutate({
         events: [
           {
@@ -97,6 +109,8 @@ export default function Incidents() {
       setTitle('')
       navigate(`/incidents/${detail.incident.id}`)
     } catch {
+      if (!mounted.current) return
+
       showAlert({
         title: ERRORS.saveFailedTitle,
         description: ERRORS.tryAgain,
@@ -265,6 +279,8 @@ export default function Incidents() {
           )}
         </ConsolePanel>
       </div>
+
+      <PendingNavigationGuard when={create.isPending || demoRunning} />
 
       <ConfirmDialog
         title="Delete incident?"

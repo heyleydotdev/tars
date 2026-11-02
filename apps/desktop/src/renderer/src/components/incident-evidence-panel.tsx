@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   FileTextIcon,
   ImageIcon,
@@ -134,11 +134,13 @@ function EvidenceThumb({ evidenceId }: { evidenceId: string }) {
 export default function IncidentEvidencePanel({
   detail,
   selectedId,
-  onSelect
+  onSelect,
+  onPendingChange
 }: {
   detail: IncidentDetailOutput
   selectedId: string | null
   onSelect: (id: string) => void
+  onPendingChange?: (pending: boolean) => void
 }) {
   const incidentId = detail.incident.id
   const [content, setContent] = useState('')
@@ -156,6 +158,13 @@ export default function IncidentEvidencePanel({
   const rebuild = useRebuildIncidentTimeline()
   const remove = useRemoveIncidentEvidence()
   const showAlert = useShellAlertStore((state) => state.showAlert)
+  const pending = busy || recording || add.isPending || addScreenshot.isPending || remove.isPending
+
+  useEffect(() => {
+    onPendingChange?.(pending)
+  }, [onPendingChange, pending])
+
+  useEffect(() => () => onPendingChange?.(false), [onPendingChange])
 
   async function refreshTimeline(): Promise<void> {
     await rebuild.mutateAsync({ incidentId }).catch(() => undefined)
