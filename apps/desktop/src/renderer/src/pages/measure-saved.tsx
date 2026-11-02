@@ -14,6 +14,7 @@ import { cn } from '@tars/ui/lib/utils'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
+import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import MeasurePreview from '../components/measure-preview'
 import { fileSrc } from '../lib/files'
@@ -158,6 +159,14 @@ export default function MeasureSaved() {
   return (
     <div className="flex min-h-full flex-col lg:h-full lg:min-h-0">
       <ConsoleHeader title="measure.saved" />
+
+      <ConsoleTabs
+        value="saved"
+        items={[
+          { value: 'workspace', label: 'Workspace', to: '/measure' },
+          { value: 'saved', label: 'Saved', to: '/measure/saved' }
+        ]}
+      />
 
       <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
         <ConsolePanel

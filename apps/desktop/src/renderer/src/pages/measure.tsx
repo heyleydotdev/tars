@@ -21,12 +21,14 @@ import type { MeasureBatchItem, MeasureRequest, PreparedMeasureImage } from '../
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
+import ConsoleTabs from '../components/console-tabs'
 import MeasureAnnotationSettings from '../components/measure-annotation-settings'
 import MeasureExportAllButton from '../components/measure-export-all-button'
 import MeasureForm from '../components/measure-form'
 import MeasureGuideButton from '../components/measure-guide-button'
 import MeasurePhoto from '../components/measure-photo'
 import MeasurePreview from '../components/measure-preview'
+import PendingNavigationGuard from '../components/pending-navigation-guard'
 import { useLogActivity } from '../lib/journal'
 import {
   exportMeasure,
@@ -408,6 +410,14 @@ export default function Measure() {
         }
       />
 
+      <ConsoleTabs
+        value="workspace"
+        items={[
+          { value: 'workspace', label: 'Workspace', to: '/measure' },
+          { value: 'saved', label: 'Saved', to: '/measure/saved' }
+        ]}
+      />
+
       <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
         <ConsolePanel
           title="photo.input"
@@ -450,6 +460,8 @@ export default function Measure() {
         onPhotos={addBatchPhotos}
         onMeasure={requestMeasure}
       />
+
+      <PendingNavigationGuard when={running} />
 
       <ConfirmDialog
         title="Replace current batch?"
