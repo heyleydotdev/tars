@@ -535,7 +535,9 @@ export const blueprintRouter = {
           if (drafted.questions.length > 0) {
             await context.db.insert(blueprintQuestion).values(
               drafted.questions.map((question) => {
-                const hasOptions = question.options.length > 0
+                const options = [
+                  ...new Set(question.options.map((option) => option.trim()).filter(Boolean))
+                ]
 
                 return {
                   id: crypto.randomUUID(),
@@ -543,8 +545,9 @@ export const blueprintRouter = {
                   text: question.text,
                   rationale: question.rationale,
                   gap: question.gap,
-                  kind: question.kind === 'select' && !hasOptions ? 'short' : question.kind,
-                  options: question.kind === 'select' && hasOptions ? question.options : null
+                  kind:
+                    question.kind === 'select' && options.length === 0 ? 'short' : question.kind,
+                  options: question.kind === 'select' && options.length > 0 ? options : null
                 }
               })
             )
