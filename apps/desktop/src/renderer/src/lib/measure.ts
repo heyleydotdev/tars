@@ -18,6 +18,7 @@ import { measureWarnings } from '@tars/core/utils/measure'
 
 import type { MeasureAnnotations } from '../stores/measure-annotations'
 import { DEFAULT_OBJECT_FRAME } from '../stores/measure-annotations'
+import { downloadBlob } from './download'
 import { orpc } from './orpc'
 
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024
@@ -66,17 +67,6 @@ export function frameLineWidth(imageWidth: number): number {
 
 export function frameLabelPadding(fontSize: number): number {
   return fontSize * 0.35
-}
-
-function downloadBlob(blob: Blob, name: string): void {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-
-  link.href = url
-  link.download = name
-  link.click()
-
-  setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
 export function downloadText(text: string, name: string, type: string): void {

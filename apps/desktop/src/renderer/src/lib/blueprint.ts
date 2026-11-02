@@ -87,6 +87,14 @@ export function useRemoveBlueprintRequirement() {
   )
 }
 
+export function useGenerateBlueprintHierarchy() {
+  return useBlueprintMutation((input: BlueprintIdInput) => orpc.blueprint.hierarchy.call(input))
+}
+
+export function useGenerateBlueprintFlow() {
+  return useBlueprintMutation((input: BlueprintIdInput) => orpc.blueprint.flow.call(input))
+}
+
 export function useExtractBlueprint() {
   return useBlueprintMutation((input: BlueprintIdInput) => orpc.blueprint.extract.call(input))
 }

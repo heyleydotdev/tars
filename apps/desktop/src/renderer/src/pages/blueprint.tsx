@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ArrowLeftIcon,
+  DownloadIcon,
   EyeIcon,
   EyeOffIcon,
   FileTextIcon,
   ListChecksIcon,
   MessageSquareIcon,
-  SaveIcon,
   Trash2Icon,
   WandSparklesIcon
 } from 'lucide-react'
@@ -20,8 +20,6 @@ import { ERRORS } from '@tars/core/errors'
 import { formatTime, toDateKey } from '@tars/core/utils/format'
 import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
-import { ButtonGroup } from '@tars/ui/components/button-group'
-import { CodeBlock, CodeBlockContent } from '@tars/ui/components/code-block'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -29,6 +27,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger
 } from '@tars/ui/components/context-menu'
+import { Markdown } from '@tars/ui/components/markdown'
 import { Spinner } from '@tars/ui/components/spinner'
 import {
   Table,
@@ -38,11 +37,13 @@ import {
   TableHeader,
   TableRow
 } from '@tars/ui/components/table'
-import { TabsContent } from '@tars/ui/components/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tars/ui/components/tabs'
 import { Textarea } from '@tars/ui/components/textarea'
 import { cn } from '@tars/ui/lib/utils'
 
 import type { BlueprintLoaderData } from '../lib/loaders'
+import BlueprintFlowchart from '../components/blueprint-flowchart'
+import BlueprintHierarchy from '../components/blueprint-hierarchy'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleDayHeader from '../components/console-day-header'
 import ConsoleHeader from '../components/console-header'
@@ -59,12 +60,15 @@ import {
   useDraftBlueprint,
   useExtractBlueprint,
   useFindBlueprintGaps,
+  useGenerateBlueprintFlow,
+  useGenerateBlueprintHierarchy,
   useRemoveBlueprintEvidence,
   useRemoveBlueprintRequirement,
   useSaveBlueprintDraft,
   useSetBlueprintRequirementEnabled
 } from '../lib/blueprint'
 import { groupByDay } from '../lib/group-by-day'
+import { exportSvgPng } from '../lib/svg'
 import { useShellAlertStore } from '../stores/alert'
 
 export default function Blueprint() {
@@ -81,12 +85,13 @@ export default function Blueprint() {
   const gaps = useFindBlueprintGaps()
   const answer = useAnswerBlueprintQuestion()
   const draftIt = useDraftBlueprint()
+  const hierarchyIt = useGenerateBlueprintHierarchy()
+  const flowIt = useGenerateBlueprintFlow()
   const save = useSaveBlueprintDraft()
   const [section, setSection] = useState('inputs')
   const [content, setContent] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [draft, setDraft] = useState<string | null>(null)
-  const [editing, setEditing] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [removing, setRemoving] = useState<BlueprintEvidenceOutput | null>(null)
   const [removingRequirement, setRemovingRequirement] = useState<BlueprintRequirementOutput | null>(
@@ -95,23 +100,46 @@ export default function Blueprint() {
   const evidenceGroups = groupByDay(detail.evidence, (item) => toDateKey(item.createdAt))
   const openQuestions = detail.questions.filter((question) => question.status === 'open')
   const draftText = draft ?? detail.draft ?? ''
-  const running = extract.isPending || gaps.isPending || draftIt.isPending
-  const referenceIndex = new Map<string, number>()
+  const running =
+    extract.isPending ||
+    gaps.isPending ||
+    draftIt.isPending ||
+    hierarchyIt.isPending ||
+    flowIt.isPending
+  const previewText = draftText.replace(/\s*\[req:[^\]]+\]/g, '')
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hierarchyRef = useRef<SVGSVGElement>(null)
+  const flowchartRef = useRef<SVGSVGElement>(null)
+  const [exporting, setExporting] = useState(false)
 
-  for (const match of draftText.matchAll(/\[req:([^\]]+)\]/g)) {
-    const id = match[1] ?? ''
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [])
 
-    if (id && !referenceIndex.has(id)) referenceIndex.set(id, referenceIndex.size + 1)
+  function updateDraft(value: string): void {
+    setDraft(value)
+
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+
+    if (value.trim().length === 0 || value === detail.draft) return
+
+    saveTimer.current = setTimeout(() => {
+      save.mutateAsync({ blueprintId: detail.blueprint.id, draft: value }).catch(report)
+    }, 800)
   }
 
-  const displayDraft = draftText.replace(
-    /\[req:([^\]]+)\]/g,
-    (_match, id: string) => `[${referenceIndex.get(id) ?? '?'}]`
-  )
-  const references = [...referenceIndex.entries()].map(([id, index]) => ({
-    index,
-    requirement: detail.requirements.find((item) => item.id === id)
-  }))
+  function flushDraft(): void {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+
+    if (draft === null || draft.trim().length === 0 || draft === detail.draft) return
+
+    save.mutateAsync({ blueprintId: detail.blueprint.id, draft }).catch(report)
+  }
 
   function report(error: unknown): void {
     showAlert({
@@ -144,6 +172,24 @@ export default function Blueprint() {
       setAnswers((current) => ({ ...current, [questionId]: '' }))
     } catch (error) {
       report(error)
+    }
+  }
+
+  async function exportDiagram(svg: SVGSVGElement | null, name: string): Promise<void> {
+    if (!svg || exporting) return
+
+    setExporting(true)
+
+    try {
+      await exportSvgPng(svg, name)
+    } catch {
+      showAlert({
+        title: ERRORS.exportFailedTitle,
+        description: ERRORS.blueprintExportFailed,
+        variant: 'destructive'
+      })
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -217,7 +263,9 @@ export default function Blueprint() {
         onValueChange={setSection}
         items={[
           { value: 'inputs', label: 'Evidence & Requirements' },
-          { value: 'output', label: 'Questions & Draft' }
+          { value: 'output', label: 'Questions & Draft' },
+          { value: 'hierarchy', label: 'Hierarchy' },
+          { value: 'flowchart', label: 'Flowchart' }
         ]}
       >
         <TabsContent value="inputs" className="flex flex-1 flex-col lg:min-h-0">
@@ -481,91 +529,177 @@ export default function Blueprint() {
               accent="bg-violet-400"
               className="lg:col-span-7"
               headerRight={
-                <ButtonGroup>
+                <>
+                  {save.isPending ? (
+                    <span className="text-muted-foreground flex items-center gap-1 font-mono text-xs">
+                      <Spinner className="size-3" /> Saving…
+                    </span>
+                  ) : null}
                   <Button
                     type="button"
                     size="xs"
                     disabled={running || detail.requirements.length === 0}
-                    onClick={() =>
+                    onClick={() => {
+                      if (saveTimer.current) clearTimeout(saveTimer.current)
                       void run(async () => {
                         await draftIt.mutateAsync({ id: detail.blueprint.id })
                         setDraft(null)
                         setSection('output')
                       })
-                    }
+                    }}
                   >
                     {draftIt.isPending ? <Spinner className="size-3.5" /> : <WandSparklesIcon />}
                     Draft proposal
                   </Button>
-                  {detail.draft ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="xs"
-                        onClick={() => setEditing((current) => !current)}
-                      >
-                        {editing ? 'Done' : 'Edit'}
-                      </Button>
-                      {editing ? (
-                        <Button
-                          type="button"
-                          size="xs"
-                          disabled={save.isPending || draftText.trim().length === 0}
-                          onClick={() =>
-                            void run(async () => {
-                              await save.mutateAsync({
-                                blueprintId: detail.blueprint.id,
-                                draft: draftText
-                              })
-                              setDraft(null)
-                              setEditing(false)
-                            })
-                          }
-                        >
-                          {save.isPending ? <Spinner className="size-3.5" /> : <SaveIcon />}
-                          Save
-                        </Button>
-                      ) : null}
-                    </>
-                  ) : null}
-                </ButtonGroup>
+                </>
               }
             >
               {detail.draft ? (
-                editing ? (
-                  <div className="p-3">
+                <Tabs defaultValue="preview" className="flex min-h-0 flex-1 flex-col gap-0">
+                  <TabsList
+                    variant="line"
+                    className="border-border h-8 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0"
+                  >
+                    {[
+                      { value: 'edit', label: 'Edit' },
+                      { value: 'preview', label: 'Preview' }
+                    ].map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className="after:bg-foreground flex-none rounded-none border-r px-3 text-xs tracking-wide"
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  <TabsContent value="edit" className="p-3">
                     <Textarea
                       value={draftText}
-                      onChange={(event) => setDraft(event.target.value)}
+                      onChange={(event) => updateDraft(event.target.value)}
+                      onBlur={flushDraft}
                       className="min-h-112 font-sans text-xs/6"
                     />
-                  </div>
-                ) : (
-                  <div className="space-y-3 p-3">
-                    <CodeBlock>
-                      <CodeBlockContent wrap className="max-h-128 font-sans text-sm/6">
-                        {displayDraft}
-                      </CodeBlockContent>
-                    </CodeBlock>
-                    {references.length > 0 ? (
-                      <ol className="text-muted-foreground space-y-0.5 text-xs/6">
-                        {references.map((reference) => (
-                          <li key={reference.index}>
-                            {reference.index}.{' '}
-                            {reference.requirement
-                              ? `${reference.requirement.area} — ${reference.requirement.text}`
-                              : 'Removed requirement'}
-                          </li>
-                        ))}
-                      </ol>
-                    ) : null}
-                  </div>
-                )
+                  </TabsContent>
+                  <TabsContent value="preview" className="p-3">
+                    <Markdown>{previewText}</Markdown>
+                  </TabsContent>
+                </Tabs>
               ) : (
                 <EmptyState
                   title="No Draft Yet"
                   hint="Map the requirements, close gaps, then draft the proposal."
+                />
+              )}
+            </ConsolePanel>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="hierarchy" className="flex flex-1 flex-col lg:min-h-0">
+          <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
+            <ConsolePanel
+              title="app.hierarchy"
+              count={String(detail.hierarchy?.groups.length ?? 0)}
+              accent="bg-violet-400"
+              className="lg:col-span-12"
+              headerRight={
+                <>
+                  {detail.hierarchy ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      disabled={exporting}
+                      onClick={() =>
+                        void exportDiagram(
+                          hierarchyRef.current,
+                          `${detail.blueprint.title} hierarchy`
+                        )
+                      }
+                    >
+                      {exporting ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+                      Export PNG
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="xs"
+                    disabled={running || detail.requirements.length === 0}
+                    onClick={() =>
+                      void run(() => hierarchyIt.mutateAsync({ id: detail.blueprint.id }))
+                    }
+                  >
+                    {hierarchyIt.isPending ? (
+                      <Spinner className="size-3.5" />
+                    ) : (
+                      <WandSparklesIcon />
+                    )}
+                    Generate
+                  </Button>
+                </>
+              }
+            >
+              {detail.hierarchy ? (
+                <div className="p-3">
+                  <BlueprintHierarchy
+                    title={detail.blueprint.title}
+                    data={detail.hierarchy}
+                    svgRef={hierarchyRef}
+                  />
+                </div>
+              ) : (
+                <EmptyState
+                  title="No Hierarchy Yet"
+                  hint="Map requirements, then generate the app hierarchy."
+                />
+              )}
+            </ConsolePanel>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="flowchart" className="flex flex-1 flex-col lg:min-h-0">
+          <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
+            <ConsolePanel
+              title="app.flow"
+              count={String(detail.flow?.steps.length ?? 0)}
+              accent="bg-emerald-400"
+              className="lg:col-span-12"
+              headerRight={
+                <>
+                  {detail.flow ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      disabled={exporting}
+                      onClick={() =>
+                        void exportDiagram(flowchartRef.current, `${detail.blueprint.title} flow`)
+                      }
+                    >
+                      {exporting ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+                      Export PNG
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="xs"
+                    disabled={running || detail.requirements.length === 0}
+                    onClick={() => void run(() => flowIt.mutateAsync({ id: detail.blueprint.id }))}
+                  >
+                    {flowIt.isPending ? <Spinner className="size-3.5" /> : <WandSparklesIcon />}
+                    Generate
+                  </Button>
+                </>
+              }
+            >
+              {detail.flow ? (
+                <div className="p-3">
+                  <BlueprintFlowchart data={detail.flow} svgRef={flowchartRef} />
+                </div>
+              ) : (
+                <EmptyState
+                  title="No Flow Yet"
+                  hint="Map requirements, then generate the end-to-end flow."
                 />
               )}
             </ConsolePanel>
