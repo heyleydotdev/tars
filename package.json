@@ -60,5 +60,8 @@
       "version": "1.4.4"
     }
   },
-  "prettier": "@tars/prettier"
+  "prettier": "@tars/prettier",
+  "overrides": {
+    "@vitest/browser": "5.0.5"
+  }
 }

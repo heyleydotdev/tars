@@ -4,5 +4,11 @@
   "compilerOptions": {
     "types": ["vite/client", "node"]
   },
-  "include": ["test/**/*.ts", "src/preload/env.d.ts", "vitest.config.ts"]
+  "include": [
+    "test/**/*.ts",
+    "test/**/*.tsx",
+    "src/preload/env.d.ts",
+    "playwright.config.ts",
+    "vitest.config.ts"
+  ]
 }

@@ -20,7 +20,9 @@
     "build:win": "bun run build && electron-builder --win",
     "build:mac": "bun run build && electron-builder --mac",
     "build:linux": "bun run build && electron-builder --linux",
-    "test": "vitest run"
+    "test": "vitest run --project unit",
+    "test:visual": "vitest run --project vrt",
+    "test:visual:update": "vitest run --project vrt --update"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -48,6 +50,8 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "@vitest/browser": "5.0.5",
+    "@vitest/browser-webdriverio": "5.0.0",
     "electron": "45.0.0",
     "electron-builder": "26.18.0",
     "electron-vite": "6.0.0",
@@ -59,8 +63,10 @@
     "react-router": "8.5.0",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "zustand": "5.0.16",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "vitest-browser-react": "2.3.0",
+    "webdriverio": "9.32.0",
+    "zustand": "5.0.16"
   },
   "prettier": "@tars/prettier"
 }
