@@ -23,6 +23,7 @@ import type {
 import {
   INCIDENT_EVENT_LIMIT,
   INCIDENT_EVIDENCE_LIMIT,
+  INCIDENT_QUESTION_LIMIT,
   META_CHAT_MAX_TOKENS,
   META_CHAT_MODEL
 } from '@tars/core/constants'
@@ -378,6 +379,38 @@ async function mergeTimeline(
       sortOrder: index
     }))
   )
+
+  // Readiness only reads the timeline, so an answer the model merged away would
+  // be asked for again forever. Keep every answer as an event of its own.
+  const described = new Set(events.map((event) => event.description.trim().toLowerCase()))
+  const seen = new Set<string>()
+  const answers = evidenceRows.filter((row) => {
+    if (row.kind !== 'answer' || !row.summary) return false
+
+    const text = row.summary.trim().toLowerCase()
+
+    if (described.has(text) || seen.has(text)) return false
+
+    seen.add(text)
+
+    return true
+  })
+
+  if (answers.length > 0) {
+    await insertEvents(
+      db,
+      answers.map((row, index) => ({
+        id: crypto.randomUUID(),
+        incidentId,
+        occurredAt: null,
+        timeSource: 'user',
+        description: row.summary ?? '',
+        confidence: 'high',
+        sourceEvidenceIds: [row.id],
+        sortOrder: events.length + index
+      }))
+    )
+  }
 
   await db
     .delete(incidentEvent)
@@ -755,12 +788,23 @@ export const incidentRouter = {
       }
 
       const timeline = timelineInput(eventRows, input.timezone)
+      const answered = await context.db
+        .select({ question: incidentQuestion.text, answer: incidentQuestion.answer })
+        .from(incidentQuestion)
+        .where(
+          and(eq(incidentQuestion.incidentId, owner.id), eq(incidentQuestion.status, 'answered'))
+        )
+        .orderBy(desc(incidentQuestion.answeredAt))
+        .limit(INCIDENT_QUESTION_LIMIT)
+      const answers = answered.flatMap((row) =>
+        row.answer ? [{ question: row.question, answer: row.answer }] : []
+      )
 
       try {
         const readiness = await runStructured(context.openAi, {
           name: 'incident_readiness',
           schema: incidentReadinessJsonSchema as Record<string, unknown>,
-          instructions: buildIncidentReadinessPrompt({ events: timeline }),
+          instructions: buildIncidentReadinessPrompt({ events: timeline, answers }),
           input: 'Is this timeline ready for a root cause?',
           parse: parseIncidentReadiness
         })
@@ -771,7 +815,8 @@ export const incidentRouter = {
             schema: incidentQuestionsJsonSchema as Record<string, unknown>,
             instructions: buildIncidentQuestionsPrompt({
               events: timeline,
-              gaps: readiness.gaps
+              gaps: readiness.gaps,
+              answers
             }),
             input: 'Ask the questions that close these gaps.',
             parse: parseIncidentQuestions
@@ -804,7 +849,7 @@ export const incidentRouter = {
         const proposed = await runStructured(context.openAi, {
           name: 'incident_root_cause',
           schema: incidentRootCauseJsonSchema as Record<string, unknown>,
-          instructions: buildIncidentRootCausePrompt({ events: timeline }),
+          instructions: buildIncidentRootCausePrompt({ events: timeline, answers }),
           input: 'Propose the most likely root cause, or say the evidence is inconclusive.',
           parse: parseIncidentRootCause
         })

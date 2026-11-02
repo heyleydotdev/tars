@@ -55,7 +55,7 @@ Rules:
 - rootCause: 2-4 sentences naming the trigger and the mechanism, referencing the timeline by time and fact.
 - alternatives: 1-3 plausible alternatives you considered, each with whyRejected grounded in the timeline.
 - confidence: high when the causal chain is direct, medium when one link is inferred, low when the cause is circumstantial.
-- Never mention anything absent from the timeline.`
+- Never mention anything absent from the timeline or the answered facts.`
 
 const INCIDENT_POSTMORTEM_PROMPT = `Write a postmortem draft in markdown from the timeline and the proposed root cause.
 
@@ -144,25 +144,38 @@ function timelineText(
     .join('\n')
 }
 
+type AnsweredFact = { question: string; answer: string }
+
+function answeredFacts(answers?: Array<AnsweredFact>): string {
+  if (!answers || answers.length === 0) return ''
+
+  return `\n\nAnswered facts (the user confirmed these; treat them as timeline facts and never ask for them again):\n${answers
+    .map((fact) => `- Q: ${fact.question}\n  A: ${fact.answer}`)
+    .join('\n')}`
+}
+
 export function buildIncidentReadinessPrompt(options: {
   events: Parameters<typeof timelineText>[0]
+  answers?: Array<AnsweredFact>
 }): string {
-  return `${INCIDENT_READINESS_PROMPT}\n\nTimeline:\n${timelineText(options.events) || 'Empty.'}`
+  return `${INCIDENT_READINESS_PROMPT}\n\nTimeline:\n${timelineText(options.events) || 'Empty.'}${answeredFacts(options.answers)}`
 }
 
 export function buildIncidentQuestionsPrompt(options: {
   events: Parameters<typeof timelineText>[0]
   gaps: Array<string>
+  answers?: Array<AnsweredFact>
 }): string {
   const gaps = options.gaps.map((gap) => `- ${gap}`).join('\n')
 
-  return `${INCIDENT_QUESTIONS_PROMPT}\n\nTimeline:\n${timelineText(options.events) || 'Empty.'}\n\nGaps:\n${gaps || 'None.'}`
+  return `${INCIDENT_QUESTIONS_PROMPT}\n\nTimeline:\n${timelineText(options.events) || 'Empty.'}\n\nGaps:\n${gaps || 'None.'}${answeredFacts(options.answers)}`
 }
 
 export function buildIncidentRootCausePrompt(options: {
   events: Parameters<typeof timelineText>[0]
+  answers?: Array<AnsweredFact>
 }): string {
-  return `${INCIDENT_ROOT_CAUSE_PROMPT}\n\nTimeline:\n${timelineText(options.events) || 'Empty.'}`
+  return `${INCIDENT_ROOT_CAUSE_PROMPT}\n\nTimeline:\n${timelineText(options.events) || 'Empty.'}${answeredFacts(options.answers)}`
 }
 
 export function buildIncidentPostmortemPrompt(options: {
