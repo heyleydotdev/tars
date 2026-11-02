@@ -28,7 +28,7 @@ export default function ConsoleTabs({
           <TabsTrigger
             key={item.value}
             value={item.value}
-            className="data-active:bg-muted/30 flex-none gap-2 rounded-none border-r px-4 text-xs tracking-wide after:inset-x-0 after:bottom-0 after:h-px after:bg-emerald-400"
+            className="flex-none gap-2 rounded-none border-r px-4 text-xs tracking-wide after:inset-x-0 after:bottom-0 after:h-px after:bg-emerald-400"
           >
             {item.label}
             {item.count !== undefined ? (
