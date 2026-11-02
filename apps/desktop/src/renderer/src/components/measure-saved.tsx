@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { CopyIcon, FileSpreadsheetIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
-import { useNavigate } from 'react-router'
 
 import type { MeasureSavedOutput, MeasureUnit } from '@tars/core/schemas/measure'
 import { ERRORS } from '@tars/core/errors'
@@ -12,8 +11,6 @@ import { Spinner } from '@tars/ui/components/spinner'
 import { cn } from '@tars/ui/lib/utils'
 
 import ConfirmDialog from '../components/confirm-dialog'
-import ConsoleHeader from '../components/console-header'
-import ConsoleNav from '../components/console-nav'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
 import MeasurePreview from '../components/measure-preview'
@@ -38,9 +35,8 @@ function measureValue(measure: MeasureSavedOutput, unit: MeasureUnit): string {
   return `${formatLength(object.widthMm, unit)} × ${formatLength(object.heightMm, unit)}`
 }
 
-export default function MeasureSaved() {
+export default function MeasureSaved({ onOpen }: { onOpen: () => void }) {
   const saved = useSavedMeasures()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const unit = useMeasurePreferences((state) => state.unit)
   const requestRestore = useMeasureWorkspace((state) => state.requestRestore)
@@ -129,7 +125,7 @@ export default function MeasureSaved() {
         : null,
       selected.runId
     )
-    navigate('/measure')
+    onOpen()
   }
 
   async function remove(): Promise<void> {
@@ -157,16 +153,7 @@ export default function MeasureSaved() {
   }
 
   return (
-    <div className="flex min-h-full flex-col lg:h-full lg:min-h-0">
-      <ConsoleHeader title="measure.saved" />
-
-      <ConsoleNav
-        items={[
-          { label: 'Workspace', to: '/measure' },
-          { label: 'Saved', to: '/measure/saved' }
-        ]}
-      />
-
+    <>
       <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
         <ConsolePanel
           title="measure.saved"
@@ -316,6 +303,6 @@ export default function MeasureSaved() {
         }}
         onConfirm={() => void remove()}
       />
-    </div>
+    </>
   )
 }

@@ -6,19 +6,21 @@ export default function ConsoleTabs({
   onValueChange,
   items,
   children,
-  className
+  className,
+  fill = true
 }: {
   value: string
   onValueChange: (value: string) => void
   items: Array<{ value: string; label: string; count?: number | string }>
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
+  fill?: boolean
 }) {
   return (
     <Tabs
       value={value}
       onValueChange={onValueChange}
-      className={cn('flex min-h-0 flex-1 flex-col gap-0', className)}
+      className={cn('flex flex-col gap-0', fill && 'min-h-0 flex-1', className)}
     >
       <TabsList
         variant="line"

@@ -20,14 +20,15 @@ import type { MeasureLoaderData } from '../lib/loaders'
 import type { MeasureBatchItem, MeasureRequest, PreparedMeasureImage } from '../lib/measure'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleHeader from '../components/console-header'
-import ConsoleNav from '../components/console-nav'
 import ConsolePanel from '../components/console-panel'
+import ConsoleTabs from '../components/console-tabs'
 import MeasureAnnotationSettings from '../components/measure-annotation-settings'
 import MeasureExportAllButton from '../components/measure-export-all-button'
 import MeasureForm from '../components/measure-form'
 import MeasureGuideButton from '../components/measure-guide-button'
 import MeasurePhoto from '../components/measure-photo'
 import MeasurePreview from '../components/measure-preview'
+import MeasureSaved from '../components/measure-saved'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
 import { useLogActivity } from '../lib/journal'
 import {
@@ -84,6 +85,8 @@ export default function Measure() {
   const queryClient = useQueryClient()
   const saveTimer = useRef<number | null>(null)
   const pendingSaves = useRef(new Set<string>())
+  const [section, setSection] = useState('workspace')
+  const [savedSeen, setSavedSeen] = useState(false)
   const [pendingMeasure, setPendingMeasure] = useState<{
     values: MeasureFormOutput
     skipMeasured: boolean
@@ -410,55 +413,71 @@ export default function Measure() {
         }
       />
 
-      <ConsoleNav
+      <ConsoleTabs
+        value={section}
+        fill={false}
+        onValueChange={(value) => {
+          setSection(value)
+          if (value === 'saved') setSavedSeen(true)
+        }}
         items={[
-          { label: 'Workspace', to: '/measure' },
-          { label: 'Saved', to: '/measure/saved' }
+          { value: 'workspace', label: 'Workspace' },
+          { value: 'saved', label: 'Saved' }
         ]}
       />
 
-      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
-        <ConsolePanel
-          title="photo.input"
-          count={String(items.length)}
-          accent="bg-sky-400"
-          className="lg:col-span-7"
-        >
-          <MeasurePhoto
-            items={items}
-            selectedId={selected?.id ?? null}
-            unit={unit}
-            pending={running}
-            onSelect={selectPhoto}
-            onRemove={removePhoto}
-          />
-        </ConsolePanel>
+      {savedSeen ? (
+        <div className={`flex min-h-0 flex-1 flex-col ${section === 'saved' ? '' : 'hidden'}`}>
+          <MeasureSaved onOpen={() => setSection('workspace')} />
+        </div>
+      ) : null}
 
-        <ConsolePanel
-          title="measure.preview"
-          count={selected ? '1' : '0'}
-          accent="bg-emerald-400"
-          className="lg:col-span-5"
-        >
-          <MeasurePreview
-            items={items}
-            selectedId={selected?.id ?? null}
-            unit={unit}
-            pending={running}
-            onRetry={retryPhoto}
-            onPromptsChange={setPrompts}
-          />
-        </ConsolePanel>
-      </div>
+      {section === 'workspace' ? (
+        <>
+          <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
+            <ConsolePanel
+              title="photo.input"
+              count={String(items.length)}
+              accent="bg-sky-400"
+              className="lg:col-span-7"
+            >
+              <MeasurePhoto
+                items={items}
+                selectedId={selected?.id ?? null}
+                unit={unit}
+                pending={running}
+                onSelect={selectPhoto}
+                onRemove={removePhoto}
+              />
+            </ConsolePanel>
 
-      <MeasureForm
-        key={draftSeed}
-        initialReferences={initialReferences}
-        photo={items.length > 0}
-        pending={running}
-        onPhotos={addBatchPhotos}
-        onMeasure={requestMeasure}
-      />
+            <ConsolePanel
+              title="measure.preview"
+              count={selected ? '1' : '0'}
+              accent="bg-emerald-400"
+              className="lg:col-span-5"
+            >
+              <MeasurePreview
+                items={items}
+                selectedId={selected?.id ?? null}
+                unit={unit}
+                pending={running}
+                onRetry={retryPhoto}
+                onPromptsChange={setPrompts}
+              />
+            </ConsolePanel>
+          </div>
+
+          <MeasureForm
+            key={draftSeed}
+            initialReferences={initialReferences}
+            photo={items.length > 0}
+            pending={running}
+            onPhotos={addBatchPhotos}
+            onMeasure={requestMeasure}
+          />
+        </>
+      ) : null}
 
       <PendingNavigationGuard when={running} />
 

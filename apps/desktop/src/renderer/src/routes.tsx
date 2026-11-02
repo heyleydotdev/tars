@@ -24,7 +24,6 @@ import Incidents from './pages/incidents'
 import Journal from './pages/journal'
 import Login from './pages/login'
 import Measure from './pages/measure'
-import MeasureSaved from './pages/measure-saved'
 import Register from './pages/register'
 import Settings from './pages/settings'
 import Stats from './pages/stats'
@@ -73,10 +72,6 @@ export function createAppRouter(queryClient: QueryClient) {
                       path: '/measure',
                       element: <Measure />,
                       loader: measureLoader(queryClient)
-                    },
-                    {
-                      path: '/measure/saved',
-                      element: <MeasureSaved />
                     },
                     {
                       path: '/blueprints',
