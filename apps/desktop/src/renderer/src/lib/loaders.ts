@@ -59,6 +59,22 @@ export function incidentsLoader(queryClient: QueryClient) {
   }
 }
 
+export function blueprintsLoader(queryClient: QueryClient) {
+  return async () => {
+    await requireSession()
+
+    return queryClient.query(orpc.blueprint.list.queryOptions())
+  }
+}
+
+export function blueprintLoader(queryClient: QueryClient) {
+  return async ({ params }: LoaderFunctionArgs) => {
+    await requireSession()
+
+    return queryClient.query(orpc.blueprint.get.queryOptions({ input: { id: params.id ?? '' } }))
+  }
+}
+
 export function incidentLoader(queryClient: QueryClient) {
   return async ({ params }: LoaderFunctionArgs) => {
     await requireSession()
@@ -75,3 +91,5 @@ export type StatsLoaderData = Awaited<ReturnType<ReturnType<typeof statsLoader>>
 export type MeasureLoaderData = Awaited<ReturnType<ReturnType<typeof measureLoader>>>
 export type IncidentsLoaderData = Awaited<ReturnType<ReturnType<typeof incidentsLoader>>>
 export type IncidentLoaderData = Awaited<ReturnType<ReturnType<typeof incidentLoader>>>
+export type BlueprintsLoaderData = Awaited<ReturnType<ReturnType<typeof blueprintsLoader>>>
+export type BlueprintLoaderData = Awaited<ReturnType<ReturnType<typeof blueprintLoader>>>

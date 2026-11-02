@@ -6,6 +6,8 @@ import DashboardLayout from './components/dashboard-layout'
 import LoadingScreen from './components/loading-screen'
 import RouteError from './components/route-error'
 import {
+  blueprintLoader,
+  blueprintsLoader,
   expensesLoader,
   incidentLoader,
   incidentsLoader,
@@ -13,6 +15,8 @@ import {
   measureLoader,
   statsLoader
 } from './lib/loaders'
+import Blueprint from './pages/blueprint'
+import Blueprints from './pages/blueprints'
 import Desk from './pages/desk'
 import Expenses from './pages/expenses'
 import Incident from './pages/incident'
@@ -71,6 +75,16 @@ export function createAppRouter(queryClient: QueryClient) {
                     {
                       path: '/measure/saved',
                       element: <MeasureSaved />
+                    },
+                    {
+                      path: '/blueprints',
+                      element: <Blueprints />,
+                      loader: blueprintsLoader(queryClient)
+                    },
+                    {
+                      path: '/blueprints/:id',
+                      element: <Blueprint />,
+                      loader: blueprintLoader(queryClient)
                     },
                     {
                       path: '/incidents',

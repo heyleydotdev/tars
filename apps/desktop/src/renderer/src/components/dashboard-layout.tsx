@@ -3,6 +3,7 @@ import {
   BotIcon,
   ChartNoAxesColumnIcon,
   ChevronRightIcon,
+  DraftingCompassIcon,
   LogOutIcon,
   NotebookPenIcon,
   RulerIcon,
@@ -85,6 +86,7 @@ const navigation: Array<{ label: string; items: Array<NavItem> }> = [
         icon: RulerIcon,
         children: [{ title: 'Saved', to: '/measure/saved' }]
       },
+      { title: 'Blueprints', to: '/blueprints', icon: DraftingCompassIcon },
       { title: 'Incidents', to: '/incidents', icon: SirenIcon }
     ]
   }
