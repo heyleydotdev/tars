@@ -21,6 +21,16 @@ export const blueprint = sqliteTable(
       .notNull()
       .default('intake'),
     summary: text('summary'),
+    hierarchy: text('hierarchy', { mode: 'json' }).$type<{
+      groups: Array<{ name: string; items: Array<string> }>
+    }>(),
+    flow: text('flow', { mode: 'json' }).$type<{
+      steps: Array<{
+        label: string
+        detail: string
+        kind: 'entry' | 'screen' | 'decision' | 'outcome'
+      }>
+    }>(),
     draft: text('draft'),
     createdAt,
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' })

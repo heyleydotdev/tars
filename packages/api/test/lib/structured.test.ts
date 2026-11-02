@@ -1,7 +1,7 @@
 import type OpenAI from 'openai'
 import { describe, expect, it } from 'vitest'
 
-import { runStructured } from '../../src/lib/structured'
+import { runStructured, runText } from '../../src/lib/structured'
 
 type Call = { instructions: string; input: unknown }
 
@@ -58,5 +58,28 @@ describe('runStructured', () => {
     const { openAi } = fakeOpenAi(['not json', 'still not json'])
 
     await expect(runStructured(openAi, base)).rejects.toThrow('invalid json')
+  })
+})
+
+describe('runText', () => {
+  it('returns trimmed text', async () => {
+    const { openAi } = fakeOpenAi(['  # Proposal  '])
+
+    await expect(runText(openAi, { instructions: 'base', input: 'go' })).resolves.toBe('# Proposal')
+  })
+
+  it('retries once when the model returns nothing', async () => {
+    const { openAi, calls } = fakeOpenAi(['', '# Proposal'])
+
+    await expect(runText(openAi, { instructions: 'base', input: 'go' })).resolves.toBe('# Proposal')
+    expect(calls).toHaveLength(2)
+  })
+
+  it('throws when both attempts are empty', async () => {
+    const { openAi } = fakeOpenAi(['', ''])
+
+    await expect(runText(openAi, { instructions: 'base', input: 'go' })).rejects.toThrow(
+      'Empty model response'
+    )
   })
 })

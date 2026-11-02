@@ -2,7 +2,6 @@ import type { IncidentTimeSource } from '../schemas/incident'
 import type {
   IncidentExtractionOutput,
   IncidentMergeOutput,
-  IncidentPostmortemOutput,
   IncidentQuestionsOutput,
   IncidentReadinessOutput,
   IncidentRootCauseOutput
@@ -12,7 +11,6 @@ import { INCIDENT_EVENT_LIMIT } from '../constants'
 import {
   incidentExtractionSchema,
   incidentMergeSchema,
-  incidentPostmortemSchema,
   incidentQuestionsSchema,
   incidentReadinessSchema,
   incidentRootCauseSchema
@@ -38,10 +36,6 @@ export function parseIncidentQuestions(text: string): Parsed<IncidentQuestionsOu
 
 export function parseIncidentRootCause(text: string): Parsed<IncidentRootCauseOutput> {
   return parseStructured(incidentRootCauseSchema, text)
-}
-
-export function parseIncidentPostmortem(text: string): Parsed<IncidentPostmortemOutput> {
-  return parseStructured(incidentPostmortemSchema, text)
 }
 
 export function parseIncidentTime(value: string | null): Date | null {

@@ -48,7 +48,6 @@ import {
 import {
   incidentExtractionJsonSchema,
   incidentMergeJsonSchema,
-  incidentPostmortemJsonSchema,
   incidentQuestionsJsonSchema,
   incidentReadinessJsonSchema,
   incidentRootCauseJsonSchema
@@ -59,7 +58,6 @@ import { formatZonedIso } from '@tars/core/utils/format'
 import {
   parseIncidentExtraction,
   parseIncidentMerge,
-  parseIncidentPostmortem,
   parseIncidentQuestions,
   parseIncidentReadiness,
   parseIncidentRootCause,
@@ -78,7 +76,7 @@ import { and, asc, desc, eq, inArray, sql } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, NotFoundError } from '../errors'
-import { runStructured } from '../lib/structured'
+import { runStructured, runText } from '../lib/structured'
 
 const runIncidentStructured = <T>(
   openAi: OpenAI,
@@ -817,20 +815,17 @@ export const incidentRouter = {
         let postmortem: string | null = null
 
         if (cause.outcome === 'proposed') {
-          const drafted = await runIncidentStructured(context.openAi, {
-            name: 'incident_postmortem',
-            schema: incidentPostmortemJsonSchema as Record<string, unknown>,
-            instructions: buildIncidentPostmortemPrompt({
-              events: timeline,
-              rootCause: cause.rootCause,
-              confidence: cause.confidence,
-              alternatives: cause.alternatives
-            }),
-            input: 'Draft the postmortem.',
-            parse: parseIncidentPostmortem
-          })
-
-          postmortem = drafted.markdown
+          postmortem = (
+            await runText(context.openAi, {
+              instructions: buildIncidentPostmortemPrompt({
+                events: timeline,
+                rootCause: cause.rootCause,
+                confidence: cause.confidence,
+                alternatives: cause.alternatives
+              }),
+              input: 'Draft the postmortem in markdown.'
+            })
+          ).slice(0, 20_000)
         }
 
         await context.db

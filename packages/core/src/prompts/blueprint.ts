@@ -6,7 +6,7 @@ Rules:
 - Return only requirements the evidence supports; cite the evidence ids that state each one.
 - area: a short label such as auth, data, integrations, bot, dashboard, admin, api, payments, notifications.
 - status: clear when the evidence states it, ambiguous when it is implied but vague, missing when the client needs it but no evidence states it.
-- Also propose up to three suggested requirements the evidence does not state but a project like this usually needs. Mark them suggested, set confidence low, and leave sourceEvidenceIds empty.
+- Suggest up to three requirements the evidence does not state. Pick a well-known real-world application of this kind of project as the reference and list what it has that this map is missing, such as accounts, notifications, admin, or reporting. Check every suggestion against the listed requirements: never repeat or rephrase one. Mark them suggested, set confidence low, and leave sourceEvidenceIds empty.
 - confidence: how strongly the evidence supports the requirement.
 - Never invent prices, timelines, or technology choices.
 - summary: two sentences on what the client wants and what is still unclear.
@@ -18,6 +18,7 @@ Enough when:
 - the project type and the core areas are clear;
 - each integration, bot, or dashboard area the client mentioned is concrete enough to scope;
 - no missing requirement would change the scope or the tasks;
+- when the map has suggested requirements, the technology stack and existing systems the project must use are known;
 - answered facts below are treated as facts and are never asked for again.
 
 Not enough otherwise. List up to ${BLUEPRINT_QUESTION_LIMIT} gaps, the most decisive first, each a single fact the client can supply. Do not ask for prices or timelines unless the client already asked for them.`
@@ -30,7 +31,25 @@ Rules:
 - rationale: one sentence on why the answer changes the proposal.
 - gap: the exact gap text this question closes.
 - kind: short for one short fact such as a name, host, or count; long when the answer needs a sentence or a list; select when the answer is one of a few known choices; date when the answer is a specific day.
-- options: for select only, the two to six allowed answers and nothing else. Leave it empty for every other kind.`
+- options: for select only, the two to six allowed answers and nothing else. Leave it empty for every other kind.
+- When the map has suggested requirements or no answered fact names a technology, ask one question about the stack and existing systems the project must use. Use kind select with two to five plausible options, such as the platform the evidence mentions plus common alternatives. Never pick a stack yourself.`
+
+const HIERARCHY_PROMPT = `You arrange a software project into an app hierarchy for a proposal diagram.
+
+Rules:
+- Return three to eight groups; each group is a user-facing area such as auth, booking, admin, billing, or reporting.
+- Each group has two to four short capability labels.
+- Base the groups on the requirement map. Add capabilities a real app of this kind has when they are missing, but never repeat a capability already listed.
+- Name groups in lowercase, and keep every label under 48 characters.
+- No prices, timelines, or technology choices.`
+
+const FLOW_PROMPT = `You write the end-to-end user flow of a software project for a proposal diagram.
+
+Rules:
+- Return three to ten ordered steps, from the first visit or entry point to the outcome, then admin or support steps.
+- label: two to five words. detail: one short sentence under ninety characters.
+- kind: entry for the first step, screen for a page or view, decision for a branch or check, outcome for a result.
+- Follow the requirement map and the answered facts. Never invent prices, timelines, or technology choices.`
 
 const DRAFT_PROMPT = `Write a software project proposal in markdown from the requirement map.
 
@@ -101,6 +120,28 @@ export function buildBlueprintQuestionsPrompt(options: {
   const gaps = options.gaps.map((gap) => `- ${gap}`).join('\n')
 
   return `${QUESTIONS_PROMPT}\n\nRequirements (id | area | status | text | sources):\n${requirementsText(options.requirements)}\n\nGaps:\n${gaps || 'None.'}${answeredFacts(options.answers)}`
+}
+
+export function buildBlueprintHierarchyPrompt(options: {
+  title: string
+  client: string | null
+  requirements: Array<Requirement>
+  answers?: Array<AnsweredFact>
+}): string {
+  const client = options.client ? `\nClient: ${options.client}` : ''
+
+  return `${HIERARCHY_PROMPT}\n\nProject: ${options.title}${client}\n\nRequirements (id | area | status | text | sources):\n${requirementsText(options.requirements)}${answeredFacts(options.answers)}`
+}
+
+export function buildBlueprintFlowPrompt(options: {
+  title: string
+  client: string | null
+  requirements: Array<Requirement>
+  answers?: Array<AnsweredFact>
+}): string {
+  const client = options.client ? `\nClient: ${options.client}` : ''
+
+  return `${FLOW_PROMPT}\n\nProject: ${options.title}${client}\n\nRequirements (id | area | status | text | sources):\n${requirementsText(options.requirements)}${answeredFacts(options.answers)}`
 }
 
 export function buildBlueprintDraftPrompt(options: {

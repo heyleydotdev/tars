@@ -62,10 +62,6 @@ export const incidentRootCauseSchema = z.object({
   alternatives: z.array(incidentAlternativeSchema).max(4)
 })
 
-export const incidentPostmortemSchema = z.object({
-  markdown: z.string().min(1).max(20_000)
-})
-
 export const incidentExtractionJsonSchema = z.toJSONSchema(incidentExtractionSchema, {
   target: 'draft-7'
 })
@@ -77,9 +73,6 @@ export const incidentQuestionsJsonSchema = z.toJSONSchema(incidentQuestionsSchem
   target: 'draft-7'
 })
 export const incidentRootCauseJsonSchema = z.toJSONSchema(incidentRootCauseSchema, {
-  target: 'draft-7'
-})
-export const incidentPostmortemJsonSchema = z.toJSONSchema(incidentPostmortemSchema, {
   target: 'draft-7'
 })
 
@@ -95,5 +88,3 @@ export type IncidentQuestionsInput = z.input<typeof incidentQuestionsSchema>
 export type IncidentQuestionsOutput = z.output<typeof incidentQuestionsSchema>
 export type IncidentRootCauseInput = z.input<typeof incidentRootCauseSchema>
 export type IncidentRootCauseOutput = z.output<typeof incidentRootCauseSchema>
-export type IncidentPostmortemInput = z.input<typeof incidentPostmortemSchema>
-export type IncidentPostmortemOutput = z.output<typeof incidentPostmortemSchema>

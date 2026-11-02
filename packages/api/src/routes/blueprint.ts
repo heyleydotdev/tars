@@ -23,6 +23,8 @@ import { ERRORS } from '@tars/core/errors'
 import {
   buildBlueprintDraftPrompt,
   buildBlueprintExtractionPrompt,
+  buildBlueprintFlowPrompt,
+  buildBlueprintHierarchyPrompt,
   buildBlueprintQuestionsPrompt,
   buildBlueprintReadinessPrompt
 } from '@tars/core/prompts/blueprint'
@@ -37,14 +39,16 @@ import {
   setBlueprintRequirementEnabledSchema
 } from '@tars/core/schemas/blueprint'
 import {
-  blueprintDraftJsonSchema,
   blueprintExtractionJsonSchema,
+  blueprintFlowJsonSchema,
+  blueprintHierarchyJsonSchema,
   blueprintQuestionsJsonSchema,
   blueprintReadinessJsonSchema
 } from '@tars/core/schemas/blueprint-ai'
 import {
-  parseBlueprintDraft,
   parseBlueprintExtraction,
+  parseBlueprintFlow,
+  parseBlueprintHierarchy,
   parseBlueprintQuestions,
   parseBlueprintReadiness
 } from '@tars/core/utils/blueprint'
@@ -58,7 +62,7 @@ import { and, asc, desc, eq, inArray, sql } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, NotFoundError } from '../errors'
-import { runStructured } from '../lib/structured'
+import { runStructured, runText } from '../lib/structured'
 
 function iso(value: Date | null): string | null {
   return value ? value.toISOString() : null
@@ -167,6 +171,8 @@ async function loadDetail(
     evidence: evidence.map(serializeEvidence),
     requirements: requirements.map(serializeRequirement),
     questions: questions.map(serializeQuestion),
+    hierarchy: row.hierarchy ?? null,
+    flow: row.flow ?? null,
     draft: row.draft
   }
 }
@@ -398,6 +404,86 @@ export const blueprintRouter = {
       return loadDetail(context.db, context.session.user.id, row.blueprintId)
     }),
 
+  hierarchy: protectedProcedure
+    .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
+    .input(blueprintIdSchema)
+    .use(openAiMiddleware)
+    .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
+      const owner = await loadBlueprint(context.db, context.session.user.id, input.id)
+      const requirements = await requirementInputs(context.db, owner.id)
+
+      if (requirements.length === 0) {
+        throw errors.BAD_REQUEST({ message: ERRORS.blueprintNoEvidence })
+      }
+
+      const answers = await answeredFacts(context.db, owner.id)
+
+      try {
+        const hierarchy = await runStructured(context.openAi, {
+          name: 'blueprint_hierarchy',
+          schema: blueprintHierarchyJsonSchema as Record<string, unknown>,
+          instructions: buildBlueprintHierarchyPrompt({
+            title: owner.title,
+            client: owner.client,
+            requirements,
+            answers
+          }),
+          input: 'Group this app into areas and capabilities.',
+          parse: parseBlueprintHierarchy
+        })
+
+        await context.db
+          .update(blueprint)
+          .set({ hierarchy, updatedAt: new Date() })
+          .where(eq(blueprint.id, owner.id))
+      } catch (error) {
+        console.error('blueprint hierarchy failed', error)
+        throw new GatewayError({ message: ERRORS.blueprintHierarchyFailed })
+      }
+
+      return loadDetail(context.db, context.session.user.id, owner.id)
+    }),
+
+  flow: protectedProcedure
+    .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
+    .input(blueprintIdSchema)
+    .use(openAiMiddleware)
+    .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
+      const owner = await loadBlueprint(context.db, context.session.user.id, input.id)
+      const requirements = await requirementInputs(context.db, owner.id)
+
+      if (requirements.length === 0) {
+        throw errors.BAD_REQUEST({ message: ERRORS.blueprintNoEvidence })
+      }
+
+      const answers = await answeredFacts(context.db, owner.id)
+
+      try {
+        const flow = await runStructured(context.openAi, {
+          name: 'blueprint_flow',
+          schema: blueprintFlowJsonSchema as Record<string, unknown>,
+          instructions: buildBlueprintFlowPrompt({
+            title: owner.title,
+            client: owner.client,
+            requirements,
+            answers
+          }),
+          input: 'Describe the end-to-end user flow.',
+          parse: parseBlueprintFlow
+        })
+
+        await context.db
+          .update(blueprint)
+          .set({ flow, updatedAt: new Date() })
+          .where(eq(blueprint.id, owner.id))
+      } catch (error) {
+        console.error('blueprint flow failed', error)
+        throw new GatewayError({ message: ERRORS.blueprintFlowFailed })
+      }
+
+      return loadDetail(context.db, context.session.user.id, owner.id)
+    }),
+
   extract: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(blueprintIdSchema)
@@ -439,6 +525,7 @@ export const blueprintRouter = {
       }
 
       const evidenceIds = new Set(evidenceRows.map((row) => row.id))
+      const seen = new Set<string>()
       const requirements = extracted.requirements
         .flatMap((item) => {
           const sourceEvidenceIds = item.sourceEvidenceIds.filter((id) => evidenceIds.has(id))
@@ -455,6 +542,15 @@ export const blueprintRouter = {
               sourceEvidenceIds
             }
           ]
+        })
+        .filter((item) => {
+          const key = item.text.trim().toLowerCase().replace(/\s+/g, ' ')
+
+          if (seen.has(key)) return false
+
+          seen.add(key)
+
+          return true
         })
         .slice(0, BLUEPRINT_REQUIREMENT_LIMIT)
 
@@ -482,6 +578,8 @@ export const blueprintRouter = {
         .set({
           summary: extracted.summary,
           status: 'mapped',
+          hierarchy: null,
+          flow: null,
           draft: null,
           updatedAt: new Date()
         })
@@ -640,20 +738,17 @@ export const blueprintRouter = {
       let draft: string
 
       try {
-        const result = await runStructured(context.openAi, {
-          name: 'blueprint_draft',
-          schema: blueprintDraftJsonSchema as Record<string, unknown>,
-          instructions: buildBlueprintDraftPrompt({
-            title: owner.title,
-            client: owner.client,
-            requirements,
-            answers
-          }),
-          input: 'Draft the proposal.',
-          parse: parseBlueprintDraft
-        })
-
-        draft = result.draft
+        draft = (
+          await runText(context.openAi, {
+            instructions: buildBlueprintDraftPrompt({
+              title: owner.title,
+              client: owner.client,
+              requirements,
+              answers
+            }),
+            input: 'Draft the proposal in markdown.'
+          })
+        ).slice(0, 24_000)
       } catch (error) {
         console.error('blueprint draft failed', error)
         throw new GatewayError({ message: ERRORS.blueprintDraftFailed })

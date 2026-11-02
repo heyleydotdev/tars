@@ -64,11 +64,40 @@ export const blueprintQuestionSchema = z.object({
   createdAt: z.string()
 })
 
+export const blueprintHierarchySchema = z.object({
+  groups: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(40),
+        items: z.array(z.string().min(1).max(80)).min(1).max(4)
+      })
+    )
+    .min(1)
+    .max(8)
+})
+
+export const blueprintFlowStepKindSchema = z.enum(['entry', 'screen', 'decision', 'outcome'])
+
+export const blueprintFlowSchema = z.object({
+  steps: z
+    .array(
+      z.object({
+        label: z.string().min(1).max(60),
+        detail: z.string().min(1).max(160),
+        kind: blueprintFlowStepKindSchema
+      })
+    )
+    .min(1)
+    .max(10)
+})
+
 export const blueprintDetailSchema = z.object({
   blueprint: blueprintSummarySchema,
   evidence: z.array(blueprintEvidenceSchema),
   requirements: z.array(blueprintRequirementSchema),
   questions: z.array(blueprintQuestionSchema),
+  hierarchy: blueprintHierarchySchema.nullable(),
+  flow: blueprintFlowSchema.nullable(),
   draft: z.string().nullable()
 })
 
@@ -129,6 +158,11 @@ export type BlueprintEvidenceInput = z.input<typeof blueprintEvidenceSchema>
 export type BlueprintEvidenceOutput = z.output<typeof blueprintEvidenceSchema>
 export type BlueprintRequirementInput = z.input<typeof blueprintRequirementSchema>
 export type BlueprintRequirementOutput = z.output<typeof blueprintRequirementSchema>
+export type BlueprintHierarchyInput = z.input<typeof blueprintHierarchySchema>
+export type BlueprintHierarchyOutput = z.output<typeof blueprintHierarchySchema>
+export type BlueprintFlowStepKind = z.output<typeof blueprintFlowStepKindSchema>
+export type BlueprintFlowInput = z.input<typeof blueprintFlowSchema>
+export type BlueprintFlowOutput = z.output<typeof blueprintFlowSchema>
 export type BlueprintQuestionInput = z.input<typeof blueprintQuestionSchema>
 export type BlueprintQuestionOutput = z.output<typeof blueprintQuestionSchema>
 export type BlueprintDetailInput = z.input<typeof blueprintDetailSchema>

@@ -19,6 +19,51 @@ ${issues}
 
 Fix only the listed fields and return the JSON object again. No prose, no code fences.`
 
+type ModelCall = {
+  instructions: string
+  input: ModelInput
+  format?: { name: string; schema: Record<string, unknown> }
+}
+
+async function callModel(openAi: OpenAI, options: ModelCall): Promise<string> {
+  const response = await openAi.responses.create(
+    {
+      model: META_CHAT_MODEL,
+      instructions: options.instructions,
+      input: options.input as never,
+      ...(options.format
+        ? {
+            text: {
+              format: {
+                type: 'json_schema',
+                name: options.format.name,
+                strict: true,
+                schema: options.format.schema
+              }
+            }
+          }
+        : {}),
+      max_output_tokens: META_CHAT_MAX_TOKENS
+    },
+    { maxRetries: 2 }
+  )
+
+  return response.output_text
+}
+
+export async function runText(
+  openAi: OpenAI,
+  options: { instructions: string; input: ModelInput }
+): Promise<string> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const text = (await callModel(openAi, options)).trim()
+
+    if (text) return text
+  }
+
+  throw new Error('Empty model response')
+}
+
 export async function runStructured<T>(
   openAi: OpenAI,
   options: {
@@ -30,27 +75,12 @@ export async function runStructured<T>(
     repair?: StructuredRepair
   }
 ): Promise<T> {
-  const call = async (input: ModelInput): Promise<string> => {
-    const response = await openAi.responses.create(
-      {
-        model: META_CHAT_MODEL,
-        instructions: options.instructions,
-        input: input as never,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: options.name,
-            strict: true,
-            schema: options.schema
-          }
-        },
-        max_output_tokens: META_CHAT_MAX_TOKENS
-      },
-      { maxRetries: 2 }
-    )
-
-    return response.output_text
-  }
+  const call = (input: ModelInput): Promise<string> =>
+    callModel(openAi, {
+      instructions: options.instructions,
+      input,
+      format: { name: options.name, schema: options.schema }
+    })
 
   const first = await call(options.input)
   const parsed = options.parse(first)

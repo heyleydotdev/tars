@@ -1,12 +1,12 @@
+import type { BlueprintFlowOutput, BlueprintHierarchyOutput } from '../schemas/blueprint'
 import type {
-  BlueprintDraftOutput,
   BlueprintExtractionOutput,
   BlueprintQuestionsOutput,
   BlueprintReadinessOutput
 } from '../schemas/blueprint-ai'
 import type { Parsed } from './structured'
+import { blueprintFlowSchema, blueprintHierarchySchema } from '../schemas/blueprint'
 import {
-  blueprintDraftSchema,
   blueprintExtractionSchema,
   blueprintQuestionsSchema,
   blueprintReadinessSchema
@@ -17,14 +17,18 @@ export function parseBlueprintExtraction(text: string): Parsed<BlueprintExtracti
   return parseStructured(blueprintExtractionSchema, text)
 }
 
+export function parseBlueprintHierarchy(text: string): Parsed<BlueprintHierarchyOutput> {
+  return parseStructured(blueprintHierarchySchema, text)
+}
+
+export function parseBlueprintFlow(text: string): Parsed<BlueprintFlowOutput> {
+  return parseStructured(blueprintFlowSchema, text)
+}
+
 export function parseBlueprintReadiness(text: string): Parsed<BlueprintReadinessOutput> {
   return parseStructured(blueprintReadinessSchema, text)
 }
 
 export function parseBlueprintQuestions(text: string): Parsed<BlueprintQuestionsOutput> {
   return parseStructured(blueprintQuestionsSchema, text)
-}
-
-export function parseBlueprintDraft(text: string): Parsed<BlueprintDraftOutput> {
-  return parseStructured(blueprintDraftSchema, text)
 }

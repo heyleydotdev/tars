@@ -1,7 +1,12 @@
 import * as z from 'zod'
 
 import { BLUEPRINT_QUESTION_LIMIT, BLUEPRINT_REQUIREMENT_LIMIT } from '../constants'
-import { blueprintConfidenceSchema, blueprintRequirementStatusSchema } from './blueprint'
+import {
+  blueprintConfidenceSchema,
+  blueprintFlowSchema,
+  blueprintHierarchySchema,
+  blueprintRequirementStatusSchema
+} from './blueprint'
 import { questionKindSchema } from './question'
 
 export const blueprintExtractedRequirementSchema = z.object({
@@ -34,10 +39,12 @@ export const blueprintQuestionsSchema = z.object({
   questions: z.array(blueprintQuestionDraftSchema).min(1).max(BLUEPRINT_QUESTION_LIMIT)
 })
 
-export const blueprintDraftSchema = z.object({
-  draft: z.string().min(1).max(24_000)
+export const blueprintHierarchyJsonSchema = z.toJSONSchema(blueprintHierarchySchema, {
+  target: 'draft-7'
 })
-
+export const blueprintFlowJsonSchema = z.toJSONSchema(blueprintFlowSchema, {
+  target: 'draft-7'
+})
 export const blueprintExtractionJsonSchema = z.toJSONSchema(blueprintExtractionSchema, {
   target: 'draft-7'
 })
@@ -45,9 +52,6 @@ export const blueprintReadinessJsonSchema = z.toJSONSchema(blueprintReadinessSch
   target: 'draft-7'
 })
 export const blueprintQuestionsJsonSchema = z.toJSONSchema(blueprintQuestionsSchema, {
-  target: 'draft-7'
-})
-export const blueprintDraftJsonSchema = z.toJSONSchema(blueprintDraftSchema, {
   target: 'draft-7'
 })
 
@@ -61,5 +65,3 @@ export type BlueprintReadinessInput = z.input<typeof blueprintReadinessSchema>
 export type BlueprintReadinessOutput = z.output<typeof blueprintReadinessSchema>
 export type BlueprintQuestionsInput = z.input<typeof blueprintQuestionsSchema>
 export type BlueprintQuestionsOutput = z.output<typeof blueprintQuestionsSchema>
-export type BlueprintDraftInput = z.input<typeof blueprintDraftSchema>
-export type BlueprintDraftOutput = z.output<typeof blueprintDraftSchema>
