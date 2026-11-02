@@ -1,3 +1,7 @@
+import type {
+  BlueprintRequirementOutput,
+  BlueprintSummaryOutput
+} from '@tars/core/schemas/blueprint'
 import type { ActivityKind as JournalActivityKind } from '@tars/core/utils/journal'
 
 import type { ActivityKind as StatsActivityKind } from './stats'
@@ -13,4 +17,27 @@ export const KIND_BADGE_TONES: Record<BadgeKind, string> = {
   incident: 'capitalize bg-destructive/15 text-destructive',
   measure: 'capitalize bg-emerald-400/15 text-emerald-300',
   activity: 'capitalize bg-muted text-muted-foreground'
+}
+
+export const BLUEPRINT_STATUS_TONES: Record<BlueprintSummaryOutput['status'], string> = {
+  intake: 'capitalize bg-amber-400/15 text-amber-300',
+  mapped: 'capitalize bg-sky-400/15 text-sky-300',
+  ready: 'capitalize bg-violet-400/15 text-violet-300',
+  drafted: 'capitalize bg-emerald-400/15 text-emerald-300'
+}
+
+export const REQUIREMENT_STATUS_TONES: Record<BlueprintRequirementOutput['status'], string> = {
+  clear: 'capitalize bg-emerald-400/15 text-emerald-300',
+  ambiguous: 'capitalize bg-amber-400/15 text-amber-300',
+  missing: 'capitalize bg-destructive/15 text-destructive',
+  suggested: 'capitalize bg-sky-400/15 text-sky-300'
+}
+
+export const REQUIREMENT_CONFIDENCE_TONES: Record<
+  BlueprintRequirementOutput['confidence'],
+  string
+> = {
+  high: 'capitalize bg-emerald-400/15 text-emerald-300',
+  medium: 'capitalize bg-amber-400/15 text-amber-300',
+  low: 'capitalize bg-muted text-muted-foreground'
 }
