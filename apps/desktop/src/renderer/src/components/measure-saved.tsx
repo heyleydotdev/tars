@@ -10,10 +10,10 @@ import { ButtonGroup } from '@tars/ui/components/button-group'
 import { Spinner } from '@tars/ui/components/spinner'
 import { cn } from '@tars/ui/lib/utils'
 
-import ConfirmDialog from '../components/confirm-dialog'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
 import MeasurePreview from '../components/measure-preview'
+import { logAction } from '../lib/activity'
 import { fileSrc } from '../lib/files'
 import { downloadText, measureCsv } from '../lib/measure'
 import {
@@ -26,6 +26,7 @@ import {
 import { useShellAlertStore } from '../stores/alert'
 import { useMeasurePreferences } from '../stores/measure-preferences'
 import { useMeasureWorkspace } from '../stores/measure-workspace'
+import ConfirmDialog from './confirm-dialog'
 
 function measureValue(measure: MeasureSavedOutput, unit: MeasureUnit): string {
   const object = measure.result?.objects[0]
@@ -135,6 +136,7 @@ export default function MeasureSaved({ onOpen }: { onOpen: () => void }) {
 
     try {
       await removeSavedMeasure(deleting.id)
+      logAction('measure.deleted', deleting.id, deleting.name)
       await queryClient.invalidateQueries({ queryKey: measureSavedKey })
       queryClient.removeQueries({ queryKey: ['measure-image', deleting.id] })
 

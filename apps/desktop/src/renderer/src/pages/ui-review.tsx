@@ -26,6 +26,7 @@ import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import ImageViewer from '../components/image-viewer'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import { logAction } from '../lib/activity'
 import { SEVERITY_BADGE_TONES, UI_REVIEW_STATUS_TONES } from '../lib/badge-tones'
 import { fileSrc } from '../lib/files'
 import { dataUrlToBlob, prepareMeasureImage } from '../lib/measure'
@@ -79,6 +80,7 @@ export default function UiReview() {
         image: dataUrlToBlob(photo.dataUrl)
       })
 
+      logAction('ui.created', created.review.id, created.review.title ?? 'UI review')
       setActiveId(created.review.id)
       setSection('findings')
     } catch (error) {
@@ -252,7 +254,14 @@ export default function UiReview() {
                           onClick={() =>
                             void explain
                               .mutateAsync({ reviewId: data.review.id })
-                              .then(() => setSection('findings'))
+                              .then(() => {
+                                logAction(
+                                  'ui.explained',
+                                  data.review.id,
+                                  data.review.title ?? 'UI review'
+                                )
+                                setSection('findings')
+                              })
                               .catch(report)
                           }
                         >
@@ -353,7 +362,14 @@ export default function UiReview() {
                               reviewId: data.review.id,
                               instruction: instruction.trim() || null
                             })
-                            .then(() => setInstruction(''))
+                            .then(() => {
+                              logAction(
+                                'ui.redesign',
+                                data.review.id,
+                                data.review.title ?? 'UI review'
+                              )
+                              setInstruction('')
+                            })
                             .catch(report)
                         }
                       >
@@ -487,6 +503,7 @@ export default function UiReview() {
           void remove
             .mutateAsync({ reviewId: id })
             .then(() => {
+              logAction('ui.deleted', id, deleting.title ?? 'UI review')
               if (id === activeId) setActiveId(null)
               setDeleting(null)
             })
