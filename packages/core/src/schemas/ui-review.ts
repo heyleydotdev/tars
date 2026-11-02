@@ -1,7 +1,5 @@
 import * as z from 'zod'
 
-import { ERRORS } from '../errors'
-
 export const uiReviewStatusSchema = z.enum(['created', 'explained'])
 export const uiFindingSeveritySchema = z.enum(['minor', 'moderate', 'significant'])
 export const uiPlatformSchema = z.enum(['mobile', 'web', 'desktop', 'unknown'])
