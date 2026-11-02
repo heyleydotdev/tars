@@ -40,7 +40,6 @@ function todo(overrides: Partial<TodoItemOutput> = {}): TodoItemOutput {
     title: 'Task',
     done: false,
     dueAt: null,
-    priority: null,
     createdAt: at(0),
     ...overrides
   }

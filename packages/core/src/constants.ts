@@ -43,8 +43,6 @@ export const EXPENSE_CATEGORIES = [
   'other'
 ] as const
 
-export const DESK_PRIORITIES = ['low', 'medium', 'high'] as const
-
 export const VOICE_MIN_SEGMENT_MS = 2_000
 export const VOICE_MAX_SEGMENT_MS = 20_000
 export const VOICE_SILENCE_DURATION_MS = 1_200

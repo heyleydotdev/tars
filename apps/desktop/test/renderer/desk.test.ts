@@ -11,7 +11,6 @@ function todo(overrides: Partial<Extract<SavedRecordOutput, { type: 'todo' }>> =
     title: 'Ship the fix',
     done: false,
     dueAt: null,
-    priority: null,
     ...overrides
   } satisfies SavedRecordOutput
 }
@@ -41,11 +40,10 @@ describe('deskResultMarkdown', () => {
     expect(result).toContain('Deploy \\[hotfix\\] \\(v2\\) \\*now\\*')
   })
 
-  it('describes task state in priority order', () => {
+  it('describes task state', () => {
     expect(deskResultMarkdown('', [todo({ done: true })])).toContain('todo · done')
-    expect(deskResultMarkdown('', [todo({ priority: 'high' })])).toContain('high priority')
-    expect(deskResultMarkdown('', [todo({ dueAt: '2026-11-02T09:00:00.000Z' })])).not.toContain(
-      'priority'
+    expect(deskResultMarkdown('', [todo({ dueAt: '2026-11-02T09:00:00.000Z' })])).toContain(
+      'todo · '
     )
   })
 

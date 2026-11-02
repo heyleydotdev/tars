@@ -21,6 +21,7 @@ export const todo = sqliteTable(
     title: text('title').notNull(),
     notes: text('notes'),
     dueAt: integer('due_at', { mode: 'timestamp_ms' }),
+    // Deprecated: kept for existing rows; the app no longer reads or writes it.
     priority: text('priority', { enum: ['low', 'medium', 'high'] }),
     status: text('status', { enum: ['open', 'done'] })
       .notNull()

@@ -24,7 +24,7 @@ import { and, desc, eq, gte, like, lte, notLike } from '@tars/db/sql'
 import { protectedProcedure } from '../context'
 import { NotFoundError } from '../errors'
 
-type TodoRow = Pick<TodoSelect, 'id' | 'title' | 'status' | 'dueAt' | 'priority' | 'createdAt'>
+type TodoRow = Pick<TodoSelect, 'id' | 'title' | 'status' | 'dueAt' | 'createdAt'>
 type ReminderRow = Pick<ReminderSelect, 'id' | 'title' | 'remindAt' | 'status' | 'createdAt'>
 type JournalRow = Pick<
   JournalEntrySelect,
@@ -36,7 +36,6 @@ const todoColumns = {
   title: todo.title,
   status: todo.status,
   dueAt: todo.dueAt,
-  priority: todo.priority,
   createdAt: todo.createdAt
 }
 const reminderColumns = {
@@ -78,7 +77,6 @@ function todoItem(row: TodoRow): JournalPageOutput['todos'][number] {
     title: row.title,
     done: row.status === 'done',
     dueAt: row.dueAt?.toISOString() ?? null,
-    priority: row.priority,
     createdAt: row.createdAt.toISOString()
   }
 }
@@ -278,8 +276,7 @@ export const journalRouter = {
         .update(todo)
         .set({
           title: input.title,
-          dueAt: parseDate(input.dueAt),
-          priority: input.priority
+          dueAt: parseDate(input.dueAt)
         })
         .where(and(eq(todo.id, input.id), eq(todo.userId, context.session.user.id)))
         .returning({ id: todo.id })

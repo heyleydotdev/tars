@@ -9,13 +9,7 @@ function recordLine(record: SavedRecordOutput): string {
   switch (record.type) {
     case 'todo':
       return `- **${escapeMarkdown(record.title || 'Untitled')}** — todo${
-        record.done
-          ? ' · done'
-          : record.dueAt
-            ? ` · ${formatDateTime(record.dueAt)}`
-            : record.priority
-              ? ` · ${record.priority} priority`
-              : ''
+        record.done ? ' · done' : record.dueAt ? ` · ${formatDateTime(record.dueAt)}` : ''
       }`
     case 'reminder':
       return `- **${escapeMarkdown(record.title || 'Untitled')}** — reminder · ${formatDateTime(record.remindAt)}`

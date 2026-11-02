@@ -24,7 +24,7 @@ import type {
 import { normalizeExpenseCategory, resolveExpenseTitle } from '../utils/expense'
 import { formatZonedIso, parseDate } from '../utils/format'
 
-type TodoRecord = Pick<TodoSelect, 'id' | 'messageId' | 'title' | 'status' | 'dueAt' | 'priority'>
+type TodoRecord = Pick<TodoSelect, 'id' | 'messageId' | 'title' | 'status' | 'dueAt'>
 
 type ReminderRecord = Pick<ReminderSelect, 'id' | 'messageId' | 'title' | 'remindAt'>
 
@@ -51,8 +51,7 @@ function todoValues(record: TodoRecordOutput) {
     title: record.title,
     status: record.done ? ('done' as const) : ('open' as const),
     notes: record.notes,
-    dueAt: parseDate(record.dueAt),
-    priority: record.priority
+    dueAt: parseDate(record.dueAt)
   }
 }
 
@@ -91,8 +90,7 @@ function savedTodo(record: TodoRecord): SavedRecordOutput {
     id: record.id,
     title: record.title,
     done: record.status === 'done',
-    dueAt: record.dueAt?.toISOString() ?? null,
-    priority: record.priority
+    dueAt: record.dueAt?.toISOString() ?? null
   }
 }
 
@@ -232,8 +230,7 @@ export async function loadDeskContextRecords(
       title: record.title,
       done: record.status === 'done',
       notes: record.notes,
-      dueAt: record.dueAt?.toISOString() ?? null,
-      priority: record.priority
+      dueAt: record.dueAt?.toISOString() ?? null
     })),
     ...reminders.map((record): DeskContextRecord => ({
       type: 'reminder',

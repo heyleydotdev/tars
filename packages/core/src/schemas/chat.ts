@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { CHAT_MESSAGE_MAX_LENGTH, DESK_PRIORITIES, EXPENSE_CATEGORIES } from '../constants'
+import { CHAT_MESSAGE_MAX_LENGTH, EXPENSE_CATEGORIES } from '../constants'
 import { ERRORS } from '../errors'
 
 const recordIdSchema = z
@@ -13,8 +13,7 @@ const todoRecordSchema = z.strictObject({
   title: z.string().trim().min(1),
   done: z.boolean().describe('True when the todo is finished'),
   notes: z.string().nullable(),
-  dueAt: z.string().nullable(),
-  priority: z.enum(DESK_PRIORITIES).nullable()
+  dueAt: z.string().nullable()
 })
 
 const reminderRecordSchema = z.strictObject({
@@ -70,8 +69,7 @@ export const savedRecordSchema = z.discriminatedUnion('type', [
     id: z.string().min(1),
     title: z.string().trim().min(1),
     done: z.boolean(),
-    dueAt: z.string().nullable(),
-    priority: z.enum(DESK_PRIORITIES).nullable()
+    dueAt: z.string().nullable()
   }),
   z.object({
     type: z.literal('reminder'),

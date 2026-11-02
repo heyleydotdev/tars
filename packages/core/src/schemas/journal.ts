@@ -1,6 +1,5 @@
 import * as z from 'zod'
 
-import { DESK_PRIORITIES } from '../constants'
 import { ERRORS } from '../errors'
 
 export const todoItemSchema = z.object({
@@ -8,7 +7,6 @@ export const todoItemSchema = z.object({
   title: z.string(),
   done: z.boolean(),
   dueAt: z.string().nullable(),
-  priority: z.enum(DESK_PRIORITIES).nullable(),
   createdAt: z.string()
 })
 
@@ -38,8 +36,7 @@ export const journalPageSchema = z.object({
 export const updateTodoSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1, ERRORS.titleRequired),
-  dueAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid }).nullable(),
-  priority: z.enum(DESK_PRIORITIES).nullable()
+  dueAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid }).nullable()
 })
 
 export const updateReminderSchema = z.object({
