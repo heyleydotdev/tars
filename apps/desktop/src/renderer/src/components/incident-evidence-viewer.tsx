@@ -1,10 +1,3 @@
-import Lightbox from 'yet-another-react-lightbox'
-import Captions from 'yet-another-react-lightbox/plugins/captions'
-import Zoom from 'yet-another-react-lightbox/plugins/zoom'
-
-import 'yet-another-react-lightbox/plugins/captions.css'
-import 'yet-another-react-lightbox/styles.css'
-
 import type { IncidentEvidenceOutput } from '@tars/core/schemas/incident'
 import { ERRORS } from '@tars/core/errors'
 import { formatDateTime } from '@tars/core/utils/format'
@@ -13,6 +6,7 @@ import { Spinner } from '@tars/ui/components/spinner'
 
 import { fileSrc } from '../lib/files'
 import { useIncidentImageUrl } from '../lib/incident'
+import ImageViewer from './image-viewer'
 
 export default function IncidentEvidenceViewer({
   evidence,
@@ -48,42 +42,26 @@ export default function IncidentEvidenceViewer({
     )
   }
 
-  const slide = src
-    ? [
-        {
-          src,
-          alt: `${evidence?.kind ?? 'evidence'} screenshot`,
-          title: evidence
-            ? `${evidence.kind} · ${
-                evidence.occurredAt
-                  ? formatDateTime(evidence.occurredAt)
-                  : evidence.kind === 'answer'
-                    ? `received ${formatDateTime(evidence.createdAt)}`
-                    : 'undated'
-              }`
-            : 'Evidence',
-          description: evidence?.summary ?? evidence?.content ?? ''
-        }
-      ]
-    : []
-
   return (
-    <Lightbox
-      open={open}
-      close={onClose}
-      slides={slide}
-      plugins={[Captions, Zoom]}
-      carousel={{ finite: true, imageFit: 'contain', padding: 24 }}
-      controller={{ closeOnBackdropClick: true }}
-      zoom={{ maxZoomPixelRatio: 3, scrollToZoom: true }}
-      styles={{
-        root: {
-          top: 'var(--title-bar-height)',
-          bottom: 'auto',
-          height: 'calc(100svh - var(--title-bar-height))'
-        },
-        container: { backgroundColor: 'rgba(9, 9, 11, 0.96)' }
-      }}
+    <ImageViewer
+      image={
+        src
+          ? {
+              src,
+              title: evidence
+                ? `${evidence.kind} · ${
+                    evidence.occurredAt
+                      ? formatDateTime(evidence.occurredAt)
+                      : evidence.kind === 'answer'
+                        ? `received ${formatDateTime(evidence.createdAt)}`
+                        : 'undated'
+                  }`
+                : 'Evidence',
+              description: evidence?.summary ?? evidence?.content ?? ''
+            }
+          : null
+      }
+      onClose={onClose}
     />
   )
 }
