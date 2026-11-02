@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ORPCError } from '@orpc/client'
 import { useQueryClient } from '@tanstack/react-query'
-import { useLoaderData, useNavigate } from 'react-router'
+import { useLoaderData } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import type { MeasureFormOutput, MeasureResultOutput } from '@tars/core/schemas/measure'
@@ -20,8 +20,8 @@ import type { MeasureLoaderData } from '../lib/loaders'
 import type { MeasureBatchItem, MeasureRequest, PreparedMeasureImage } from '../lib/measure'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleHeader from '../components/console-header'
+import ConsoleNav from '../components/console-nav'
 import ConsolePanel from '../components/console-panel'
-import ConsoleTabs from '../components/console-tabs'
 import MeasureAnnotationSettings from '../components/measure-annotation-settings'
 import MeasureExportAllButton from '../components/measure-export-all-button'
 import MeasureForm from '../components/measure-form'
@@ -50,7 +50,6 @@ import { useMeasureWorkspace } from '../stores/measure-workspace'
 
 export default function Measure() {
   const initialReferences = useLoaderData<MeasureLoaderData>()
-  const navigate = useNavigate()
   const { items, selectedId, running, pendingRestore } = useMeasureWorkspace(
     useShallow((state) => ({
       items: state.items,
@@ -411,12 +410,10 @@ export default function Measure() {
         }
       />
 
-      <ConsoleTabs
-        value="workspace"
-        onValueChange={(value) => navigate(value === 'saved' ? '/measure/saved' : '/measure')}
+      <ConsoleNav
         items={[
-          { value: 'workspace', label: 'Workspace' },
-          { value: 'saved', label: 'Saved' }
+          { label: 'Workspace', to: '/measure' },
+          { label: 'Saved', to: '/measure/saved' }
         ]}
       />
 

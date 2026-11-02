@@ -57,12 +57,15 @@ vi.mock('../../src/renderer/src/components/incident-analysis-panel', () => ({
 }))
 
 describe('Incident sections', () => {
-  it('keeps the hidden postmortem section mounted', () => {
+  it('keeps the postmortem section mounted but hidden', () => {
     const html = renderToStaticMarkup(createElement(Incident))
+    const panels = [...html.matchAll(/<div[^>]*role="tabpanel"[^>]*>/g)].map((match) => match[0])
 
     expect(html).toContain('evidence-panel')
     expect(html).toContain('timeline-panel')
     expect(html).toContain('postmortem-panel')
-    expect(html).toContain('flex-1 hidden')
+    expect(panels).toHaveLength(2)
+    expect(panels[0]).not.toContain('hidden')
+    expect(panels[1]).toContain('hidden')
   })
 })

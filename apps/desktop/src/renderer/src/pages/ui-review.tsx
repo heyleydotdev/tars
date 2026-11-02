@@ -8,6 +8,7 @@ import { Button } from '@tars/ui/components/button'
 import { Checkbox } from '@tars/ui/components/checkbox'
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
+import { TabsContent } from '@tars/ui/components/tabs'
 import { cn } from '@tars/ui/lib/utils'
 
 import type { ViewerImage } from '../components/image-viewer'
@@ -173,7 +174,14 @@ export default function UiReview() {
         </ConsolePanel>
 
         <div className="flex flex-col lg:col-span-9 lg:min-h-0">
-          {data ? (
+          {!data ? (
+            <ConsolePanel title="ui.screen" count="0" accent="bg-emerald-400" className="flex-1">
+              <EmptyState
+                title="No Screen Selected"
+                hint="Upload a screenshot, or pick a review on the left."
+              />
+            </ConsolePanel>
+          ) : (
             <ConsoleTabs
               value={section}
               onValueChange={setSection}
@@ -185,242 +193,240 @@ export default function UiReview() {
                   count: `${data.variants.length}/${UI_REVIEW_VARIANT_LIMIT}`
                 }
               ]}
-            />
-          ) : null}
-
-          {!data ? (
-            <ConsolePanel title="ui.screen" count="0" accent="bg-emerald-400" className="flex-1">
-              <EmptyState
-                title="No Screen Selected"
-                hint="Upload a screenshot, or pick a review on the left."
-              />
-            </ConsolePanel>
-          ) : section === 'findings' ? (
-            <ConsolePanel
-              title="ui.findings"
-              count={String(data.findings.length)}
-              accent="bg-emerald-400"
-              className="flex-1"
             >
-              <div className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    aria-label="Enlarge reviewed screen"
-                    className="block w-full cursor-zoom-in"
-                    onClick={() =>
-                      setViewing({ src: fileSrc(data.screenshotUrl), title: 'Reviewed screen' })
-                    }
-                  >
-                    <img
-                      src={fileSrc(data.screenshotUrl)}
-                      alt="Reviewed screen"
-                      className="border-border max-h-72 w-full border object-contain"
-                    />
-                  </button>
-                  <p className="text-muted-foreground text-xs/6">
-                    {data.review.summary ?? 'Not explained yet.'}
-                  </p>
-                  {data.review.status === 'created' ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="w-full"
-                      disabled={busy}
-                      onClick={() =>
-                        void explain
-                          .mutateAsync({ reviewId: data.review.id })
-                          .then(() => setSection('findings'))
-                          .catch(report)
-                      }
-                    >
-                      {explain.isPending ? <Spinner className="size-3.5" /> : <ScanEyeIcon />}
-                      Explain screen
-                    </Button>
-                  ) : null}
-                </div>
-
-                <div>
-                  <p className="text-muted-foreground mb-2 font-mono text-xs uppercase">
-                    Included in redesign
-                  </p>
-                  {data.findings.length === 0 ? (
-                    <EmptyState
-                      title="No Findings Yet"
-                      hint="Explain the screen to get visible UI and UX issues."
-                    />
-                  ) : (
-                    <ul className="divide-border divide-y">
-                      {data.findings.map((finding) => (
-                        <li key={finding.id} className="flex items-start gap-2 py-2 first:pt-0">
-                          <Checkbox
-                            checked={finding.included}
-                            disabled={busy}
-                            onCheckedChange={(checked) =>
-                              updateFinding.mutate({
-                                findingId: finding.id,
-                                included: checked === true
-                              })
-                            }
-                          />
-                          <span className="min-w-0 flex-1 text-xs/6">
-                            <span className="flex items-center gap-2">
-                              <span className="text-foreground font-medium">{finding.label}</span>
-                              <span
-                                className={cn(
-                                  'font-mono text-xs uppercase',
-                                  SEVERITY_TONES[finding.severity]
-                                )}
-                              >
-                                {finding.severity}
-                              </span>
-                            </span>
-                            <span className="text-muted-foreground block">
-                              {finding.description}
-                            </span>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </ConsolePanel>
-          ) : (
-            <ConsolePanel
-              title="ui.redesign"
-              count={`${data.variants.length}/${UI_REVIEW_VARIANT_LIMIT}`}
-              accent="bg-violet-400"
-              className="flex-1"
-            >
-              <div className="space-y-3 p-3">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    value={instruction}
-                    onChange={(event) => setInstruction(event.target.value)}
-                    placeholder="Style request, e.g. more minimal, darker theme"
-                    className="h-8 min-w-0 flex-1 text-xs/6"
-                    maxLength={300}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={
-                      busy ||
-                      data.variants.length >= UI_REVIEW_VARIANT_LIMIT ||
-                      data.review.status !== 'explained' ||
-                      !data.findings.some((finding) => finding.included)
-                    }
-                    onClick={() =>
-                      void generate
-                        .mutateAsync({
-                          reviewId: data.review.id,
-                          instruction: instruction.trim() || null
-                        })
-                        .then(() => setInstruction(''))
-                        .catch(report)
-                    }
-                  >
-                    {generate.isPending ? <Spinner className="size-3.5" /> : <SparklesIcon />}
-                    Generate
-                  </Button>
-                </div>
-
-                {latest ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      <figure className="space-y-1">
-                        <button
+              <TabsContent value="findings" keepMounted className="flex flex-1 flex-col lg:min-h-0">
+                <ConsolePanel
+                  title="ui.findings"
+                  count={String(data.findings.length)}
+                  accent="bg-emerald-400"
+                  className="flex-1"
+                >
+                  <div className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        aria-label="Enlarge reviewed screen"
+                        className="block w-full cursor-zoom-in"
+                        onClick={() =>
+                          setViewing({ src: fileSrc(data.screenshotUrl), title: 'Reviewed screen' })
+                        }
+                      >
+                        <img
+                          src={fileSrc(data.screenshotUrl)}
+                          alt="Reviewed screen"
+                          className="border-border max-h-72 w-full border object-contain"
+                        />
+                      </button>
+                      <p className="text-muted-foreground text-xs/6">
+                        {data.review.summary ?? 'Not explained yet.'}
+                      </p>
+                      {data.review.status === 'created' ? (
+                        <Button
                           type="button"
-                          aria-label="Enlarge original screen"
-                          className="block w-full cursor-zoom-in"
+                          size="sm"
+                          className="w-full"
+                          disabled={busy}
                           onClick={() =>
-                            setViewing({
-                              src: fileSrc(data.screenshotUrl),
-                              title: 'Original screen'
-                            })
+                            void explain
+                              .mutateAsync({ reviewId: data.review.id })
+                              .then(() => setSection('findings'))
+                              .catch(report)
                           }
                         >
-                          <img
-                            src={fileSrc(data.screenshotUrl)}
-                            alt="Original screen"
-                            className="border-border h-40 w-full border object-contain"
-                          />
-                        </button>
-                        <figcaption className="text-muted-foreground text-xs">Original</figcaption>
-                      </figure>
-                      <figure className="space-y-1">
-                        <button
-                          type="button"
-                          aria-label="Enlarge generated redesign"
-                          className="block w-full cursor-zoom-in"
-                          onClick={() =>
-                            setViewing({
-                              src: fileSrc(latest.imageUrl),
-                              title: 'AI-generated concept',
-                              description: 'AI-generated concept, not a working UI.'
-                            })
-                          }
-                        >
-                          <img
-                            src={fileSrc(latest.imageUrl)}
-                            alt="Generated redesign concept"
-                            className="border-border h-40 w-full border object-contain"
-                          />
-                        </button>
-                        <figcaption className="text-muted-foreground font-mono text-xs uppercase">
-                          AI concept
-                        </figcaption>
-                      </figure>
-                    </div>
-                    <p className="text-muted-foreground text-xs/6">
-                      AI-generated concept, not a working UI. Use it as a visual direction, not a
-                      spec.
-                    </p>
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase">Addressed</p>
-                      <p className="text-xs/6">{latest.findings.join(' · ')}</p>
-                      {latest.instruction ? (
-                        <p className="text-muted-foreground text-xs/6">
-                          Style: {latest.instruction}
-                        </p>
+                          {explain.isPending ? <Spinner className="size-3.5" /> : <ScanEyeIcon />}
+                          Explain screen
+                        </Button>
                       ) : null}
                     </div>
-                    <div className="flex gap-2 overflow-x-auto">
-                      {data.variants.map((variant, index) => (
-                        <button
-                          key={variant.id}
-                          type="button"
-                          aria-label={`Enlarge redesign ${index + 1}`}
-                          className={cn(
-                            'size-16 shrink-0 cursor-zoom-in border',
-                            variant.id === latest.id ? 'border-emerald-400/60' : 'border-border'
-                          )}
-                          onClick={() =>
-                            setViewing({
-                              src: fileSrc(variant.imageUrl),
-                              title: 'AI-generated concept',
-                              description: 'AI-generated concept, not a working UI.'
-                            })
-                          }
-                        >
-                          <img
-                            src={fileSrc(variant.imageUrl)}
-                            alt="Redesign variant"
-                            className="h-full w-full object-cover"
-                          />
-                        </button>
-                      ))}
+
+                    <div>
+                      <p className="text-muted-foreground mb-2 font-mono text-xs uppercase">
+                        Included in redesign
+                      </p>
+                      {data.findings.length === 0 ? (
+                        <EmptyState
+                          title="No Findings Yet"
+                          hint="Explain the screen to get visible UI and UX issues."
+                        />
+                      ) : (
+                        <ul className="divide-border divide-y">
+                          {data.findings.map((finding) => (
+                            <li key={finding.id} className="flex items-start gap-2 py-2 first:pt-0">
+                              <Checkbox
+                                checked={finding.included}
+                                disabled={busy}
+                                onCheckedChange={(checked) =>
+                                  updateFinding.mutate({
+                                    findingId: finding.id,
+                                    included: checked === true
+                                  })
+                                }
+                              />
+                              <span className="min-w-0 flex-1 text-xs/6">
+                                <span className="flex items-center gap-2">
+                                  <span className="text-foreground font-medium">
+                                    {finding.label}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'font-mono text-xs uppercase',
+                                      SEVERITY_TONES[finding.severity]
+                                    )}
+                                  >
+                                    {finding.severity}
+                                  </span>
+                                </span>
+                                <span className="text-muted-foreground block">
+                                  {finding.description}
+                                </span>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground text-xs/6">
-                    Generate a redesign after reviewing the findings. Every result is an AI concept,
-                    not a working interface.
-                  </p>
-                )}
-              </div>
-            </ConsolePanel>
+                  </div>
+                </ConsolePanel>
+              </TabsContent>
+              <TabsContent value="redesign" keepMounted className="flex flex-1 flex-col lg:min-h-0">
+                <ConsolePanel
+                  title="ui.redesign"
+                  count={`${data.variants.length}/${UI_REVIEW_VARIANT_LIMIT}`}
+                  accent="bg-violet-400"
+                  className="flex-1"
+                >
+                  <div className="space-y-3 p-3">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        value={instruction}
+                        onChange={(event) => setInstruction(event.target.value)}
+                        placeholder="Style request, e.g. more minimal, darker theme"
+                        className="h-8 min-w-0 flex-1 text-xs/6"
+                        maxLength={300}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={
+                          busy ||
+                          data.variants.length >= UI_REVIEW_VARIANT_LIMIT ||
+                          data.review.status !== 'explained' ||
+                          !data.findings.some((finding) => finding.included)
+                        }
+                        onClick={() =>
+                          void generate
+                            .mutateAsync({
+                              reviewId: data.review.id,
+                              instruction: instruction.trim() || null
+                            })
+                            .then(() => setInstruction(''))
+                            .catch(report)
+                        }
+                      >
+                        {generate.isPending ? <Spinner className="size-3.5" /> : <SparklesIcon />}
+                        Generate
+                      </Button>
+                    </div>
+
+                    {latest ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <figure className="space-y-1">
+                            <button
+                              type="button"
+                              aria-label="Enlarge original screen"
+                              className="block w-full cursor-zoom-in"
+                              onClick={() =>
+                                setViewing({
+                                  src: fileSrc(data.screenshotUrl),
+                                  title: 'Original screen'
+                                })
+                              }
+                            >
+                              <img
+                                src={fileSrc(data.screenshotUrl)}
+                                alt="Original screen"
+                                className="border-border h-40 w-full border object-contain"
+                              />
+                            </button>
+                            <figcaption className="text-muted-foreground text-xs">
+                              Original
+                            </figcaption>
+                          </figure>
+                          <figure className="space-y-1">
+                            <button
+                              type="button"
+                              aria-label="Enlarge generated redesign"
+                              className="block w-full cursor-zoom-in"
+                              onClick={() =>
+                                setViewing({
+                                  src: fileSrc(latest.imageUrl),
+                                  title: 'AI-generated concept',
+                                  description: 'AI-generated concept, not a working UI.'
+                                })
+                              }
+                            >
+                              <img
+                                src={fileSrc(latest.imageUrl)}
+                                alt="Generated redesign concept"
+                                className="border-border h-40 w-full border object-contain"
+                              />
+                            </button>
+                            <figcaption className="text-muted-foreground font-mono text-xs uppercase">
+                              AI concept
+                            </figcaption>
+                          </figure>
+                        </div>
+                        <p className="text-muted-foreground text-xs/6">
+                          AI-generated concept, not a working UI. Use it as a visual direction, not
+                          a spec.
+                        </p>
+                        <div>
+                          <p className="text-muted-foreground text-xs uppercase">Addressed</p>
+                          <p className="text-xs/6">{latest.findings.join(' · ')}</p>
+                          {latest.instruction ? (
+                            <p className="text-muted-foreground text-xs/6">
+                              Style: {latest.instruction}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex gap-2 overflow-x-auto">
+                          {data.variants.map((variant, index) => (
+                            <button
+                              key={variant.id}
+                              type="button"
+                              aria-label={`Enlarge redesign ${index + 1}`}
+                              className={cn(
+                                'size-16 shrink-0 cursor-zoom-in border',
+                                variant.id === latest.id ? 'border-emerald-400/60' : 'border-border'
+                              )}
+                              onClick={() =>
+                                setViewing({
+                                  src: fileSrc(variant.imageUrl),
+                                  title: 'AI-generated concept',
+                                  description: 'AI-generated concept, not a working UI.'
+                                })
+                              }
+                            >
+                              <img
+                                src={fileSrc(variant.imageUrl)}
+                                alt="Redesign variant"
+                                className="h-full w-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground text-xs/6">
+                        Generate a redesign after reviewing the findings. Every result is an AI
+                        concept, not a working interface.
+                      </p>
+                    )}
+                  </div>
+                </ConsolePanel>
+              </TabsContent>
+            </ConsoleTabs>
           )}
         </div>
       </div>

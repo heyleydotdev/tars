@@ -7,17 +7,18 @@ export default function ConsoleTabs({
   items,
   children,
   className
-}: React.PropsWithChildren<{
+}: {
   value: string
   onValueChange: (value: string) => void
   items: Array<{ value: string; label: string; count?: number | string }>
+  children: React.ReactNode
   className?: string
-}>) {
+}) {
   return (
     <Tabs
       value={value}
       onValueChange={onValueChange}
-      className={cn('flex flex-col gap-0', className)}
+      className={cn('flex min-h-0 flex-1 flex-col gap-0', className)}
     >
       <TabsList
         variant="line"

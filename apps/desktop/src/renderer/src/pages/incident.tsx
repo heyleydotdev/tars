@@ -3,7 +3,7 @@ import { ArrowLeftIcon } from 'lucide-react'
 import { Link, useLoaderData, useParams } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
-import { cn } from '@tars/ui/lib/utils'
+import { TabsContent } from '@tars/ui/components/tabs'
 
 import type { IncidentLoaderData } from '../lib/loaders'
 import ConsoleHeader from '../components/console-header'
@@ -97,95 +97,95 @@ export default function Incident() {
             count: detail.analysis?.status === 'approved' ? 'approved' : undefined
           }
         ]}
-      />
+      >
+        <TabsContent value="activity" keepMounted className="flex flex-1 flex-col lg:min-h-0">
+          <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)]">
+            <ConsolePanel
+              title="evidence.in"
+              count={String(detail.evidence.length)}
+              accent="bg-sky-400"
+              className="lg:col-span-4"
+              footer={
+                <>
+                  <span>
+                    <span className="font-mono tabular-nums">{detail.evidence.length}</span>{' '}
+                    Evidence
+                  </span>
+                  <span className="ml-auto">
+                    <span className="font-mono tabular-nums">
+                      {detail.evidence.filter((item) => item.status === 'ready').length}
+                    </span>{' '}
+                    Read
+                  </span>
+                </>
+              }
+            >
+              <IncidentEvidencePanel
+                detail={detail}
+                selectedId={selectedEvidenceId}
+                onSelect={selectEvidence}
+                onPendingChange={setEvidencePending}
+              />
+            </ConsolePanel>
 
-      <div className="flex flex-1 flex-col lg:min-h-0">
-        <div
-          className={cn(
-            'bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)]',
-            section !== 'activity' && 'hidden'
-          )}
-        >
+            <ConsolePanel
+              title="timeline.log"
+              count={String(detail.events.length)}
+              accent="bg-emerald-400"
+              className="lg:col-span-8"
+              footer={
+                <>
+                  <span>
+                    <span className="font-mono tabular-nums">{detail.events.length}</span> Events
+                  </span>
+                  <span className="ml-auto">
+                    {detail.incident.summary ? 'Merged' : 'Not merged'}
+                  </span>
+                </>
+              }
+            >
+              <IncidentTimeline
+                detail={detail}
+                highlightedEventIds={highlighted}
+                onSelectEvidence={selectEvidence}
+              />
+            </ConsolePanel>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="postmortem" keepMounted className="flex flex-1 flex-col lg:min-h-0">
           <ConsolePanel
-            title="evidence.in"
-            count={String(detail.evidence.length)}
-            accent="bg-sky-400"
-            className="lg:col-span-4"
+            title="postmortem.md"
+            count={detail.events.length > 0 ? 'live' : '—'}
+            accent="bg-amber-300"
+            className="flex-1"
             footer={
-              <>
-                <span>
-                  <span className="font-mono tabular-nums">{detail.evidence.length}</span> Evidence
-                </span>
-                <span className="ml-auto">
-                  <span className="font-mono tabular-nums">
-                    {detail.evidence.filter((item) => item.status === 'ready').length}
-                  </span>{' '}
-                  Read
-                </span>
-              </>
+              detail.analysis ? (
+                <>
+                  <span>
+                    {detail.analysis.outcome === 'proposed' ? 'Cause proposed' : 'Inconclusive'}
+                  </span>
+                  <span className="ml-auto">
+                    {detail.analysis.status === 'approved' ? (
+                      'Approved'
+                    ) : (
+                      <span className="font-mono uppercase">{detail.analysis.confidence}</span>
+                    )}
+                  </span>
+                </>
+              ) : (
+                <span>No analysis yet</span>
+              )
             }
           >
-            <IncidentEvidencePanel
+            <IncidentAnalysisPanel
               detail={detail}
-              selectedId={selectedEvidenceId}
-              onSelect={selectEvidence}
-              onPendingChange={setEvidencePending}
+              onHighlightEvents={showEvents}
+              onPendingChange={setAnalysisPending}
             />
           </ConsolePanel>
-
-          <ConsolePanel
-            title="timeline.log"
-            count={String(detail.events.length)}
-            accent="bg-emerald-400"
-            className="lg:col-span-8"
-            footer={
-              <>
-                <span>
-                  <span className="font-mono tabular-nums">{detail.events.length}</span> Events
-                </span>
-                <span className="ml-auto">{detail.incident.summary ? 'Merged' : 'Not merged'}</span>
-              </>
-            }
-          >
-            <IncidentTimeline
-              detail={detail}
-              highlightedEventIds={highlighted}
-              onSelectEvidence={selectEvidence}
-            />
-          </ConsolePanel>
-        </div>
-
-        <ConsolePanel
-          title="postmortem.md"
-          count={detail.events.length > 0 ? 'live' : '—'}
-          accent="bg-amber-300"
-          className={cn('flex-1', section !== 'postmortem' && 'hidden')}
-          footer={
-            detail.analysis ? (
-              <>
-                <span>
-                  {detail.analysis.outcome === 'proposed' ? 'Cause proposed' : 'Inconclusive'}
-                </span>
-                <span className="ml-auto">
-                  {detail.analysis.status === 'approved' ? (
-                    'Approved'
-                  ) : (
-                    <span className="font-mono uppercase">{detail.analysis.confidence}</span>
-                  )}
-                </span>
-              </>
-            ) : (
-              <span>No analysis yet</span>
-            )
-          }
-        >
-          <IncidentAnalysisPanel
-            detail={detail}
-            onHighlightEvents={showEvents}
-            onPendingChange={setAnalysisPending}
-          />
-        </ConsolePanel>
-      </div>
+        </TabsContent>
+      </ConsoleTabs>
 
       <PendingNavigationGuard when={evidencePending || analysisPending} />
     </div>

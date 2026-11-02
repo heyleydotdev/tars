@@ -19,6 +19,7 @@ import {
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
 import { Switch } from '@tars/ui/components/switch'
+import { TabsContent } from '@tars/ui/components/tabs'
 
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleHeader from '../components/console-header'
@@ -161,10 +162,8 @@ export default function Settings() {
           { value: 'voice', label: 'Voice' },
           { value: 'about', label: 'About' }
         ]}
-      />
-
-      <div className="flex flex-1 flex-col lg:min-h-0">
-        {section === 'account' ? (
+      >
+        <TabsContent value="account" className="flex flex-1 flex-col lg:min-h-0">
           <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)]">
             <ConsolePanel
               title="account.profile"
@@ -259,9 +258,9 @@ export default function Settings() {
               </form>
             </ConsolePanel>
           </div>
-        ) : null}
+        </TabsContent>
 
-        {section === 'voice' ? (
+        <TabsContent value="voice" className="flex flex-1 flex-col lg:min-h-0">
           <ConsolePanel title="voice" accent="bg-violet-400" className="flex-1">
             <FieldSet className="max-w-xl p-3">
               <Field orientation="horizontal">
@@ -312,10 +311,12 @@ export default function Settings() {
               </Field>
             </FieldSet>
           </ConsolePanel>
-        ) : null}
+        </TabsContent>
 
-        {section === 'about' ? <SettingsAbout appInfo={appInfo} /> : null}
-      </div>
+        <TabsContent value="about" className="flex flex-1 flex-col lg:min-h-0">
+          <SettingsAbout appInfo={appInfo} />
+        </TabsContent>
+      </ConsoleTabs>
 
       <PendingNavigationGuard when={savingPassword} />
 

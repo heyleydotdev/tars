@@ -13,8 +13,8 @@ import { cn } from '@tars/ui/lib/utils'
 
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleHeader from '../components/console-header'
+import ConsoleNav from '../components/console-nav'
 import ConsolePanel from '../components/console-panel'
-import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import MeasurePreview from '../components/measure-preview'
 import { fileSrc } from '../lib/files'
@@ -160,12 +160,10 @@ export default function MeasureSaved() {
     <div className="flex min-h-full flex-col lg:h-full lg:min-h-0">
       <ConsoleHeader title="measure.saved" />
 
-      <ConsoleTabs
-        value="saved"
-        onValueChange={(value) => navigate(value === 'saved' ? '/measure/saved' : '/measure')}
+      <ConsoleNav
         items={[
-          { value: 'workspace', label: 'Workspace' },
-          { value: 'saved', label: 'Saved' }
+          { label: 'Workspace', to: '/measure' },
+          { label: 'Saved', to: '/measure/saved' }
         ]}
       />
 
