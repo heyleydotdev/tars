@@ -19,6 +19,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/f
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
 
+import { logAction } from '../lib/activity'
 import { useUpdateTodo } from '../lib/journal'
 import { FormError } from './form-error'
 
@@ -55,6 +56,7 @@ export default function TodoEditDialog({
           title: value.title.trim(),
           dueAt: fromDateTimeLocal(value.dueAt)
         })
+        logAction('task.updated', todo.id, value.title.trim())
         onOpenChange(false)
       } catch (error) {
         setFormError(error instanceof ORPCError ? error.message : ERRORS.saveFailed)

@@ -23,6 +23,7 @@ import JournalFeed from '../components/journal-feed'
 import JournalStats from '../components/journal-stats'
 import ReminderEditDialog from '../components/reminder-edit-dialog'
 import TodoEditDialog from '../components/todo-edit-dialog'
+import { logAction } from '../lib/activity'
 import {
   useDeleteJournalEntry,
   useDeleteReminder,
@@ -207,8 +208,10 @@ export default function Journal() {
         await deleteJournal.mutateAsync({ id: deleteTarget.id })
       } else if (deleteTarget.kind === 'todo') {
         await deleteTodo.mutateAsync({ id: deleteTarget.id })
+        logAction('task.deleted', deleteTarget.id, deleteSubject)
       } else {
         await deleteReminder.mutateAsync({ id: deleteTarget.id })
+        logAction('reminder.deleted', deleteTarget.id, deleteSubject)
       }
 
       setDeleteTarget(null)
@@ -285,7 +288,21 @@ export default function Journal() {
               <JournalAgenda
                 reminders={dayReminders}
                 todos={dayTodos}
-                onToggleReminder={(id, done) => setReminderDone.mutate({ id, done })}
+                onToggleReminder={(id, done) => {
+                  const reminder = reminders.find((item) => item.id === id)
+
+                  setReminderDone.mutate(
+                    { id, done },
+                    {
+                      onSuccess: () =>
+                        logAction(
+                          done ? 'reminder.done' : 'reminder.dismissed',
+                          id,
+                          reminder?.title ?? 'Reminder'
+                        )
+                    }
+                  )
+                }}
                 onToggleTodo={toggleTodo}
                 onEditReminder={editReminder}
                 onEditTodo={editTodo}

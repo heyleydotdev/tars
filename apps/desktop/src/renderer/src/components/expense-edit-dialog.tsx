@@ -33,6 +33,7 @@ import {
 import { Spinner } from '@tars/ui/components/spinner'
 import { Textarea } from '@tars/ui/components/textarea'
 
+import { logAction } from '../lib/activity'
 import { useUpdateExpense } from '../lib/expenses'
 import { FormError } from './form-error'
 
@@ -85,6 +86,7 @@ export default function ExpenseEditDialog({
           category: value.category,
           occurredAt: fromDateTimeLocalRequired(value.occurredAt)
         })
+        logAction('expense.updated', expense.id, value.title.trim())
         onOpenChange(false)
       } catch (error) {
         setFormError(error instanceof ORPCError ? error.message : ERRORS.saveFailed)

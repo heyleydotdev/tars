@@ -13,6 +13,7 @@ import ExpensesBreakdown from '../components/expenses-breakdown'
 import ExpensesCalendar from '../components/expenses-calendar'
 import ExpensesLedger from '../components/expenses-ledger'
 import ExpensesStats from '../components/expenses-stats'
+import { logAction } from '../lib/activity'
 import {
   expenseAt,
   sumExpenses,
@@ -122,6 +123,7 @@ export default function Expenses() {
 
     try {
       await deleteExpense.mutateAsync({ id: deleteTarget.id })
+      logAction('expense.deleted', deleteTarget.id, deleteTarget.description)
       setDeleteTarget(null)
     } catch {
       showAlert({

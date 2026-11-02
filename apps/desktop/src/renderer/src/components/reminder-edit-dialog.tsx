@@ -23,6 +23,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@tars/ui/components/f
 import { Input } from '@tars/ui/components/input'
 import { Spinner } from '@tars/ui/components/spinner'
 
+import { logAction } from '../lib/activity'
 import { useUpdateReminder } from '../lib/journal'
 import { FormError } from './form-error'
 
@@ -60,6 +61,7 @@ export default function ReminderEditDialog({
           title: value.title.trim(),
           remindAt: fromDateTimeLocalRequired(value.remindAt)
         })
+        logAction('reminder.updated', reminder.id, value.title.trim())
         onOpenChange(false)
       } catch (error) {
         setFormError(error instanceof ORPCError ? error.message : ERRORS.saveFailed)
