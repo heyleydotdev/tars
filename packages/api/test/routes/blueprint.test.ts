@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { BlueprintDetailOutput, BlueprintListOutput } from '@tars/core/schemas/blueprint'
 import type { Database } from '@tars/db/client'
-import { blueprint, blueprintEvidence, blueprintQuestion, user } from '@tars/db/schema'
+import {
+  blueprint,
+  blueprintEvidence,
+  blueprintQuestion,
+  blueprintRequirement,
+  user
+} from '@tars/db/schema'
 import { eq } from '@tars/db/sql'
 
 import { callRpc, createTestDb } from '../helpers/rpc'
@@ -81,6 +87,104 @@ describe('blueprint evidence limit', () => {
     })
 
     expect(response.status).toBe(400)
+  })
+})
+
+describe('blueprint.removeEvidence', () => {
+  it('removes evidence from the blueprint', async () => {
+    const id = await createBlueprint()
+
+    await db.insert(blueprintEvidence).values({
+      id: 'evidence-1',
+      blueprintId: id,
+      kind: 'text',
+      content: 'brief',
+      status: 'ready'
+    })
+
+    const response = await callRpc(db, 'blueprint/removeEvidence', { evidenceId: 'evidence-1' })
+    const detail = (response.body as { json: BlueprintDetailOutput }).json
+
+    expect(response.status).toBe(200)
+    expect(detail.evidence).toHaveLength(0)
+    expect(await db.select().from(blueprintEvidence)).toHaveLength(0)
+  })
+
+  it('rejects evidence owned by someone else', async () => {
+    await db
+      .insert(blueprint)
+      .values({ id: 'other-blueprint', userId: 'other-user', title: 'Nope' })
+    await db.insert(blueprintEvidence).values({
+      id: 'other-evidence',
+      blueprintId: 'other-blueprint',
+      kind: 'text',
+      content: 'brief',
+      status: 'ready'
+    })
+
+    const response = await callRpc(db, 'blueprint/removeEvidence', { evidenceId: 'other-evidence' })
+
+    expect(response.status).toBe(404)
+    expect(await db.select().from(blueprintEvidence)).toHaveLength(1)
+  })
+})
+
+describe('blueprint requirements', () => {
+  it('disables, re-enables, and removes a requirement', async () => {
+    const id = await createBlueprint()
+
+    await db.insert(blueprintRequirement).values({
+      id: 'requirement-1',
+      blueprintId: id,
+      area: 'auth',
+      text: 'Clients log in with email.',
+      status: 'clear',
+      confidence: 'high',
+      sourceEvidenceIds: []
+    })
+
+    const disabled = await callRpc(db, 'blueprint/setRequirementEnabled', {
+      requirementId: 'requirement-1',
+      enabled: false
+    })
+    const detail = (disabled.body as { json: BlueprintDetailOutput }).json
+
+    expect(disabled.status).toBe(200)
+    expect(detail.requirements[0]?.enabled).toBe(false)
+
+    const removed = await callRpc(db, 'blueprint/removeRequirement', {
+      requirementId: 'requirement-1'
+    })
+
+    expect(removed.status).toBe(200)
+    expect(await db.select().from(blueprintRequirement)).toHaveLength(0)
+  })
+
+  it('rejects requirements owned by someone else', async () => {
+    await db
+      .insert(blueprint)
+      .values({ id: 'other-blueprint', userId: 'other-user', title: 'Nope' })
+    await db.insert(blueprintRequirement).values({
+      id: 'other-requirement',
+      blueprintId: 'other-blueprint',
+      area: 'auth',
+      text: 'Clients log in with email.',
+      status: 'clear',
+      confidence: 'high',
+      sourceEvidenceIds: []
+    })
+
+    const toggle = await callRpc(db, 'blueprint/setRequirementEnabled', {
+      requirementId: 'other-requirement',
+      enabled: false
+    })
+    const removed = await callRpc(db, 'blueprint/removeRequirement', {
+      requirementId: 'other-requirement'
+    })
+
+    expect(toggle.status).toBe(404)
+    expect(removed.status).toBe(404)
+    expect(await db.select().from(blueprintRequirement)).toHaveLength(1)
   })
 })
 

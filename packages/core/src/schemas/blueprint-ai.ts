@@ -8,7 +8,7 @@ export const blueprintExtractedRequirementSchema = z.object({
   text: z.string().min(1).max(300),
   status: blueprintRequirementStatusSchema,
   confidence: blueprintConfidenceSchema,
-  sourceEvidenceIds: z.array(z.string().min(1)).min(1).max(12)
+  sourceEvidenceIds: z.array(z.string().min(1)).max(12)
 })
 
 export const blueprintExtractionSchema = z.object({

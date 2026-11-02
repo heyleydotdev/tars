@@ -3,7 +3,12 @@ import * as z from 'zod'
 import { ERRORS } from '../errors'
 
 export const blueprintStatusSchema = z.enum(['intake', 'mapped', 'ready', 'drafted'])
-export const blueprintRequirementStatusSchema = z.enum(['clear', 'ambiguous', 'missing'])
+export const blueprintRequirementStatusSchema = z.enum([
+  'clear',
+  'ambiguous',
+  'missing',
+  'suggested'
+])
 export const blueprintConfidenceSchema = z.enum(['low', 'medium', 'high'])
 export const blueprintEvidenceKindSchema = z.enum(['text', 'screenshot', 'voice', 'answer'])
 export const blueprintQuestionStatusSchema = z.enum(['open', 'answered', 'dismissed'])
@@ -41,7 +46,8 @@ export const blueprintRequirementSchema = z.object({
   text: z.string().min(1),
   status: blueprintRequirementStatusSchema,
   confidence: blueprintConfidenceSchema,
-  sourceEvidenceIds: z.array(z.string())
+  sourceEvidenceIds: z.array(z.string()),
+  enabled: z.boolean()
 })
 
 export const blueprintQuestionSchema = z.object({
@@ -90,6 +96,15 @@ export const blueprintEvidenceIdSchema = z.object({
   evidenceId: z.string().min(1)
 })
 
+export const blueprintRequirementIdSchema = z.object({
+  requirementId: z.string().min(1)
+})
+
+export const setBlueprintRequirementEnabledSchema = z.object({
+  requirementId: z.string().min(1),
+  enabled: z.boolean()
+})
+
 export const answerBlueprintQuestionSchema = z.object({
   questionId: z.string().min(1),
   answer: z.string().trim().min(1, ERRORS.blueprintAnswerRequired).max(4_000)
@@ -123,6 +138,14 @@ export type AddBlueprintEvidenceInput = z.input<typeof addBlueprintEvidenceSchem
 export type AddBlueprintEvidenceOutput = z.output<typeof addBlueprintEvidenceSchema>
 export type BlueprintEvidenceIdInput = z.input<typeof blueprintEvidenceIdSchema>
 export type BlueprintEvidenceIdOutput = z.output<typeof blueprintEvidenceIdSchema>
+export type BlueprintRequirementIdInput = z.input<typeof blueprintRequirementIdSchema>
+export type BlueprintRequirementIdOutput = z.output<typeof blueprintRequirementIdSchema>
+export type SetBlueprintRequirementEnabledInput = z.input<
+  typeof setBlueprintRequirementEnabledSchema
+>
+export type SetBlueprintRequirementEnabledOutput = z.output<
+  typeof setBlueprintRequirementEnabledSchema
+>
 export type AnswerBlueprintQuestionInput = z.input<typeof answerBlueprintQuestionSchema>
 export type AnswerBlueprintQuestionOutput = z.output<typeof answerBlueprintQuestionSchema>
 export type SaveBlueprintDraftInput = z.input<typeof saveBlueprintDraftSchema>

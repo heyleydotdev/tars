@@ -57,11 +57,12 @@ export const blueprintRequirement = sqliteTable(
       .references(() => blueprint.id, { onDelete: 'cascade' }),
     area: text('area').notNull(),
     text: text('text').notNull(),
-    status: text('status').$type<'clear' | 'ambiguous' | 'missing'>().notNull(),
+    status: text('status').$type<'clear' | 'ambiguous' | 'missing' | 'suggested'>().notNull(),
     confidence: text('confidence').$type<'low' | 'medium' | 'high'>().notNull(),
     sourceEvidenceIds: text('source_evidence_ids', { mode: 'json' })
       .$type<Array<string>>()
       .notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt
   },

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import {
   ArrowLeftIcon,
+  EyeIcon,
+  EyeOffIcon,
   FileTextIcon,
   ListChecksIcon,
   MessageSquareIcon,
@@ -8,13 +10,25 @@ import {
   Trash2Icon,
   WandSparklesIcon
 } from 'lucide-react'
-import { Link, useLoaderData, useNavigate, useParams } from 'react-router'
+import { Link, useLoaderData, useParams } from 'react-router'
 
+import type {
+  BlueprintEvidenceOutput,
+  BlueprintRequirementOutput
+} from '@tars/core/schemas/blueprint'
 import { ERRORS } from '@tars/core/errors'
-import { formatDateTime } from '@tars/core/utils/format'
+import { formatTime, toDateKey } from '@tars/core/utils/format'
+import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
 import { CodeBlock, CodeBlockContent } from '@tars/ui/components/code-block'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger
+} from '@tars/ui/components/context-menu'
 import { Spinner } from '@tars/ui/components/spinner'
 import {
   Table,
@@ -26,24 +40,30 @@ import {
 } from '@tars/ui/components/table'
 import { TabsContent } from '@tars/ui/components/tabs'
 import { Textarea } from '@tars/ui/components/textarea'
+import { cn } from '@tars/ui/lib/utils'
 
 import type { BlueprintLoaderData } from '../lib/loaders'
 import ConfirmDialog from '../components/confirm-dialog'
+import ConsoleDayHeader from '../components/console-day-header'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import { REQUIREMENT_CONFIDENCE_TONES, REQUIREMENT_STATUS_TONES } from '../lib/badge-tones'
 import {
   useAddBlueprintEvidence,
   useAnswerBlueprintQuestion,
   useBlueprint,
-  useDeleteBlueprint,
   useDraftBlueprint,
   useExtractBlueprint,
   useFindBlueprintGaps,
-  useSaveBlueprintDraft
+  useRemoveBlueprintEvidence,
+  useRemoveBlueprintRequirement,
+  useSaveBlueprintDraft,
+  useSetBlueprintRequirementEnabled
 } from '../lib/blueprint'
+import { groupByDay } from '../lib/group-by-day'
 import { useShellAlertStore } from '../stores/alert'
 
 export default function Blueprint() {
@@ -51,22 +71,27 @@ export default function Blueprint() {
   const initial = useLoaderData<BlueprintLoaderData>()
   const blueprint = useBlueprint(id ?? '', initial)
   const detail = blueprint.data ?? initial
-  const navigate = useNavigate()
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const add = useAddBlueprintEvidence()
+  const removeEvidence = useRemoveBlueprintEvidence()
+  const setRequirementEnabled = useSetBlueprintRequirementEnabled()
+  const removeRequirement = useRemoveBlueprintRequirement()
   const extract = useExtractBlueprint()
   const gaps = useFindBlueprintGaps()
   const answer = useAnswerBlueprintQuestion()
   const draftIt = useDraftBlueprint()
   const save = useSaveBlueprintDraft()
-  const remove = useDeleteBlueprint()
   const [section, setSection] = useState('inputs')
-  const [kind, setKind] = useState<'text' | 'voice'>('text')
   const [content, setContent] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [draft, setDraft] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [removing, setRemoving] = useState<BlueprintEvidenceOutput | null>(null)
+  const [removingRequirement, setRemovingRequirement] = useState<BlueprintRequirementOutput | null>(
+    null
+  )
+  const evidenceGroups = groupByDay(detail.evidence, (item) => toDateKey(item.createdAt))
   const openQuestions = detail.questions.filter((question) => question.status === 'open')
   const draftText = draft ?? detail.draft ?? ''
   const running = extract.isPending || gaps.isPending || draftIt.isPending
@@ -101,7 +126,7 @@ export default function Blueprint() {
     if (!value || add.isPending) return
 
     try {
-      await add.mutateAsync({ blueprintId: detail.blueprint.id, kind, content: value })
+      await add.mutateAsync({ blueprintId: detail.blueprint.id, kind: 'text', content: value })
       setContent('')
     } catch (error) {
       report(error)
@@ -121,18 +146,44 @@ export default function Blueprint() {
     }
   }
 
-  async function run(action: () => Promise<unknown>): Promise<void> {
+  async function confirmRemove(): Promise<void> {
+    if (!removing) return
+
     try {
-      await action()
+      await removeEvidence.mutateAsync({ evidenceId: removing.id })
+      setRemoving(null)
+    } catch (error) {
+      setRemoving(null)
+      report(error)
+    }
+  }
+
+  async function toggleRequirement(item: BlueprintRequirementOutput): Promise<void> {
+    try {
+      await setRequirementEnabled.mutateAsync({
+        requirementId: item.id,
+        enabled: !item.enabled
+      })
     } catch (error) {
       report(error)
     }
   }
 
-  async function deleteBlueprint(): Promise<void> {
+  async function confirmRemoveRequirement(): Promise<void> {
+    if (!removingRequirement) return
+
     try {
-      await remove.mutateAsync({ id: detail.blueprint.id })
-      navigate('/blueprints')
+      await removeRequirement.mutateAsync({ requirementId: removingRequirement.id })
+      setRemovingRequirement(null)
+    } catch (error) {
+      setRemovingRequirement(null)
+      report(error)
+    }
+  }
+
+  async function run(action: () => Promise<unknown>): Promise<void> {
+    try {
+      await action()
     } catch (error) {
       report(error)
     }
@@ -156,16 +207,6 @@ export default function Blueprint() {
             <span className="text-foreground max-w-64 truncate text-xs/6 font-medium">
               {detail.blueprint.title}
             </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Delete blueprint"
-              disabled={remove.isPending}
-              onClick={() => setDeleting(true)}
-            >
-              <Trash2Icon />
-            </Button>
           </div>
         }
       />
@@ -187,32 +228,10 @@ export default function Blueprint() {
               className="lg:col-span-4"
             >
               <div className="space-y-2 p-3">
-                <ButtonGroup>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant={kind === 'text' ? 'default' : 'outline'}
-                    onClick={() => setKind('text')}
-                  >
-                    Text
-                  </Button>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant={kind === 'voice' ? 'default' : 'outline'}
-                    onClick={() => setKind('voice')}
-                  >
-                    Voice note
-                  </Button>
-                </ButtonGroup>
                 <Textarea
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
-                  placeholder={
-                    kind === 'voice'
-                      ? 'Paste the call transcript…'
-                      : 'Paste the client brief, chat export, or email…'
-                  }
+                  placeholder="Paste the client brief, chat export, or call transcript…"
                   className="min-h-28 text-xs/6"
                   maxLength={12_000}
                   disabled={add.isPending}
@@ -234,23 +253,91 @@ export default function Blueprint() {
                   hint="Paste the brief, an email thread, or a transcript to map requirements."
                 />
               ) : (
-                <ul className="divide-border border-border divide-y border-t">
-                  {detail.evidence.map((item) => (
-                    <li key={item.id} className="space-y-1 px-3 py-2 text-xs/6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground font-mono text-xs uppercase">
-                          {item.kind}
-                        </span>
-                        <span className="text-muted-foreground font-mono tabular-nums">
-                          {formatDateTime(item.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-muted-foreground line-clamp-3 whitespace-pre-line">
-                        {item.content ?? item.summary}
-                      </p>
-                    </li>
+                <div className="border-border border-t">
+                  {evidenceGroups.map((group) => (
+                    <section key={group.key}>
+                      <ConsoleDayHeader
+                        label={group.label}
+                        count={group.items.length}
+                        unit="item"
+                      />
+                      <ul className="divide-border divide-y">
+                        {group.items.map((item) => {
+                          const text = item.content ?? item.summary ?? 'Evidence'
+                          const open = expanded[item.id] ?? false
+
+                          return (
+                            <li key={item.id}>
+                              <ContextMenu>
+                                <ContextMenuTrigger
+                                  render={
+                                    <div className="hover:bg-muted grid grid-cols-[3.5rem_minmax(0,1fr)] items-start gap-2 px-3 py-2 transition-colors" />
+                                  }
+                                >
+                                  <span className="text-muted-foreground font-mono text-xs/6 tabular-nums">
+                                    {formatTime(item.createdAt)}
+                                  </span>
+                                  <div className="min-w-0">
+                                    {item.kind === 'text' ? null : (
+                                      <Badge
+                                        variant="default"
+                                        className="bg-muted text-muted-foreground capitalize"
+                                      >
+                                        {item.kind}
+                                      </Badge>
+                                    )}
+                                    <p
+                                      className={cn(
+                                        'text-muted-foreground text-xs/6 whitespace-pre-line',
+                                        open ? 'break-words' : 'line-clamp-3'
+                                      )}
+                                    >
+                                      {text}
+                                    </p>
+                                    {item.status === 'pending' ? (
+                                      <span className="text-muted-foreground mt-1 flex items-center gap-1 text-xs/6">
+                                        <Spinner className="size-3" /> Reading…
+                                      </span>
+                                    ) : null}
+                                    {item.status === 'error' ? (
+                                      <span className="text-destructive mt-1 block text-xs/6">
+                                        {item.error ?? ERRORS.blueprintExtractionFailed}
+                                      </span>
+                                    ) : null}
+                                    {text.length > 180 ? (
+                                      <button
+                                        type="button"
+                                        aria-expanded={open}
+                                        onClick={() =>
+                                          setExpanded((current) => ({
+                                            ...current,
+                                            [item.id]: !open
+                                          }))
+                                        }
+                                        className="text-muted-foreground hover:text-foreground mt-1 text-xs/6 underline-offset-2 hover:underline"
+                                      >
+                                        {open ? 'Show less' : 'Show more'}
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                  <ContextMenuItem
+                                    variant="destructive"
+                                    onClick={() => setRemoving(item)}
+                                  >
+                                    <Trash2Icon />
+                                    Delete
+                                  </ContextMenuItem>
+                                </ContextMenuContent>
+                              </ContextMenu>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
+                </div>
               )}
             </ConsolePanel>
 
@@ -290,17 +377,47 @@ export default function Blueprint() {
                   </TableHeader>
                   <TableBody>
                     {detail.requirements.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono text-xs uppercase">{item.area}</TableCell>
-                        <TableCell className="whitespace-normal">{item.text}</TableCell>
-                        <TableCell className="font-mono text-xs uppercase">{item.status}</TableCell>
-                        <TableCell className="font-mono text-xs uppercase">
-                          {item.confidence}
-                        </TableCell>
-                        <TableCell className="text-center font-mono tabular-nums">
-                          {item.sourceEvidenceIds.length}
-                        </TableCell>
-                      </TableRow>
+                      <ContextMenu key={item.id}>
+                        <ContextMenuTrigger
+                          render={<TableRow className={item.enabled ? undefined : 'opacity-50'} />}
+                        >
+                          <TableCell className="font-mono text-xs uppercase">{item.area}</TableCell>
+                          <TableCell className="whitespace-normal">{item.text}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="default"
+                              className={REQUIREMENT_STATUS_TONES[item.status]}
+                            >
+                              {item.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="default"
+                              className={REQUIREMENT_CONFIDENCE_TONES[item.confidence]}
+                            >
+                              {item.confidence}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center font-mono tabular-nums">
+                            {item.sourceEvidenceIds.length}
+                          </TableCell>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem onClick={() => void toggleRequirement(item)}>
+                            {item.enabled ? <EyeOffIcon /> : <EyeIcon />}
+                            {item.enabled ? 'Disable' : 'Enable'}
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            variant="destructive"
+                            onClick={() => setRemovingRequirement(item)}
+                          >
+                            <Trash2Icon />
+                            Delete
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                     ))}
                   </TableBody>
                 </Table>
@@ -476,14 +593,29 @@ export default function Blueprint() {
       <PendingNavigationGuard when={running} />
 
       <ConfirmDialog
-        title="Delete blueprint?"
-        description="This removes the evidence, requirement map, questions, and draft."
+        title="Delete evidence?"
+        description="Requirements that cite it stay until you map requirements again."
         confirmLabel="Delete"
         destructive
-        open={deleting}
-        pending={remove.isPending}
-        onOpenChange={setDeleting}
-        onConfirm={() => void deleteBlueprint()}
+        open={removing !== null}
+        pending={removeEvidence.isPending}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null)
+        }}
+        onConfirm={() => void confirmRemove()}
+      />
+
+      <ConfirmDialog
+        title="Delete requirement?"
+        description="The requirement disappears from the map, and from gap checks and drafts."
+        confirmLabel="Delete"
+        destructive
+        open={removingRequirement !== null}
+        pending={removeRequirement.isPending}
+        onOpenChange={(open) => {
+          if (!open) setRemovingRequirement(null)
+        }}
+        onConfirm={() => void confirmRemoveRequirement()}
       />
     </div>
   )

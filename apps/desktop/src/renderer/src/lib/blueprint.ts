@@ -4,10 +4,13 @@ import type {
   AddBlueprintEvidenceInput,
   AnswerBlueprintQuestionInput,
   BlueprintDetailOutput,
+  BlueprintEvidenceIdInput,
   BlueprintIdInput,
   BlueprintListOutput,
+  BlueprintRequirementIdInput,
   CreateBlueprintInput,
-  SaveBlueprintDraftInput
+  SaveBlueprintDraftInput,
+  SetBlueprintRequirementEnabledInput
 } from '@tars/core/schemas/blueprint'
 
 import { orpc } from './orpc'
@@ -63,6 +66,24 @@ export function useDeleteBlueprint() {
 export function useAddBlueprintEvidence() {
   return useBlueprintMutation((input: AddBlueprintEvidenceInput) =>
     orpc.blueprint.addEvidence.call(input)
+  )
+}
+
+export function useRemoveBlueprintEvidence() {
+  return useBlueprintMutation((input: BlueprintEvidenceIdInput) =>
+    orpc.blueprint.removeEvidence.call(input)
+  )
+}
+
+export function useSetBlueprintRequirementEnabled() {
+  return useBlueprintMutation((input: SetBlueprintRequirementEnabledInput) =>
+    orpc.blueprint.setRequirementEnabled.call(input)
+  )
+}
+
+export function useRemoveBlueprintRequirement() {
+  return useBlueprintMutation((input: BlueprintRequirementIdInput) =>
+    orpc.blueprint.removeRequirement.call(input)
   )
 }
 

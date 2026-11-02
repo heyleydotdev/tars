@@ -29,9 +29,12 @@ import {
 import {
   addBlueprintEvidenceSchema,
   answerBlueprintQuestionSchema,
+  blueprintEvidenceIdSchema,
   blueprintIdSchema,
+  blueprintRequirementIdSchema,
   createBlueprintSchema,
-  saveBlueprintDraftSchema
+  saveBlueprintDraftSchema,
+  setBlueprintRequirementEnabledSchema
 } from '@tars/core/schemas/blueprint'
 import {
   blueprintDraftJsonSchema,
@@ -93,7 +96,8 @@ function serializeRequirement(row: BlueprintRequirementSelect): BlueprintRequire
     text: row.text,
     status: row.status,
     confidence: row.confidence,
-    sourceEvidenceIds: row.sourceEvidenceIds
+    sourceEvidenceIds: row.sourceEvidenceIds,
+    enabled: row.enabled
   }
 }
 
@@ -190,7 +194,9 @@ async function requirementInputs(
   const rows = await db
     .select()
     .from(blueprintRequirement)
-    .where(eq(blueprintRequirement.blueprintId, blueprintId))
+    .where(
+      and(eq(blueprintRequirement.blueprintId, blueprintId), eq(blueprintRequirement.enabled, true))
+    )
     .orderBy(asc(blueprintRequirement.sortOrder))
 
   return rows.map((row) => ({
@@ -309,6 +315,87 @@ export const blueprintRouter = {
       return loadDetail(context.db, context.session.user.id, owner.id)
     }),
 
+  removeEvidence: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(blueprintEvidenceIdSchema)
+    .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
+      const [row] = await context.db
+        .select({ id: blueprintEvidence.id, blueprintId: blueprintEvidence.blueprintId })
+        .from(blueprintEvidence)
+        .innerJoin(blueprint, eq(blueprint.id, blueprintEvidence.blueprintId))
+        .where(
+          and(
+            eq(blueprintEvidence.id, input.evidenceId),
+            eq(blueprint.userId, context.session.user.id)
+          )
+        )
+        .limit(1)
+
+      if (!row) {
+        throw errors.NOT_FOUND()
+      }
+
+      await context.db.delete(blueprintEvidence).where(eq(blueprintEvidence.id, row.id))
+      await touch(context.db, row.blueprintId)
+
+      return loadDetail(context.db, context.session.user.id, row.blueprintId)
+    }),
+
+  setRequirementEnabled: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(setBlueprintRequirementEnabledSchema)
+    .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
+      const [row] = await context.db
+        .select({ id: blueprintRequirement.id, blueprintId: blueprintRequirement.blueprintId })
+        .from(blueprintRequirement)
+        .innerJoin(blueprint, eq(blueprint.id, blueprintRequirement.blueprintId))
+        .where(
+          and(
+            eq(blueprintRequirement.id, input.requirementId),
+            eq(blueprint.userId, context.session.user.id)
+          )
+        )
+        .limit(1)
+
+      if (!row) {
+        throw errors.NOT_FOUND()
+      }
+
+      await context.db
+        .update(blueprintRequirement)
+        .set({ enabled: input.enabled })
+        .where(eq(blueprintRequirement.id, row.id))
+      await touch(context.db, row.blueprintId)
+
+      return loadDetail(context.db, context.session.user.id, row.blueprintId)
+    }),
+
+  removeRequirement: protectedProcedure
+    .errors({ NOT_FOUND: NotFoundError })
+    .input(blueprintRequirementIdSchema)
+    .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
+      const [row] = await context.db
+        .select({ id: blueprintRequirement.id, blueprintId: blueprintRequirement.blueprintId })
+        .from(blueprintRequirement)
+        .innerJoin(blueprint, eq(blueprint.id, blueprintRequirement.blueprintId))
+        .where(
+          and(
+            eq(blueprintRequirement.id, input.requirementId),
+            eq(blueprint.userId, context.session.user.id)
+          )
+        )
+        .limit(1)
+
+      if (!row) {
+        throw errors.NOT_FOUND()
+      }
+
+      await context.db.delete(blueprintRequirement).where(eq(blueprintRequirement.id, row.id))
+      await touch(context.db, row.blueprintId)
+
+      return loadDetail(context.db, context.session.user.id, row.blueprintId)
+    }),
+
   extract: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(blueprintIdSchema)
@@ -354,7 +441,7 @@ export const blueprintRouter = {
         .flatMap((item) => {
           const sourceEvidenceIds = item.sourceEvidenceIds.filter((id) => evidenceIds.has(id))
 
-          if (sourceEvidenceIds.length === 0) return []
+          if (sourceEvidenceIds.length === 0 && item.status !== 'suggested') return []
 
           return [
             {

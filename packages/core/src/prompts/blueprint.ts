@@ -6,8 +6,9 @@ Rules:
 - Return only requirements the evidence supports; cite the evidence ids that state each one.
 - area: a short label such as auth, data, integrations, bot, dashboard, admin, api, payments, notifications.
 - status: clear when the evidence states it, ambiguous when it is implied but vague, missing when the client needs it but no evidence states it.
+- Also propose up to three suggested requirements the evidence does not state but a project like this usually needs. Mark them suggested, set confidence low, and leave sourceEvidenceIds empty.
 - confidence: how strongly the evidence supports the requirement.
-- Never invent features, technology choices, prices, or timelines.
+- Never invent prices, timelines, or technology choices.
 - summary: two sentences on what the client wants and what is still unclear.
 - At most ${BLUEPRINT_REQUIREMENT_LIMIT} requirements, grouped by area.`
 

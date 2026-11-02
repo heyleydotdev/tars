@@ -1,0 +1,1 @@
+ALTER TABLE `blueprint_requirement` ADD `enabled` integer DEFAULT true NOT NULL;
