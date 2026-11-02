@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ORPCError } from '@orpc/client'
 import { useQueryClient } from '@tanstack/react-query'
-import { useLoaderData } from 'react-router'
+import { useLoaderData, useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import type { MeasureFormOutput, MeasureResultOutput } from '@tars/core/schemas/measure'
@@ -50,6 +50,7 @@ import { useMeasureWorkspace } from '../stores/measure-workspace'
 
 export default function Measure() {
   const initialReferences = useLoaderData<MeasureLoaderData>()
+  const navigate = useNavigate()
   const { items, selectedId, running, pendingRestore } = useMeasureWorkspace(
     useShallow((state) => ({
       items: state.items,
@@ -412,9 +413,10 @@ export default function Measure() {
 
       <ConsoleTabs
         value="workspace"
+        onValueChange={(value) => navigate(value === 'saved' ? '/measure/saved' : '/measure')}
         items={[
-          { value: 'workspace', label: 'Workspace', to: '/measure' },
-          { value: 'saved', label: 'Saved', to: '/measure/saved' }
+          { value: 'workspace', label: 'Workspace' },
+          { value: 'saved', label: 'Saved' }
         ]}
       />
 

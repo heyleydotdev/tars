@@ -162,9 +162,10 @@ export default function MeasureSaved() {
 
       <ConsoleTabs
         value="saved"
+        onValueChange={(value) => navigate(value === 'saved' ? '/measure/saved' : '/measure')}
         items={[
-          { value: 'workspace', label: 'Workspace', to: '/measure' },
-          { value: 'saved', label: 'Saved', to: '/measure/saved' }
+          { value: 'workspace', label: 'Workspace' },
+          { value: 'saved', label: 'Saved' }
         ]}
       />
 
