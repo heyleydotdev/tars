@@ -1,3 +1,11 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@tars/ui/components/table'
 import { cn } from '@tars/ui/lib/utils'
 
 import type { ActivitySummary } from '../lib/stats'
@@ -88,52 +96,32 @@ export default function StatsHeatmap({ activity }: { activity: ActivitySummary }
         <span>More</span>
       </div>
 
-      <table className="border-border mt-4 w-full table-fixed border-collapse border text-xs">
-        <thead>
-          <tr>
-            <th
-              scope="col"
-              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
-            >
-              Active days
-            </th>
-            <th
-              scope="col"
-              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
-            >
-              Streak
-            </th>
-            <th
-              scope="col"
-              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
-            >
-              Busiest day
-            </th>
-            <th
-              scope="col"
-              className="border-border text-muted-foreground border-b px-2 py-1.5 text-center font-sans font-medium"
-            >
-              Avg. active
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono tabular-nums">
+      <Table className="border-border mt-4 table-fixed border">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-muted-foreground text-center">Active days</TableHead>
+            <TableHead className="text-muted-foreground text-center">Streak</TableHead>
+            <TableHead className="text-muted-foreground text-center">Busiest day</TableHead>
+            <TableHead className="text-muted-foreground text-center">Avg. active</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell className="text-foreground text-center font-mono tabular-nums">
               {activity.activeDays}
-            </td>
-            <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono text-emerald-400 tabular-nums">
+            </TableCell>
+            <TableCell className="text-center font-mono text-emerald-400 tabular-nums">
               {activity.streak}d
-            </td>
-            <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono tabular-nums">
+            </TableCell>
+            <TableCell className="text-foreground text-center font-mono tabular-nums">
               {busiest}
-            </td>
-            <td className="border-border text-foreground px-2 py-1.5 text-center font-mono text-sky-400 tabular-nums">
+            </TableCell>
+            <TableCell className="text-center font-mono text-sky-400 tabular-nums">
               {average}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
   )
 }

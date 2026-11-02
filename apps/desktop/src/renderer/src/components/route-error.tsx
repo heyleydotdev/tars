@@ -3,6 +3,7 @@ import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 
 import { ERRORS } from '@tars/core/errors'
 import { Button } from '@tars/ui/components/button'
+import { CodeBlock, CodeBlockContent } from '@tars/ui/components/code-block'
 
 function errorDetail(error: unknown): string {
   if (isRouteErrorResponse(error)) {
@@ -53,9 +54,11 @@ export default function RouteError() {
         {stack ? (
           <div className="border-border mt-5 border-t pt-4 text-left">
             <p className="text-muted-foreground text-xs">Stack trace</p>
-            <pre className="text-muted-foreground bg-muted/30 mt-2 max-h-48 overflow-auto p-2 font-mono text-xs wrap-break-word whitespace-pre-wrap">
-              {stack}
-            </pre>
+            <CodeBlock size="sm" variant="destructive" className="mt-2">
+              <CodeBlockContent wrap className="max-h-48">
+                {stack}
+              </CodeBlockContent>
+            </CodeBlock>
           </div>
         ) : null}
       </div>

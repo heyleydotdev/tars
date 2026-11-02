@@ -4,6 +4,7 @@ import type { IncidentEvidenceOutput } from '@tars/core/schemas/incident'
 import { formatDateTime } from '@tars/core/utils/format'
 import { titleCase } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
+import { CodeBlock, CodeBlockContent } from '@tars/ui/components/code-block'
 import {
   Dialog,
   DialogContent,
@@ -68,9 +69,11 @@ export default function IncidentEvidenceDialog({
             {evidence.content ? (
               <div className="space-y-1">
                 <p className="text-muted-foreground text-xs/6">Raw</p>
-                <pre className="bg-muted/20 border-border max-h-64 overflow-auto border p-2 font-mono text-xs/6 whitespace-pre-wrap">
-                  {evidence.content}
-                </pre>
+                <CodeBlock size="sm">
+                  <CodeBlockContent wrap className="max-h-64">
+                    {evidence.content}
+                  </CodeBlockContent>
+                </CodeBlock>
               </div>
             ) : null}
 

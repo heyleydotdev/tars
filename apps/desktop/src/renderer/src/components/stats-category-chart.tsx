@@ -1,6 +1,13 @@
 import { formatCurrency } from '@tars/core/utils/format'
 import { capitalize } from '@tars/core/utils/string'
-import { cn } from '@tars/ui/lib/utils'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@tars/ui/components/table'
 
 import type { ExpenseCategory } from '../lib/expenses'
 import { categoryColor } from '../lib/expenses'
@@ -73,66 +80,35 @@ export default function StatsCategoryChart({
         </span>
       </StatsRing>
 
-      <table className="border-border w-full border-collapse border text-xs">
-        <thead>
-          <tr>
-            <th
-              scope="col"
-              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left font-sans font-medium"
-            >
-              Category
-            </th>
-            <th
-              scope="col"
-              className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-center font-sans font-medium"
-            >
-              Share
-            </th>
-            <th
-              scope="col"
-              className="border-border text-muted-foreground border-b px-2 py-1.5 text-center font-sans font-medium"
-            >
-              Amount
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {segments.map((segment, index) => (
-            <tr key={segment.label}>
-              <th
-                scope="row"
-                className={cn(
-                  'border-border px-2 py-1.5 text-left align-top font-sans font-medium',
-                  index < segments.length - 1 ? 'border-r border-b' : 'border-r'
-                )}
-              >
+      <Table className="border-border border">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-muted-foreground">Category</TableHead>
+            <TableHead className="text-muted-foreground text-center">Share</TableHead>
+            <TableHead className="text-muted-foreground text-right">Amount</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {segments.map((segment) => (
+            <TableRow key={segment.label}>
+              <TableCell className="font-sans font-medium">
                 <span className="flex items-center gap-2">
                   <StatsSwatch color={segment.color} />
                   <span className="truncate" style={{ color: segment.color }}>
                     {capitalize(segment.label)}
                   </span>
                 </span>
-              </th>
-              <td
-                className={cn(
-                  'border-border text-muted-foreground px-2 py-1.5 text-center font-mono tabular-nums',
-                  index < segments.length - 1 ? 'border-r border-b' : 'border-r'
-                )}
-              >
+              </TableCell>
+              <TableCell className="text-muted-foreground text-center font-mono tabular-nums">
                 {Math.round(segment.share)}%
-              </td>
-              <td
-                className={cn(
-                  'border-border text-foreground px-2 py-1.5 text-center font-mono tabular-nums',
-                  index < segments.length - 1 ? 'border-b' : ''
-                )}
-              >
+              </TableCell>
+              <TableCell className="text-foreground text-right font-mono tabular-nums">
                 {formatCurrency(segment.amountCents, currency)}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import type { ChatMessage, ChatPhaseOutput } from '@tars/core/schemas/chat'
 import { parseChatPhase } from '@tars/core/utils/desk'
 import { formatDuration, formatJson } from '@tars/core/utils/format'
+import { CodeBlock, CodeBlockContent } from '@tars/ui/components/code-block'
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,14 @@ import {
   DialogHeader,
   DialogTitle
 } from '@tars/ui/components/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@tars/ui/components/table'
 
 import { useMessageThinking } from '../lib/chat'
 
@@ -25,20 +34,22 @@ function PhaseCard({ phase }: { phase: ChatPhaseOutput }) {
           {phase.reasoning}
         </p>
       ) : null}
-      <dl className="text-muted-foreground mt-2 grid grid-cols-3 gap-2 text-xs">
-        <div>
-          <dt>Input</dt>
-          <dd className="text-foreground">{phase.inputTokens ?? '—'}</dd>
-        </div>
-        <div>
-          <dt>Output</dt>
-          <dd className="text-foreground">{phase.outputTokens ?? '—'}</dd>
-        </div>
-        <div>
-          <dt>Reasoning</dt>
-          <dd className="text-foreground">{phase.reasoningTokens ?? '—'}</dd>
-        </div>
-      </dl>
+      <Table className="text-muted-foreground mt-2">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Input</TableHead>
+            <TableHead>Output</TableHead>
+            <TableHead>Reasoning</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell className="text-foreground">{phase.inputTokens ?? '—'}</TableCell>
+            <TableCell className="text-foreground">{phase.outputTokens ?? '—'}</TableCell>
+            <TableCell className="text-foreground">{phase.reasoningTokens ?? '—'}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
       <p className="text-muted-foreground mt-2 text-xs">{phase.model}</p>
     </section>
   )
@@ -76,9 +87,9 @@ export default function MessageDebugDialog(props: {
                   <p className="mb-1 text-xs font-medium capitalize">
                     {entry.kind.replace('_', ' ')}
                   </p>
-                  <pre className="text-muted-foreground text-xs whitespace-pre-wrap">
-                    {formatJson(entry.content)}
-                  </pre>
+                  <CodeBlock size="sm">
+                    <CodeBlockContent wrap>{formatJson(entry.content)}</CodeBlockContent>
+                  </CodeBlock>
                 </div>
               )
             })

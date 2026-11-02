@@ -1,3 +1,4 @@
+import { Table, TableBody, TableCell, TableRow } from '@tars/ui/components/table'
 import { cn } from '@tars/ui/lib/utils'
 
 import { ACTIVITY_STATE_TONES } from '../lib/stats-tones'
@@ -48,50 +49,36 @@ export default function StatsProgress({
       </StatsRing>
 
       <div className="w-full">
-        <table className="border-border w-full border-collapse border text-xs">
-          <tbody>
-            <tr>
-              <th
-                scope="row"
-                className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left align-top font-sans font-medium"
-              >
+        <Table className="border-border [&_td]:border-border border [&_td]:border-r [&_td:last-child]:border-r-0">
+          <TableBody>
+            <TableRow>
+              <TableCell className="text-muted-foreground font-sans font-medium">
                 Open tasks
-              </th>
-              <td className="border-border text-foreground border-r border-b px-2 py-1.5 text-center font-mono text-sky-400 tabular-nums">
+              </TableCell>
+              <TableCell className="text-center font-mono text-sky-400 tabular-nums">
                 {openTasks}
-              </td>
-              <th
-                scope="row"
-                className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left align-top font-sans font-medium"
-              >
+              </TableCell>
+              <TableCell className="text-muted-foreground font-sans font-medium">
                 Done tasks
-              </th>
-              <td className="border-border text-foreground border-b px-2 py-1.5 text-center font-mono text-emerald-400 tabular-nums">
+              </TableCell>
+              <TableCell className="text-center font-mono text-emerald-400 tabular-nums">
                 {doneTasks}
-              </td>
-            </tr>
-            <tr>
-              <th
-                scope="row"
-                className="border-border text-muted-foreground border-r px-2 py-1.5 text-left align-top font-sans font-medium"
-              >
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="text-muted-foreground font-sans font-medium">
                 Pending reminders
-              </th>
-              <td className="border-border text-foreground border-r px-2 py-1.5 text-center font-mono text-amber-300 tabular-nums">
+              </TableCell>
+              <TableCell className="text-center font-mono text-amber-300 tabular-nums">
                 {pendingReminders}
-              </td>
-              <th
-                scope="row"
-                className="border-border text-muted-foreground border-r px-2 py-1.5 text-left align-top font-sans font-medium"
-              >
+              </TableCell>
+              <TableCell className="text-muted-foreground font-sans font-medium">
                 Sent reminders
-              </th>
-              <td className="border-border text-foreground px-2 py-1.5 text-center font-mono tabular-nums">
-                {sentReminders}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+              <TableCell className="text-center font-mono tabular-nums">{sentReminders}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
 
         <div className="mt-4">
           <div className="text-muted-foreground flex items-center justify-between font-mono text-xs tracking-wide uppercase">

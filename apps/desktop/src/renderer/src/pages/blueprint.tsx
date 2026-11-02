@@ -14,7 +14,16 @@ import { ERRORS } from '@tars/core/errors'
 import { formatDateTime } from '@tars/core/utils/format'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
+import { CodeBlock, CodeBlockContent } from '@tars/ui/components/code-block'
 import { Spinner } from '@tars/ui/components/spinner'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@tars/ui/components/table'
 import { Textarea } from '@tars/ui/components/textarea'
 
 import type { BlueprintLoaderData } from '../lib/loaders'
@@ -268,42 +277,32 @@ export default function Blueprint() {
             {detail.requirements.length === 0 ? (
               <EmptyState title="Not Mapped Yet" hint="Add evidence, then map the requirements." />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="border-border w-full border-collapse border text-xs">
-                  <thead>
-                    <tr>
-                      {['Area', 'Requirement', 'Status', 'Confidence', 'Sources'].map((label) => (
-                        <th
-                          key={label}
-                          scope="col"
-                          className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left font-sans font-medium last:border-r-0"
-                        >
-                          {label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.requirements.map((item) => (
-                      <tr key={item.id}>
-                        <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
-                          {item.area}
-                        </td>
-                        <td className="border-border border-r px-2 py-1.5">{item.text}</td>
-                        <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
-                          {item.status}
-                        </td>
-                        <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
-                          {item.confidence}
-                        </td>
-                        <td className="border-border px-2 py-1.5 text-center font-mono tabular-nums">
-                          {item.sourceEvidenceIds.length}
-                        </td>
-                      </tr>
+              <Table className="border-border border">
+                <TableHeader>
+                  <TableRow>
+                    {['Area', 'Requirement', 'Status', 'Confidence', 'Sources'].map((label) => (
+                      <TableHead key={label} className="text-muted-foreground">
+                        {label}
+                      </TableHead>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detail.requirements.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-mono text-xs uppercase">{item.area}</TableCell>
+                      <TableCell className="whitespace-normal">{item.text}</TableCell>
+                      <TableCell className="font-mono text-xs uppercase">{item.status}</TableCell>
+                      <TableCell className="font-mono text-xs uppercase">
+                        {item.confidence}
+                      </TableCell>
+                      <TableCell className="text-center font-mono tabular-nums">
+                        {item.sourceEvidenceIds.length}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </ConsolePanel>
         ) : null}
@@ -438,12 +437,16 @@ export default function Blueprint() {
                   <Textarea
                     value={draftText}
                     onChange={(event) => setDraft(event.target.value)}
-                    className="min-h-[28rem] font-sans text-xs/6"
+                    className="min-h-112 font-sans text-xs/6"
                   />
                 </div>
               ) : (
                 <div className="space-y-3 p-3">
-                  <pre className="font-sans text-xs/6 whitespace-pre-wrap">{displayDraft}</pre>
+                  <CodeBlock>
+                    <CodeBlockContent wrap className="max-h-128 font-sans text-sm/6">
+                      {displayDraft}
+                    </CodeBlockContent>
+                  </CodeBlock>
                   {references.length > 0 ? (
                     <ol className="text-muted-foreground space-y-0.5 text-xs/6">
                       {references.map((reference) => (
