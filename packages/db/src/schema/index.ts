@@ -1,4 +1,5 @@
 export * from './auth'
+export * from './blueprint'
 export * from './chat'
 export * from './desk'
 export * from './incident'
