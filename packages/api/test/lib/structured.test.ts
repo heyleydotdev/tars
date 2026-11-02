@@ -1,0 +1,62 @@
+import type OpenAI from 'openai'
+import { describe, expect, it } from 'vitest'
+
+import { runStructured } from '../../src/lib/structured'
+
+type Call = { instructions: string; input: unknown }
+
+function fakeOpenAi(responses: Array<string>) {
+  const calls: Array<Call> = []
+  const openAi = {
+    responses: {
+      create: async (body: Call) => {
+        calls.push({ instructions: body.instructions, input: body.input })
+
+        return { output_text: responses[calls.length - 1] ?? '' }
+      }
+    }
+  } as unknown as OpenAI
+
+  return { openAi, calls }
+}
+
+function parse(text: string) {
+  try {
+    const value = JSON.parse(text) as { ok?: boolean }
+
+    return value.ok === true
+      ? { ok: true as const, result: value }
+      : { ok: false as const, issues: 'not ok', output: text }
+  } catch {
+    return { ok: false as const, issues: 'invalid json', output: text }
+  }
+}
+
+const base = {
+  name: 'test',
+  schema: { type: 'object' },
+  instructions: 'base instructions',
+  input: 'go',
+  parse
+}
+
+describe('runStructured', () => {
+  it('retries once with the repair prompt', async () => {
+    const { openAi, calls } = fakeOpenAi(['not json', '{"ok":true}'])
+    const result = await runStructured(openAi, {
+      ...base,
+      repair: (issues) => `REPAIR: ${issues}`
+    })
+
+    expect(result).toEqual({ ok: true })
+    expect(calls).toHaveLength(2)
+    expect(calls[1]?.input).toBe('REPAIR: invalid json')
+    expect(calls[1]?.instructions).toBe('base instructions')
+  })
+
+  it('throws when the repair also fails', async () => {
+    const { openAi } = fakeOpenAi(['not json', 'still not json'])
+
+    await expect(runStructured(openAi, base)).rejects.toThrow('invalid json')
+  })
+})

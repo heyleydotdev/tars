@@ -23,9 +23,7 @@ import type {
 import {
   INCIDENT_EVENT_LIMIT,
   INCIDENT_EVIDENCE_LIMIT,
-  INCIDENT_QUESTION_LIMIT,
-  META_CHAT_MAX_TOKENS,
-  META_CHAT_MODEL
+  INCIDENT_QUESTION_LIMIT
 } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import {
@@ -80,66 +78,16 @@ import { and, asc, desc, eq, inArray, sql } from '@tars/db/sql'
 
 import { openAiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, NotFoundError } from '../errors'
+import { runStructured } from '../lib/structured'
 
-const MODEL_MAX_TOKENS = META_CHAT_MAX_TOKENS
-
-type ParseResult<T> = { ok: true; result: T } | { ok: false; issues: string; output: string }
-
-type ModelContent =
-  { type: 'input_text'; text: string } | { type: 'input_image'; image_url: string; detail: 'auto' }
-
-type ModelInput = string | Array<{ type: 'message'; role: 'user'; content: Array<ModelContent> }>
-
-async function runStructured<T>(
+const runIncidentStructured = <T>(
   openAi: OpenAI,
-  options: {
-    name: string
-    schema: Record<string, unknown>
-    instructions: string
-    input: ModelInput
-    parse: (text: string) => ParseResult<T>
-  }
-): Promise<T> {
-  const call = async (input: ModelInput): Promise<string> => {
-    const response = await openAi.responses.create(
-      {
-        model: META_CHAT_MODEL,
-        instructions: options.instructions,
-        input: input as never,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: options.name,
-            strict: true,
-            schema: options.schema
-          }
-        },
-        max_output_tokens: MODEL_MAX_TOKENS
-      },
-      { maxRetries: 2 }
-    )
-
-    return response.output_text
-  }
-
-  const first = await call(options.input)
-  const parsed = options.parse(first)
-
-  if (parsed.ok) return parsed.result
-
-  const repaired = await call(
-    buildIncidentRepairPrompt({
-      issues: parsed.issues,
-      input: typeof options.input === 'string' ? options.input : options.instructions,
-      output: parsed.output
-    })
-  )
-  const retry = options.parse(repaired)
-
-  if (retry.ok) return retry.result
-
-  throw new Error(retry.issues)
-}
+  options: Parameters<typeof runStructured<T>>[1]
+): Promise<T> =>
+  runStructured(openAi, {
+    ...options,
+    repair: (issues, input, output) => buildIncidentRepairPrompt({ issues, input, output })
+  })
 
 function iso(value: Date | null): string | null {
   return value ? value.toISOString() : null
@@ -347,7 +295,7 @@ async function mergeTimeline(
     return
   }
 
-  const merged = await runStructured(openAi, {
+  const merged = await runIncidentStructured(openAi, {
     name: 'incident_merge',
     schema: incidentMergeJsonSchema as Record<string, unknown>,
     instructions: buildIncidentMergePrompt({
@@ -608,7 +556,7 @@ export const incidentRouter = {
           throw new Error(ERRORS.incidentEvidenceRequired)
         }
 
-        const extraction = await runStructured(context.openAi, {
+        const extraction = await runIncidentStructured(context.openAi, {
           name: 'incident_extraction',
           schema: incidentExtractionJsonSchema as Record<string, unknown>,
           instructions: buildIncidentExtractionPrompt({
@@ -801,7 +749,7 @@ export const incidentRouter = {
       )
 
       try {
-        const readiness = await runStructured(context.openAi, {
+        const readiness = await runIncidentStructured(context.openAi, {
           name: 'incident_readiness',
           schema: incidentReadinessJsonSchema as Record<string, unknown>,
           instructions: buildIncidentReadinessPrompt({ events: timeline, answers }),
@@ -810,7 +758,7 @@ export const incidentRouter = {
         })
 
         if (!readiness.enough && readiness.gaps.length > 0) {
-          const drafted = await runStructured(context.openAi, {
+          const drafted = await runIncidentStructured(context.openAi, {
             name: 'incident_questions',
             schema: incidentQuestionsJsonSchema as Record<string, unknown>,
             instructions: buildIncidentQuestionsPrompt({
@@ -846,7 +794,7 @@ export const incidentRouter = {
           return loadDetail(context.db, context.session.user.id, owner.id)
         }
 
-        const proposed = await runStructured(context.openAi, {
+        const proposed = await runIncidentStructured(context.openAi, {
           name: 'incident_root_cause',
           schema: incidentRootCauseJsonSchema as Record<string, unknown>,
           instructions: buildIncidentRootCausePrompt({ events: timeline, answers }),
@@ -858,7 +806,7 @@ export const incidentRouter = {
         let postmortem: string | null = null
 
         if (cause.outcome === 'proposed') {
-          const drafted = await runStructured(context.openAi, {
+          const drafted = await runIncidentStructured(context.openAi, {
             name: 'incident_postmortem',
             schema: incidentPostmortemJsonSchema as Record<string, unknown>,
             instructions: buildIncidentPostmortemPrompt({
