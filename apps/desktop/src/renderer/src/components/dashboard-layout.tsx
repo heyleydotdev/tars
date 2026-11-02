@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   BotIcon,
   ChartNoAxesColumnIcon,
-  ChevronRightIcon,
   DraftingCompassIcon,
   LogOutIcon,
   NotebookPenIcon,
@@ -36,19 +35,14 @@ import {
   SidebarGroupLabel,
   SidebarInset,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
   useSidebar
 } from '@tars/ui/components/sidebar'
 import { TooltipProvider } from '@tars/ui/components/tooltip'
-import { cn } from '@tars/ui/lib/utils'
 
 import { signOut } from '../lib/auth'
 import { useShellAlertStore } from '../stores/alert'
@@ -65,7 +59,6 @@ type NavItem = {
   title: string
   to: string
   icon: typeof BotIcon
-  children?: Array<{ title: string; to: string }>
 }
 
 const navigation: Array<{ label: string; items: Array<NavItem> }> = [
@@ -81,15 +74,14 @@ const navigation: Array<{ label: string; items: Array<NavItem> }> = [
   {
     label: 'Developer Kit',
     items: [
+      { title: 'Blueprints', to: '/blueprints', icon: DraftingCompassIcon },
+      { title: 'UI Review', to: '/ui-review', icon: ScanEyeIcon },
+      { title: 'Incidents', to: '/incidents', icon: SirenIcon },
       {
         title: 'Measure',
         to: '/measure',
-        icon: RulerIcon,
-        children: [{ title: 'Saved', to: '/measure/saved' }]
-      },
-      { title: 'Blueprints', to: '/blueprints', icon: DraftingCompassIcon },
-      { title: 'UI Review', to: '/ui-review', icon: ScanEyeIcon },
-      { title: 'Incidents', to: '/incidents', icon: SirenIcon }
+        icon: RulerIcon
+      }
     ]
   }
 ]
@@ -130,7 +122,6 @@ function AppSidebar({
   onSignOut: () => void
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
-  const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
   const user = useUser()
 
   return (
@@ -170,47 +161,6 @@ function AppSidebar({
                         <Icon />
                         <span>{item.title}</span>
                       </SidebarMenuButton>
-                      {item.children ? (
-                        <>
-                          <SidebarMenuAction
-                            aria-expanded={!collapsedMenus[item.title]}
-                            aria-label={`${
-                              collapsedMenus[item.title] ? 'Expand' : 'Collapse'
-                            } ${item.title}`}
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              setCollapsedMenus((current) => ({
-                                ...current,
-                                [item.title]: !current[item.title]
-                              }))
-                            }}
-                          >
-                            <ChevronRightIcon
-                              className={cn(
-                                'transition-transform',
-                                !collapsedMenus[item.title] && 'rotate-90'
-                              )}
-                            />
-                          </SidebarMenuAction>
-                          {collapsedMenus[item.title] ? null : (
-                            <SidebarMenuSub>
-                              {item.children.map((child) => (
-                                <SidebarMenuSubItem key={child.to}>
-                                  <SidebarMenuSubButton
-                                    isActive={pathname === child.to}
-                                    onClick={() => {
-                                      onSelect(child.to)
-                                      if (isMobile) setOpenMobile(false)
-                                    }}
-                                  >
-                                    <span>{child.title}</span>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              ))}
-                            </SidebarMenuSub>
-                          )}
-                        </>
-                      ) : null}
                     </SidebarMenuItem>
                   )
                 })}
