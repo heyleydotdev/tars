@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   ArrowLeftIcon,
   DownloadIcon,
@@ -67,6 +67,7 @@ import {
   useSaveBlueprintDraft,
   useSetBlueprintRequirementEnabled
 } from '../lib/blueprint'
+import { useDebouncedSave } from '../lib/debounced-save'
 import { groupByDay } from '../lib/group-by-day'
 import { exportSvgPng } from '../lib/svg'
 import { useShellAlertStore } from '../stores/alert'
@@ -107,38 +108,25 @@ export default function Blueprint() {
     hierarchyIt.isPending ||
     flowIt.isPending
   const previewText = draftText.replace(/\s*\[req:[^\]]+\]/g, '')
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hierarchyRef = useRef<SVGSVGElement>(null)
   const flowchartRef = useRef<SVGSVGElement>(null)
   const [exporting, setExporting] = useState(false)
-
-  useEffect(() => {
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current)
-    }
-  }, [])
+  const draftSave = useDebouncedSave((value) => {
+    save.mutateAsync({ blueprintId: detail.blueprint.id, draft: value }).catch(report)
+  })
 
   function updateDraft(value: string): void {
     setDraft(value)
 
-    if (saveTimer.current) clearTimeout(saveTimer.current)
+    if (value === detail.draft) return
 
-    if (value.trim().length === 0 || value === detail.draft) return
-
-    saveTimer.current = setTimeout(() => {
-      save.mutateAsync({ blueprintId: detail.blueprint.id, draft: value }).catch(report)
-    }, 800)
+    draftSave.schedule(value)
   }
 
   function flushDraft(): void {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current)
-      saveTimer.current = null
-    }
+    if (draft === null || draft === detail.draft) return
 
-    if (draft === null || draft.trim().length === 0 || draft === detail.draft) return
-
-    save.mutateAsync({ blueprintId: detail.blueprint.id, draft }).catch(report)
+    draftSave.flush(draft)
   }
 
   function report(error: unknown): void {
@@ -540,7 +528,7 @@ export default function Blueprint() {
                     size="xs"
                     disabled={running || detail.requirements.length === 0}
                     onClick={() => {
-                      if (saveTimer.current) clearTimeout(saveTimer.current)
+                      draftSave.cancel()
                       void run(async () => {
                         await draftIt.mutateAsync({ id: detail.blueprint.id })
                         setDraft(null)

@@ -5,6 +5,7 @@ import type { IncidentDetailOutput, IncidentEventOutput } from '@tars/core/schem
 import { ERRORS } from '@tars/core/errors'
 import { formatTime, toDateKey } from '@tars/core/utils/format'
 import { isGuessedTime } from '@tars/core/utils/incident'
+import { Badge } from '@tars/ui/components/badge'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -13,17 +14,11 @@ import {
 } from '@tars/ui/components/context-menu'
 import { cn } from '@tars/ui/lib/utils'
 
+import { INCIDENT_CONFIDENCE_TONES } from '../lib/badge-tones'
 import { useUpdateIncidentEvent } from '../lib/incident'
 import ConsoleDayHeader from './console-day-header'
 import IncidentEventDialog from './incident-event-dialog'
 import IncidentTimeDialog from './incident-time-dialog'
-
-function confidenceClass(confidence: IncidentEventOutput['confidence']): string {
-  if (confidence === 'high') return 'text-emerald-400'
-  if (confidence === 'medium') return 'text-amber-300'
-
-  return 'text-muted-foreground'
-}
 
 function groupEventsByDay(
   events: Array<IncidentEventOutput>
@@ -92,7 +87,7 @@ export default function IncidentTimeline({
                   key={event.id}
                   className={cn(
                     'p-2 transition-colors',
-                    highlighted ? 'bg-emerald-400/10' : 'hover:bg-muted'
+                    highlighted ? 'bg-emerald-400/10' : 'hover:bg-muted/60'
                   )}
                   data-event-id={event.id}
                 >
@@ -107,32 +102,39 @@ export default function IncidentTimeline({
                         >
                           {event.occurredAt ? formatTime(event.occurredAt) : 'set time'}
                         </button>
-                        <span className="text-muted-foreground block font-mono text-xs/6 uppercase">
-                          {fromUser
-                            ? 'user'
-                            : isGuessedTime(event.timeSource)
-                              ? 'guessed'
-                              : (event.timeSource ?? 'unknown')}
-                        </span>
+                        {fromUser || isGuessedTime(event.timeSource) ? (
+                          <Badge
+                            variant="default"
+                            className={
+                              fromUser
+                                ? 'bg-emerald-400/15 text-emerald-300 capitalize'
+                                : 'bg-amber-400/15 text-amber-300 capitalize'
+                            }
+                          >
+                            {fromUser ? 'user' : 'guessed'}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground block font-mono text-xs/6 uppercase">
+                            {event.timeSource ?? 'unknown'}
+                          </span>
+                        )}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 text-xs/6">{event.description}</p>
                         <div className="mt-1 flex items-center gap-2">
                           <span className="text-muted-foreground text-xs/6 whitespace-nowrap">
-                            <span className="font-mono tabular-nums">
+                            <span className="text-foreground tabular-nums">
                               {event.sourceEvidenceIds.length}
                             </span>{' '}
                             source{event.sourceEvidenceIds.length === 1 ? '' : 's'}
                           </span>
-                          <span
-                            className={cn(
-                              'ml-auto font-mono text-xs/6 uppercase',
-                              confidenceClass(event.confidence)
-                            )}
+                          <Badge
+                            variant="default"
+                            className={cn('ml-auto', INCIDENT_CONFIDENCE_TONES[event.confidence])}
                           >
                             {event.confidence}
-                          </span>
+                          </Badge>
                         </div>
                       </div>
                     </ContextMenuTrigger>

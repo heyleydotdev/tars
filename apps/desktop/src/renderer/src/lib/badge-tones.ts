@@ -2,6 +2,11 @@ import type {
   BlueprintRequirementOutput,
   BlueprintSummaryOutput
 } from '@tars/core/schemas/blueprint'
+import type {
+  IncidentEventOutput,
+  IncidentEvidenceOutput,
+  IncidentSummaryOutput
+} from '@tars/core/schemas/incident'
 import type { UiFindingOutput, UiReviewSummaryOutput } from '@tars/core/schemas/ui-review'
 import type { ActivityKind as JournalActivityKind } from '@tars/core/utils/journal'
 
@@ -52,4 +57,23 @@ export const SEVERITY_BADGE_TONES: Record<UiFindingOutput['severity'], string> =
   significant: 'capitalize bg-destructive/15 text-destructive',
   moderate: 'capitalize bg-amber-400/15 text-amber-300',
   minor: 'capitalize bg-muted text-muted-foreground'
+}
+
+export const INCIDENT_STATUS_TONES: Record<IncidentSummaryOutput['status'], string> = {
+  open: 'capitalize bg-amber-400/15 text-amber-300',
+  closed: 'capitalize bg-emerald-400/15 text-emerald-300'
+}
+
+export const INCIDENT_CONFIDENCE_TONES: Record<IncidentEventOutput['confidence'], string> = {
+  high: 'capitalize bg-emerald-400/15 text-emerald-300',
+  medium: 'capitalize bg-amber-400/15 text-amber-300',
+  low: 'capitalize bg-muted text-muted-foreground'
+}
+
+export const EVIDENCE_KIND_TONES: Record<IncidentEvidenceOutput['kind'], string> = {
+  screenshot: 'capitalize bg-sky-400/15 text-sky-300',
+  log: 'capitalize bg-violet-400/15 text-violet-300',
+  text: 'capitalize bg-muted text-muted-foreground',
+  voice: 'capitalize bg-amber-400/15 text-amber-300',
+  answer: 'capitalize bg-emerald-400/15 text-emerald-300'
 }

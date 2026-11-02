@@ -6,6 +6,7 @@ import type { IncidentSummaryOutput } from '@tars/core/schemas/incident'
 import { ERRORS } from '@tars/core/errors'
 import { formatTime, toDateKey } from '@tars/core/utils/format'
 import { titleCase } from '@tars/core/utils/string'
+import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
 import {
   ContextMenu,
@@ -25,6 +26,7 @@ import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
 import IncidentDemoButton from '../components/incident-demo-button'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import { INCIDENT_STATUS_TONES } from '../lib/badge-tones'
 import { groupByDay } from '../lib/group-by-day'
 import { useCreateIncident, useDeleteIncident, useIncidents } from '../lib/incident'
 import { useLogActivity } from '../lib/journal'
@@ -136,18 +138,6 @@ export default function Incidents() {
           count={String(items.length)}
           accent="bg-sky-400"
           className="bg-background"
-          headerRight={
-            <div className="text-muted-foreground flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden className="size-1.5 bg-amber-300" />
-                Open
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden className="size-1.5 bg-emerald-400" />
-                Closed
-              </span>
-            </div>
-          }
           footer={
             <>
               <span>
@@ -200,21 +190,19 @@ export default function Incidents() {
                             render={
                               <Link
                                 to={`/incidents/${incident.id}`}
-                                className="hover:bg-muted flex items-start gap-3 px-3 py-2 transition-colors"
+                                className="hover:bg-muted/60 flex items-start gap-3 px-3 py-2 transition-colors"
                               />
                             }
                           >
                             <span className="min-w-0 flex-1">
                               <span className="flex items-center gap-2">
-                                <span
-                                  aria-hidden
-                                  className={
-                                    incident.status === 'open'
-                                      ? 'size-1.5 shrink-0 bg-amber-300'
-                                      : 'size-1.5 shrink-0 bg-emerald-400'
-                                  }
-                                />
-                                <span className="text-foreground line-clamp-1 text-xs/6 font-medium">
+                                <Badge
+                                  variant="default"
+                                  className={INCIDENT_STATUS_TONES[incident.status]}
+                                >
+                                  {incident.status}
+                                </Badge>
+                                <span className="text-foreground min-w-0 truncate text-xs/6 font-medium">
                                   {titleCase(incident.title)}
                                 </span>
                               </span>
@@ -223,10 +211,10 @@ export default function Incidents() {
                               </span>
                             </span>
                             <span className="text-muted-foreground shrink-0 text-right text-xs/6">
-                              <span className="font-mono tabular-nums">
-                                {incident.evidenceCount}
-                              </span>{' '}
-                              Evidence
+                              <span className="tabular-nums">
+                                <span className="text-foreground">{incident.evidenceCount}</span>{' '}
+                                Evidence
+                              </span>
                               <span className="block font-mono tabular-nums">
                                 {formatTime(incident.updatedAt)}
                               </span>

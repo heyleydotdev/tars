@@ -22,6 +22,7 @@ import { ERRORS } from '@tars/core/errors'
 import { formatTime, toDateKey } from '@tars/core/utils/format'
 import { isGuessedTime } from '@tars/core/utils/incident'
 import { capitalize } from '@tars/core/utils/string'
+import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
 import { ButtonGroup } from '@tars/ui/components/button-group'
 import {
@@ -36,6 +37,7 @@ import { Textarea } from '@tars/ui/components/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
 import { cn } from '@tars/ui/lib/utils'
 
+import { EVIDENCE_KIND_TONES } from '../lib/badge-tones'
 import { fileSrc } from '../lib/files'
 import {
   useAddIncidentEvidence,
@@ -406,7 +408,7 @@ export default function IncidentEvidencePanel({
                           <div
                             className={cn(
                               'flex items-center gap-2 px-3 py-2 transition-colors',
-                              item.id === selectedId ? 'bg-muted/40' : 'hover:bg-muted'
+                              item.id === selectedId ? 'bg-muted/40' : 'hover:bg-muted/60'
                             )}
                           />
                         }
@@ -453,10 +455,16 @@ export default function IncidentEvidencePanel({
                                   ? formatTime(item.createdAt)
                                   : 'Undated'}
                             </span>
+                            <Badge variant="default" className={EVIDENCE_KIND_TONES[item.kind]}>
+                              {item.kind}
+                            </Badge>
                             {isGuessedTime(item.timeSource) ? (
-                              <span className="ml-auto font-mono text-xs/6 text-amber-300/80 uppercase">
+                              <Badge
+                                variant="default"
+                                className="ml-auto bg-amber-400/15 text-amber-300 capitalize"
+                              >
                                 guessed
-                              </span>
+                              </Badge>
                             ) : null}
                           </span>
                           <span className="text-foreground mt-0.5 line-clamp-1 text-xs/6">

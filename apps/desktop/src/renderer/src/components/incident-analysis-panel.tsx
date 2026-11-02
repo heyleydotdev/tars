@@ -4,10 +4,15 @@ import { CheckIcon, SparklesIcon } from 'lucide-react'
 import type { IncidentDetailOutput } from '@tars/core/schemas/incident'
 import { ERRORS } from '@tars/core/errors'
 import { formatTime } from '@tars/core/utils/format'
+import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
+import { Markdown } from '@tars/ui/components/markdown'
 import { Spinner } from '@tars/ui/components/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tars/ui/components/tabs'
 import { Textarea } from '@tars/ui/components/textarea'
 
+import { INCIDENT_CONFIDENCE_TONES } from '../lib/badge-tones'
+import { useDebouncedSave } from '../lib/debounced-save'
 import {
   useAnswerIncidentQuestion,
   useApproveIncidentPostmortem,
@@ -56,13 +61,44 @@ export default function IncidentAnalysisPanel({
   const serverVersion = analysis?.updatedAt ?? ''
   const postmortem = draft?.version === serverVersion ? draft.text : serverPostmortem
 
+  function reportSave(): void {
+    showAlert({
+      title: ERRORS.saveFailedTitle,
+      description: ERRORS.incidentAnalysisFailed,
+      variant: 'destructive'
+    })
+  }
+
+  const postmortemSave = useDebouncedSave((value) => {
+    savePostmortem.mutate({ incidentId, postmortem: value }, { onError: reportSave })
+  })
+
   useEffect(() => {
     onPendingChange?.(pending)
   }, [onPendingChange, pending])
 
   useEffect(() => () => onPendingChange?.(false), [onPendingChange])
 
+  function updatePostmortem(value: string): void {
+    setDraft({ text: value, version: serverVersion })
+
+    if (value === serverPostmortem) return
+
+    postmortemSave.schedule(value)
+  }
+
+  function flushPostmortem(): void {
+    if (!draft || draft.text === serverPostmortem) return
+
+    postmortemSave.flush(draft.text)
+  }
+
   async function approvePostmortem(): Promise<void> {
+    // A blur-triggered autosave would land after the approval and reset it to draft.
+    if (savePostmortem.isPending) return
+
+    postmortemSave.cancel()
+
     try {
       const detail = await approve.mutateAsync({ incidentId, postmortem })
 
@@ -166,23 +202,19 @@ export default function IncidentAnalysisPanel({
       {analysis ? (
         <section className="border-border space-y-2 border-t pt-3">
           <div className="flex items-center gap-2">
-            <span
+            <Badge
+              variant="default"
               className={
                 analysis.outcome === 'proposed'
-                  ? 'border border-emerald-400/60 bg-emerald-400/10 px-1.5 py-0.5 font-mono text-xs/6 text-emerald-300 uppercase'
-                  : 'border border-amber-400/60 bg-amber-400/10 px-1.5 py-0.5 font-mono text-xs/6 text-amber-300 uppercase'
+                  ? 'bg-emerald-400/15 text-emerald-300 capitalize'
+                  : 'bg-amber-400/15 text-amber-300 capitalize'
               }
             >
               {outcomeLabel(analysis.outcome)}
-            </span>
-            <span className="text-muted-foreground text-xs/6">
-              Confidence <span className="font-mono uppercase">{analysis.confidence}</span>
-            </span>
-            {analysis.status === 'approved' ? (
-              <span className="text-muted-foreground ml-auto font-mono text-xs/6 uppercase">
-                approved
-              </span>
-            ) : null}
+            </Badge>
+            <Badge variant="default" className={INCIDENT_CONFIDENCE_TONES[analysis.confidence]}>
+              {analysis.confidence}
+            </Badge>
           </div>
           <p className="text-xs/6">{analysis.rootCause}</p>
           {supporting.length > 0 ? (
@@ -219,39 +251,69 @@ export default function IncidentAnalysisPanel({
 
       {analysis?.postmortem ? (
         <section className="border-border space-y-2 border-t pt-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <p className="text-foreground text-xs/6 font-medium">Postmortem</p>
-            <div className="flex gap-1">
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                disabled={savePostmortem.isPending || postmortem.trim().length === 0}
-                onClick={() => savePostmortem.mutate({ incidentId, postmortem })}
-              >
-                {savePostmortem.isPending ? <Spinner className="size-3.5" /> : null}
-                Save
-              </Button>
-              <Button
-                type="button"
-                size="xs"
-                disabled={
-                  approve.isPending ||
-                  analysis.status === 'approved' ||
-                  postmortem.trim().length === 0
-                }
-                onClick={() => void approvePostmortem()}
-              >
-                {approve.isPending ? <Spinner className="size-3.5" /> : <CheckIcon />}
-                Approve
-              </Button>
-            </div>
+            <Badge
+              variant="default"
+              className={
+                analysis.status === 'approved'
+                  ? 'bg-emerald-400/15 text-emerald-300 capitalize'
+                  : 'bg-muted text-muted-foreground capitalize'
+              }
+            >
+              {analysis.status}
+            </Badge>
+            {savePostmortem.isPending ? (
+              <span className="text-muted-foreground flex items-center gap-1 font-mono text-xs">
+                <Spinner className="size-3" /> Saving…
+              </span>
+            ) : null}
+            <Button
+              type="button"
+              size="xs"
+              className="ml-auto"
+              disabled={
+                approve.isPending ||
+                savePostmortem.isPending ||
+                analysis.status === 'approved' ||
+                postmortem.trim().length === 0
+              }
+              onClick={() => void approvePostmortem()}
+            >
+              {approve.isPending ? <Spinner className="size-3.5" /> : <CheckIcon />}
+              Approve
+            </Button>
           </div>
-          <Textarea
-            value={postmortem}
-            onChange={(event) => setDraft({ text: event.target.value, version: serverVersion })}
-            className="min-h-72 text-xs/6"
-          />
+          <Tabs defaultValue="preview" className="flex flex-col gap-0">
+            <TabsList
+              variant="line"
+              className="border-border h-8 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0"
+            >
+              {[
+                { value: 'edit', label: 'Edit' },
+                { value: 'preview', label: 'Preview' }
+              ].map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="after:bg-foreground flex-none rounded-none border-r px-3 text-xs tracking-wide"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <TabsContent value="edit" className="pt-2">
+              <Textarea
+                value={postmortem}
+                onChange={(event) => updatePostmortem(event.target.value)}
+                onBlur={flushPostmortem}
+                className="min-h-72 text-xs/6"
+              />
+            </TabsContent>
+            <TabsContent value="preview" className="pt-2">
+              <Markdown>{postmortem}</Markdown>
+            </TabsContent>
+          </Tabs>
         </section>
       ) : null}
     </div>
