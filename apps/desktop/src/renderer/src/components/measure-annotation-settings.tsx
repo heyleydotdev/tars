@@ -16,6 +16,8 @@ import type { MeasureFrameSetting } from '../stores/measure-annotations'
 import {
   DEFAULT_OBJECT_FRAME,
   MAX_FRAME_FONT_SIZE,
+  MEASURE_FRAME_STYLES,
+  MEASURE_LABEL_POSITIONS,
   MIN_FRAME_FONT_SIZE,
   useMeasureAnnotations
 } from '../stores/measure-annotations'
@@ -62,8 +64,18 @@ function FrameRow({
 }
 
 export default function MeasureAnnotationSettings({ objectCount }: { objectCount: number }) {
-  const { reference, objects, fontSize, setReference, setObject, setFontSize } =
-    useMeasureAnnotations()
+  const {
+    reference,
+    objects,
+    style,
+    labelPosition,
+    fontSize,
+    setReference,
+    setObject,
+    setStyle,
+    setLabelPosition,
+    setFontSize
+  } = useMeasureAnnotations()
   const unit = useMeasurePreferences((state) => state.unit)
   const includeDetails = useMeasurePreferences((state) => state.includeDetails)
   const setUnit = useMeasurePreferences((state) => state.setUnit)
@@ -88,11 +100,45 @@ export default function MeasureAnnotationSettings({ objectCount }: { objectCount
         <PopoverHeader>
           <PopoverTitle>Annotations</PopoverTitle>
           <PopoverDescription>
-            Frame visibility, colors, and relative label size.
+            Frame style, label placement, colors, and relative label size.
           </PopoverDescription>
         </PopoverHeader>
 
         <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">Frame</span>
+            <div className="flex items-center gap-1">
+              {MEASURE_FRAME_STYLES.map((item) => (
+                <Button
+                  key={item.id}
+                  type="button"
+                  size="xs"
+                  variant={style === item.id ? 'secondary' : 'ghost'}
+                  onClick={() => setStyle(item.id)}
+                >
+                  {item.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">Label</span>
+            <div className="flex items-center gap-1">
+              {MEASURE_LABEL_POSITIONS.map((item) => (
+                <Button
+                  key={item.id}
+                  type="button"
+                  size="xs"
+                  variant={labelPosition === item.id ? 'secondary' : 'ghost'}
+                  onClick={() => setLabelPosition(item.id)}
+                >
+                  {item.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <FrameRow label="Reference" setting={reference} onChange={setReference} />
           {Array.from({ length: objectCount }, (_, index) => {
             const label = `Object ${index + 1}`

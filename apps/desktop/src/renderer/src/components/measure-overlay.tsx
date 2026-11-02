@@ -3,8 +3,12 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import type { MeasureBoxOutput, MeasureResultOutput, MeasureUnit } from '@tars/core/schemas/measure'
 import { formatLength } from '@tars/core/utils/format'
 
-import type { MeasureAnnotations } from '../stores/measure-annotations'
-import { frameFontSize, frameLabelPadding, frameLineWidth } from '../lib/measure'
+import type {
+  MeasureAnnotations,
+  MeasureFrameStyle,
+  MeasureLabelPosition
+} from '../stores/measure-annotations'
+import { frameCornerSize, frameFontSize, frameLabelPadding, frameLineWidth } from '../lib/measure'
 import { DEFAULT_OBJECT_FRAME } from '../stores/measure-annotations'
 
 function MeasureBox({
@@ -15,7 +19,9 @@ function MeasureBox({
   label,
   fontSize,
   lineWidth,
-  padding
+  padding,
+  style,
+  labelPosition
 }: {
   box: MeasureBoxOutput
   imageWidth: number
@@ -25,22 +31,62 @@ function MeasureBox({
   fontSize: number
   lineWidth: number
   padding: number
+  style: MeasureFrameStyle
+  labelPosition: MeasureLabelPosition
 }) {
+  const corner = frameCornerSize(fontSize)
+
   return (
     <div
-      className="pointer-events-none absolute border"
+      className="pointer-events-none absolute"
       style={{
         left: `${(box.x1 / imageWidth) * 100}%`,
         top: `${(box.y1 / imageHeight) * 100}%`,
         width: `${(box.width / imageWidth) * 100}%`,
-        height: `${(box.height / imageHeight) * 100}%`,
-        borderColor: color,
-        borderWidth: lineWidth
+        height: `${(box.height / imageHeight) * 100}%`
       }}
     >
+      {style === 'corners' ? (
+        <>
+          {[
+            { top: 0, left: 0, borderTopWidth: lineWidth, borderLeftWidth: lineWidth },
+            { top: 0, right: 0, borderTopWidth: lineWidth, borderRightWidth: lineWidth },
+            { bottom: 0, left: 0, borderBottomWidth: lineWidth, borderLeftWidth: lineWidth },
+            { bottom: 0, right: 0, borderBottomWidth: lineWidth, borderRightWidth: lineWidth }
+          ].map((edge, index) => (
+            <span
+              key={index}
+              className="absolute"
+              style={{
+                ...edge,
+                width: corner,
+                height: corner,
+                borderColor: color,
+                borderStyle: 'solid'
+              }}
+            />
+          ))}
+        </>
+      ) : (
+        <span
+          className="absolute inset-0"
+          style={{
+            borderColor: color,
+            borderWidth: lineWidth,
+            borderStyle: style === 'dashed' ? 'dashed' : 'solid'
+          }}
+        />
+      )}
       <span
-        className="absolute top-0 left-0 font-mono leading-none whitespace-nowrap"
-        style={{ backgroundColor: color, color: '#09090b', fontSize, padding }}
+        className="absolute left-0 font-mono leading-none whitespace-nowrap"
+        style={{
+          backgroundColor: color,
+          color: '#09090b',
+          fontSize,
+          padding,
+          top: labelPosition === 'outside' ? undefined : 0,
+          bottom: labelPosition === 'outside' ? '100%' : undefined
+        }}
       >
         {label}
       </span>
@@ -106,6 +152,8 @@ export default function MeasureOverlay({
             fontSize={fontSize}
             lineWidth={lineWidth}
             padding={padding}
+            style={annotations.style}
+            labelPosition={annotations.labelPosition}
           />
         ) : null}
         {result.objects.map((object, index) => {
@@ -124,6 +172,8 @@ export default function MeasureOverlay({
               fontSize={fontSize}
               lineWidth={lineWidth}
               padding={padding}
+              style={annotations.style}
+              labelPosition={annotations.labelPosition}
             />
           )
         })}

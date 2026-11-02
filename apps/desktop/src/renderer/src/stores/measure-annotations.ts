@@ -6,9 +6,25 @@ export type MeasureFrameSetting = {
   color: string
 }
 
+export type MeasureFrameStyle = 'box' | 'dashed' | 'corners'
+export type MeasureLabelPosition = 'inside' | 'outside'
+
+export const MEASURE_LABEL_POSITIONS: Array<{ id: MeasureLabelPosition; name: string }> = [
+  { id: 'inside', name: 'Inside' },
+  { id: 'outside', name: 'Outside' }
+]
+
+export const MEASURE_FRAME_STYLES: Array<{ id: MeasureFrameStyle; name: string }> = [
+  { id: 'box', name: 'Box' },
+  { id: 'dashed', name: 'Dashed' },
+  { id: 'corners', name: 'Corners' }
+]
+
 export type MeasureAnnotations = {
   reference: MeasureFrameSetting
   objects: Record<number, MeasureFrameSetting>
+  style: MeasureFrameStyle
+  labelPosition: MeasureLabelPosition
   fontSize: number
 }
 
@@ -63,6 +79,8 @@ function mergeObjects(value: unknown): Record<number, MeasureFrameSetting> {
 type MeasureAnnotationsStore = MeasureAnnotations & {
   setReference: (patch: Partial<MeasureFrameSetting>) => void
   setObject: (index: number, patch: Partial<MeasureFrameSetting>) => void
+  setStyle: (style: MeasureFrameStyle) => void
+  setLabelPosition: (labelPosition: MeasureLabelPosition) => void
   setFontSize: (fontSize: number) => void
 }
 
@@ -71,6 +89,8 @@ export const useMeasureAnnotations = create<MeasureAnnotationsStore>()(
     (set) => ({
       reference: DEFAULT_REFERENCE_FRAME,
       objects: {},
+      style: 'box',
+      labelPosition: 'inside',
       fontSize: DEFAULT_FRAME_FONT_SIZE,
       setReference: (patch) => set((state) => ({ reference: { ...state.reference, ...patch } })),
       setObject: (index, patch) =>
@@ -80,6 +100,8 @@ export const useMeasureAnnotations = create<MeasureAnnotationsStore>()(
             [index]: { ...(state.objects[index] ?? DEFAULT_OBJECT_FRAME), ...patch }
           }
         })),
+      setStyle: (style) => set({ style }),
+      setLabelPosition: (labelPosition) => set({ labelPosition }),
       setFontSize: (fontSize) => set({ fontSize: clampFontSize(fontSize) })
     }),
     {
@@ -87,6 +109,8 @@ export const useMeasureAnnotations = create<MeasureAnnotationsStore>()(
       partialize: (state) => ({
         reference: state.reference,
         objects: state.objects,
+        style: state.style,
+        labelPosition: state.labelPosition,
         fontSize: state.fontSize
       }),
       merge: (persisted, current) => {
@@ -96,6 +120,12 @@ export const useMeasureAnnotations = create<MeasureAnnotationsStore>()(
           ...current,
           reference: isFrameSetting(saved?.reference) ? saved.reference : current.reference,
           objects: mergeObjects(saved?.objects),
+          style: MEASURE_FRAME_STYLES.some((item) => item.id === saved?.style)
+            ? (saved?.style ?? current.style)
+            : current.style,
+          labelPosition: MEASURE_LABEL_POSITIONS.some((item) => item.id === saved?.labelPosition)
+            ? (saved?.labelPosition ?? current.labelPosition)
+            : current.labelPosition,
           fontSize:
             typeof saved?.fontSize === 'number' ? clampFontSize(saved.fontSize) : current.fontSize
         }

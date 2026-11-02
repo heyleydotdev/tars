@@ -16,7 +16,11 @@ import { measureRateLimitSchema } from '@tars/core/schemas/measure'
 import { formatDateTime, formatLength } from '@tars/core/utils/format'
 import { measureWarnings } from '@tars/core/utils/measure'
 
-import type { MeasureAnnotations } from '../stores/measure-annotations'
+import type {
+  MeasureAnnotations,
+  MeasureFrameStyle,
+  MeasureLabelPosition
+} from '../stores/measure-annotations'
 import { DEFAULT_OBJECT_FRAME } from '../stores/measure-annotations'
 import { downloadBlob } from './download'
 import { orpc } from './orpc'
@@ -69,6 +73,10 @@ export function frameLabelPadding(fontSize: number): number {
   return fontSize * 0.35
 }
 
+export function frameCornerSize(fontSize: number): number {
+  return Math.max(fontSize * 1.4, 12)
+}
+
 export function downloadText(text: string, name: string, type: string): void {
   downloadBlob(new Blob([text], { type }), name)
 }
@@ -101,6 +109,47 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
+function drawFrame(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: string,
+  lineWidth: number,
+  style: MeasureFrameStyle,
+  fontSize: number
+): void {
+  context.strokeStyle = color
+  context.lineWidth = lineWidth
+
+  if (style === 'corners') {
+    const size = Math.min(frameCornerSize(fontSize), width / 2, height / 2)
+
+    context.beginPath()
+    context.moveTo(x, y + size)
+    context.lineTo(x, y)
+    context.lineTo(x + size, y)
+    context.moveTo(x + width - size, y)
+    context.lineTo(x + width, y)
+    context.lineTo(x + width, y + size)
+    context.moveTo(x + width, y + height - size)
+    context.lineTo(x + width, y + height)
+    context.lineTo(x + width - size, y + height)
+    context.moveTo(x + size, y + height)
+    context.lineTo(x, y + height)
+    context.lineTo(x, y + height - size)
+    context.stroke()
+
+    return
+  }
+
+  if (style === 'dashed') context.setLineDash([lineWidth * 3, lineWidth * 3])
+
+  context.strokeRect(x, y, width, height)
+  context.setLineDash([])
+}
+
 function drawBox(
   context: CanvasRenderingContext2D,
   box: MeasureBoxOutput,
@@ -109,7 +158,9 @@ function drawBox(
   color: string,
   label: string,
   lineWidth: number,
-  fontSize: number
+  fontSize: number,
+  style: MeasureFrameStyle,
+  labelPosition: MeasureLabelPosition
 ): void {
   const x = box.x1 * scaleX
   const y = box.y1 * scaleY
@@ -117,14 +168,19 @@ function drawBox(
   const height = box.height * scaleY
   const padding = frameLabelPadding(fontSize)
 
-  context.strokeStyle = color
-  context.lineWidth = lineWidth
-  context.strokeRect(x, y, width, height)
+  drawFrame(context, x, y, width, height, color, lineWidth, style, fontSize)
+
+  const labelY = labelPosition === 'outside' ? Math.max(0, y - (fontSize + padding * 2)) : y
 
   context.fillStyle = color
-  context.fillRect(x, y, context.measureText(label).width + padding * 2, fontSize + padding * 2)
+  context.fillRect(
+    x,
+    labelY,
+    context.measureText(label).width + padding * 2,
+    fontSize + padding * 2
+  )
   context.fillStyle = '#09090b'
-  context.fillText(label, x + padding, y + padding)
+  context.fillText(label, x + padding, labelY + padding)
 }
 
 export async function exportMeasure(
@@ -287,7 +343,9 @@ export async function renderMeasure(
       annotations.reference.color,
       'REF',
       lineWidth,
-      fontSize
+      fontSize,
+      annotations.style,
+      annotations.labelPosition
     )
   }
 
@@ -304,7 +362,9 @@ export async function renderMeasure(
       setting.color,
       `${index + 1} · ${formatLength(object.widthMm, unit)} × ${formatLength(object.heightMm, unit)}`,
       lineWidth,
-      fontSize
+      fontSize,
+      annotations.style,
+      annotations.labelPosition
     )
   }
 
