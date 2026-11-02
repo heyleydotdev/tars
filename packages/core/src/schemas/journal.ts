@@ -92,11 +92,56 @@ export const measureCompletedActivitySchema = z.object({
   occurredAt: activityOccurredAt
 })
 
+export const actionActivityActionSchema = z.enum([
+  'incident.deleted',
+  'incident.evidence.added',
+  'incident.evidence.removed',
+  'incident.rootcause',
+  'incident.answered',
+  'incident.time.fixed',
+  'incident.timeline.rebuilt',
+  'blueprint.created',
+  'blueprint.deleted',
+  'blueprint.evidence.added',
+  'blueprint.evidence.removed',
+  'blueprint.mapped',
+  'blueprint.gaps',
+  'blueprint.answered',
+  'blueprint.requirement.toggled',
+  'blueprint.requirement.removed',
+  'blueprint.drafted',
+  'blueprint.hierarchy',
+  'blueprint.flow',
+  'measure.deleted',
+  'ui.created',
+  'ui.explained',
+  'ui.redesign',
+  'ui.deleted',
+  'task.updated',
+  'task.deleted',
+  'reminder.updated',
+  'reminder.done',
+  'reminder.dismissed',
+  'reminder.deleted',
+  'expense.updated',
+  'expense.deleted'
+])
+
+export const actionActivitySchema = z.object({
+  type: z.literal('action'),
+  action: actionActivityActionSchema,
+  entityId: z.string().min(1),
+  title: z.string().min(1),
+  detail: z.string().nullable(),
+  occurredAt: activityOccurredAt
+})
+
 export const activityEventSchema = z.discriminatedUnion('type', [
   taskDoneActivitySchema,
   incidentOpenedActivitySchema,
   incidentApprovedActivitySchema,
-  measureCompletedActivitySchema
+  measureCompletedActivitySchema,
+  actionActivitySchema
 ])
 
 export const logActivitySchema = z.object({
@@ -144,6 +189,8 @@ export type IncidentApprovedActivityInput = z.input<typeof incidentApprovedActiv
 export type IncidentApprovedActivityOutput = z.output<typeof incidentApprovedActivitySchema>
 export type MeasureCompletedActivityInput = z.input<typeof measureCompletedActivitySchema>
 export type MeasureCompletedActivityOutput = z.output<typeof measureCompletedActivitySchema>
+export type ActionActivityAction = z.output<typeof actionActivityActionSchema>
+export type ActionActivityInput = z.input<typeof actionActivitySchema>
 export type ActivityEventInput = z.input<typeof activityEventSchema>
 export type ActivityEventOutput = z.output<typeof activityEventSchema>
 export type LogActivityInput = z.input<typeof logActivitySchema>

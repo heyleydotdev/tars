@@ -22,6 +22,8 @@ export const KIND_BADGE_TONES: Record<BadgeKind, string> = {
   rem: 'capitalize bg-amber-400/15 text-amber-300',
   incident: 'capitalize bg-destructive/15 text-destructive',
   measure: 'capitalize bg-emerald-400/15 text-emerald-300',
+  blueprint: 'capitalize bg-sky-400/15 text-sky-300',
+  ui: 'capitalize bg-violet-400/15 text-violet-300',
   activity: 'capitalize bg-muted text-muted-foreground'
 }
 

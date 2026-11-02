@@ -1,4 +1,39 @@
-import type { ActivityEventOutput } from '../schemas/journal'
+import type { ActionActivityAction, ActivityEventOutput } from '../schemas/journal'
+
+const ACTION_TITLES: Record<ActionActivityAction, string> = {
+  'incident.deleted': 'Incident deleted',
+  'incident.evidence.added': 'Evidence added',
+  'incident.evidence.removed': 'Evidence removed',
+  'incident.rootcause': 'Root cause found',
+  'incident.answered': 'Question answered',
+  'incident.time.fixed': 'Event time fixed',
+  'incident.timeline.rebuilt': 'Timeline rebuilt',
+  'blueprint.created': 'Blueprint created',
+  'blueprint.deleted': 'Blueprint deleted',
+  'blueprint.evidence.added': 'Blueprint evidence added',
+  'blueprint.evidence.removed': 'Blueprint evidence removed',
+  'blueprint.mapped': 'Requirements mapped',
+  'blueprint.gaps': 'Gaps found',
+  'blueprint.answered': 'Blueprint question answered',
+  'blueprint.requirement.toggled': 'Requirement updated',
+  'blueprint.requirement.removed': 'Requirement removed',
+  'blueprint.drafted': 'Proposal drafted',
+  'blueprint.hierarchy': 'Hierarchy generated',
+  'blueprint.flow': 'Flow generated',
+  'measure.deleted': 'Measurement deleted',
+  'ui.created': 'UI review created',
+  'ui.explained': 'Screen explained',
+  'ui.redesign': 'Redesign generated',
+  'ui.deleted': 'UI review deleted',
+  'task.updated': 'Task updated',
+  'task.deleted': 'Task deleted',
+  'reminder.updated': 'Reminder updated',
+  'reminder.done': 'Reminder done',
+  'reminder.dismissed': 'Reminder dismissed',
+  'reminder.deleted': 'Reminder deleted',
+  'expense.updated': 'Expense updated',
+  'expense.deleted': 'Expense deleted'
+}
 
 export function activityTitle(event: ActivityEventOutput): string {
   switch (event.type) {
@@ -10,6 +45,8 @@ export function activityTitle(event: ActivityEventOutput): string {
       return 'Postmortem approved'
     case 'measure.completed':
       return 'Measurements completed'
+    case 'action':
+      return ACTION_TITLES[event.action]
   }
 }
 
@@ -20,6 +57,8 @@ export function activityContent(event: ActivityEventOutput): string {
 
     return `${event.photoCount} ${photos} · ${event.objectCount} ${objects}`
   }
+
+  if (event.type === 'action') return event.detail ?? event.title
 
   return event.title
 }
@@ -38,10 +77,16 @@ export function activityId(event: ActivityEventOutput): string {
       return `activity-incident-${event.incidentId}-approved`
     case 'measure.completed':
       return `activity-measure-${event.runId}`
+    case 'action':
+      return `activity-${event.action.replaceAll('.', '-')}-${event.entityId}`
   }
 }
 
 export function activityTags(event: ActivityEventOutput): Array<string> {
+  if (event.type === 'action') {
+    return ['activity', event.action.split('.')[0] ?? 'activity']
+  }
+
   return ['activity', event.type.split('.')[0] ?? event.type]
 }
 
@@ -51,10 +96,19 @@ export function activityIncidentId(activityEntryId: string): string | null {
   return activityEntryId.slice('activity-incident-'.length).replace(/-(opened|approved)$/, '')
 }
 
-export type ActivityKind = 'task' | 'incident' | 'measure' | 'activity'
+export type ActivityKind =
+  'task' | 'incident' | 'measure' | 'reminder' | 'expense' | 'blueprint' | 'ui' | 'activity'
 
 export function activityKind(tags: Array<string>): ActivityKind {
   const tag = tags.find((item) => item !== 'activity')
 
-  return tag === 'task' || tag === 'incident' || tag === 'measure' ? tag : 'activity'
+  return tag === 'task' ||
+    tag === 'incident' ||
+    tag === 'measure' ||
+    tag === 'reminder' ||
+    tag === 'expense' ||
+    tag === 'blueprint' ||
+    tag === 'ui'
+    ? tag
+    : 'activity'
 }

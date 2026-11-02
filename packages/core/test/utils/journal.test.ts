@@ -33,6 +33,15 @@ const approved: ActivityEventOutput = {
   occurredAt: '2026-11-01T11:00:00.000Z'
 }
 
+const deleted: ActivityEventOutput = {
+  type: 'action',
+  action: 'incident.deleted',
+  entityId: 'incident-1',
+  title: 'Checkout latency spike',
+  detail: null,
+  occurredAt: '2026-11-01T12:00:00.000Z'
+}
+
 const measured: ActivityEventOutput = {
   type: 'measure.completed',
   runId: 'run-1',
@@ -87,6 +96,20 @@ describe('activity rendering', () => {
     expect(activityKind(activityTags(task))).toBe('task')
     expect(activityKind(['activity'])).toBe('activity')
     expect(activityKind(['activity', 'unknown'])).toBe('activity')
+  })
+})
+
+describe('action activities', () => {
+  it('names, describes, and keys a logged action', () => {
+    expect(activityTitle(deleted)).toBe('Incident deleted')
+    expect(activityContent(deleted)).toBe('Checkout latency spike')
+    expect(activityId(deleted)).toBe('activity-incident-deleted-incident-1')
+    expect(activityTags(deleted)).toEqual(['activity', 'incident'])
+    expect(activityKind(activityTags(deleted))).toBe('incident')
+  })
+
+  it('prefers the detail as content', () => {
+    expect(activityContent({ ...deleted, detail: 'Flag changed' })).toBe('Flag changed')
   })
 })
 
