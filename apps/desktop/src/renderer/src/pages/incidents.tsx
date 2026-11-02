@@ -19,36 +19,17 @@ import { Spinner } from '@tars/ui/components/spinner'
 
 import type { IncidentsLoaderData } from '../lib/loaders'
 import ConfirmDialog from '../components/confirm-dialog'
+import ConsoleDayHeader from '../components/console-day-header'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
-import IncidentDayHeader from '../components/incident-day-header'
 import IncidentDemoButton from '../components/incident-demo-button'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import { groupByDay } from '../lib/group-by-day'
 import { useCreateIncident, useDeleteIncident, useIncidents } from '../lib/incident'
 import { useLogActivity } from '../lib/journal'
 import { useShellAlertStore } from '../stores/alert'
 import { useIncidentDemoStore } from '../stores/incident-demo'
-
-function groupIncidentsByDay(
-  items: Array<IncidentSummaryOutput>
-): Array<{ key: string; label: string; items: Array<IncidentSummaryOutput> }> {
-  const groups: Array<{ key: string; label: string; items: Array<IncidentSummaryOutput> }> = []
-
-  for (const incident of items) {
-    const key = toDateKey(incident.updatedAt)
-    const last = groups[groups.length - 1]
-
-    if (last?.key === key) {
-      last.items.push(incident)
-      continue
-    }
-
-    groups.push({ key, label: key, items: [incident] })
-  }
-
-  return groups
-}
 
 export default function Incidents() {
   const initial = useLoaderData<IncidentsLoaderData>()
@@ -62,7 +43,7 @@ export default function Incidents() {
   const [deleting, setDeleting] = useState<IncidentSummaryOutput | null>(null)
   const mounted = useRef(true)
   const items = incidents.data?.items ?? []
-  const groups = groupIncidentsByDay(items)
+  const groups = groupByDay(items, (incident) => toDateKey(incident.updatedAt))
   const openCount = items.filter((incident) => incident.status === 'open').length
   const demoRunning = useIncidentDemoStore((state) => state.running)
   const consumeIncidentId = useIncidentDemoStore((state) => state.consumeIncidentId)
@@ -206,7 +187,7 @@ export default function Incidents() {
             <div className="border-border border-t">
               {groups.map((group) => (
                 <section key={group.key}>
-                  <IncidentDayHeader
+                  <ConsoleDayHeader
                     label={group.label}
                     count={group.items.length}
                     unit="incident"

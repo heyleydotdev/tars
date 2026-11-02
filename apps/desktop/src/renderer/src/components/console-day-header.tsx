@@ -1,6 +1,6 @@
 import { capitalize } from '@tars/core/utils/string'
 
-export default function IncidentDayHeader({
+export default function ConsoleDayHeader({
   label,
   count,
   unit

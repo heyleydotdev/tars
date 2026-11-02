@@ -48,7 +48,7 @@ import { dataUrlToBlob, prepareMeasureImage } from '../lib/measure'
 import { recordSegment, toWav } from '../lib/voice'
 import { useShellAlertStore } from '../stores/alert'
 import ConfirmDialog from './confirm-dialog'
-import IncidentDayHeader from './incident-day-header'
+import ConsoleDayHeader from './console-day-header'
 import IncidentEvidenceDialog from './incident-evidence-dialog'
 import IncidentEvidenceViewer from './incident-evidence-viewer'
 
@@ -396,7 +396,7 @@ export default function IncidentEvidencePanel({
         <div className="border-border border-t">
           {groups.map((group) => (
             <section key={group.key}>
-              <IncidentDayHeader label={group.label} count={group.items.length} unit="item" />
+              <ConsoleDayHeader label={group.label} count={group.items.length} unit="item" />
               <ul className="divide-border divide-y">
                 {group.items.map((item) => (
                   <li key={item.id}>

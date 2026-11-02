@@ -14,7 +14,7 @@ import {
 import { cn } from '@tars/ui/lib/utils'
 
 import { useUpdateIncidentEvent } from '../lib/incident'
-import IncidentDayHeader from './incident-day-header'
+import ConsoleDayHeader from './console-day-header'
 import IncidentEventDialog from './incident-event-dialog'
 import IncidentTimeDialog from './incident-time-dialog'
 
@@ -79,7 +79,7 @@ export default function IncidentTimeline({
     <div className="border-border border-t">
       {groups.map((group) => (
         <section key={group.key}>
-          <IncidentDayHeader label={group.label} count={group.events.length} unit="event" />
+          <ConsoleDayHeader label={group.label} count={group.events.length} unit="event" />
           <ol className="divide-border divide-y">
             {group.events.map((event) => {
               const highlighted = highlightedEventIds.has(event.id)
