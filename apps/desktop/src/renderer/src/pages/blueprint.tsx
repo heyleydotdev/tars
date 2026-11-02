@@ -21,7 +21,9 @@ import type { BlueprintLoaderData } from '../lib/loaders'
 import ConfirmDialog from '../components/confirm-dialog'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
+import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
+import PendingNavigationGuard from '../components/pending-navigation-guard'
 import {
   useAddBlueprintEvidence,
   useAnswerBlueprintQuestion,
@@ -48,6 +50,7 @@ export default function Blueprint() {
   const draftIt = useDraftBlueprint()
   const save = useSaveBlueprintDraft()
   const remove = useDeleteBlueprint()
+  const [section, setSection] = useState('inputs')
   const [kind, setKind] = useState<'text' | 'voice'>('text')
   const [content, setContent] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -143,43 +146,6 @@ export default function Blueprint() {
             <span className="text-foreground max-w-64 truncate text-xs/6 font-medium">
               {detail.blueprint.title}
             </span>
-            <span className="font-mono text-xs uppercase">{detail.blueprint.status}</span>
-            <ButtonGroup>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={running || detail.evidence.length === 0}
-                onClick={() => void run(() => extract.mutateAsync({ id: detail.blueprint.id }))}
-              >
-                {extract.isPending ? <Spinner className="size-3.5" /> : <ListChecksIcon />}
-                Map requirements
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={running || detail.requirements.length === 0}
-                onClick={() => void run(() => gaps.mutateAsync({ id: detail.blueprint.id }))}
-              >
-                {gaps.isPending ? <Spinner className="size-3.5" /> : <MessageSquareIcon />}
-                Find gaps
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={running || detail.requirements.length === 0}
-                onClick={() =>
-                  void run(async () => {
-                    await draftIt.mutateAsync({ id: detail.blueprint.id })
-                    setDraft(null)
-                  })
-                }
-              >
-                {draftIt.isPending ? <Spinner className="size-3.5" /> : <WandSparklesIcon />}
-                Draft proposal
-              </Button>
-            </ButtonGroup>
             <Button
               type="button"
               variant="ghost"
@@ -194,136 +160,184 @@ export default function Blueprint() {
         }
       />
 
-      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
-        <ConsolePanel
-          title="evidence.in"
-          count={String(detail.evidence.length)}
-          accent="bg-sky-400"
-          className="lg:col-span-4"
-        >
-          <div className="space-y-2 p-3">
-            <ButtonGroup>
+      <ConsoleTabs
+        value={section}
+        onValueChange={setSection}
+        items={[
+          { value: 'inputs', label: 'Evidence & Requirements' },
+          { value: 'output', label: 'Questions & Draft' }
+        ]}
+      />
+
+      <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)]">
+        {section === 'inputs' ? (
+          <ConsolePanel
+            title="evidence.in"
+            count={String(detail.evidence.length)}
+            accent="bg-sky-400"
+            className="lg:col-span-4"
+          >
+            <div className="space-y-2 p-3">
+              <ButtonGroup>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant={kind === 'text' ? 'default' : 'outline'}
+                  onClick={() => setKind('text')}
+                >
+                  Text
+                </Button>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant={kind === 'voice' ? 'default' : 'outline'}
+                  onClick={() => setKind('voice')}
+                >
+                  Voice note
+                </Button>
+              </ButtonGroup>
+              <Textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                placeholder={
+                  kind === 'voice'
+                    ? 'Paste the call transcript…'
+                    : 'Paste the client brief, chat export, or email…'
+                }
+                className="min-h-28 text-xs/6"
+                maxLength={12_000}
+                disabled={add.isPending}
+              />
               <Button
                 type="button"
-                size="xs"
-                variant={kind === 'text' ? 'default' : 'outline'}
-                onClick={() => setKind('text')}
+                size="sm"
+                disabled={add.isPending || content.trim().length === 0}
+                onClick={() => void submitEvidence()}
               >
-                Text
+                {add.isPending ? <Spinner className="size-3.5" /> : <FileTextIcon />}
+                Add evidence
               </Button>
-              <Button
-                type="button"
-                size="xs"
-                variant={kind === 'voice' ? 'default' : 'outline'}
-                onClick={() => setKind('voice')}
-              >
-                Voice note
-              </Button>
-            </ButtonGroup>
-            <Textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              placeholder={
-                kind === 'voice'
-                  ? 'Paste the call transcript…'
-                  : 'Paste the client brief, chat export, or email…'
-              }
-              className="min-h-28 text-xs/6"
-              maxLength={12_000}
-              disabled={add.isPending}
-            />
-            <Button
-              type="button"
-              size="sm"
-              className="w-full"
-              disabled={add.isPending || content.trim().length === 0}
-              onClick={() => void submitEvidence()}
-            >
-              {add.isPending ? <Spinner className="size-3.5" /> : <FileTextIcon />}
-              Add evidence
-            </Button>
-          </div>
+            </div>
 
-          {detail.evidence.length === 0 ? (
-            <EmptyState
-              title="No Evidence Yet"
-              hint="Paste the brief, an email thread, or a transcript to map requirements."
-            />
-          ) : (
-            <ul className="divide-border border-border divide-y border-t">
-              {detail.evidence.map((item) => (
-                <li key={item.id} className="space-y-1 px-3 py-2 text-xs/6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground font-mono text-xs uppercase">
-                      {item.kind}
-                    </span>
-                    <span className="text-muted-foreground font-mono tabular-nums">
-                      {formatDateTime(item.createdAt)}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground line-clamp-3 whitespace-pre-line">
-                    {item.content ?? item.summary}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </ConsolePanel>
+            {detail.evidence.length === 0 ? (
+              <EmptyState
+                title="No Evidence Yet"
+                hint="Paste the brief, an email thread, or a transcript to map requirements."
+              />
+            ) : (
+              <ul className="divide-border border-border divide-y border-t">
+                {detail.evidence.map((item) => (
+                  <li key={item.id} className="space-y-1 px-3 py-2 text-xs/6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-mono text-xs uppercase">
+                        {item.kind}
+                      </span>
+                      <span className="text-muted-foreground font-mono tabular-nums">
+                        {formatDateTime(item.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground line-clamp-3 whitespace-pre-line">
+                      {item.content ?? item.summary}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ConsolePanel>
+        ) : null}
 
-        <div className="flex flex-col gap-px lg:col-span-8 lg:min-h-0">
+        {section === 'inputs' ? (
           <ConsolePanel
             title="requirement.map"
             count={String(detail.requirements.length)}
             accent="bg-emerald-400"
-            className="lg:min-h-0 lg:flex-1"
+            className="lg:col-span-8"
+            headerRight={
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                disabled={running || detail.evidence.length === 0}
+                onClick={() => void run(() => extract.mutateAsync({ id: detail.blueprint.id }))}
+              >
+                {extract.isPending ? <Spinner className="size-3.5" /> : <ListChecksIcon />}
+                Map requirements
+              </Button>
+            }
           >
             {detail.requirements.length === 0 ? (
               <EmptyState title="Not Mapped Yet" hint="Add evidence, then map the requirements." />
             ) : (
-              <table className="border-border w-full border-collapse border text-xs">
-                <thead>
-                  <tr>
-                    {['Area', 'Requirement', 'Status', 'Confidence', 'Sources'].map((label) => (
-                      <th
-                        key={label}
-                        scope="col"
-                        className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left font-sans font-medium last:border-r-0"
-                      >
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.requirements.map((item) => (
-                    <tr key={item.id}>
-                      <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
-                        {item.area}
-                      </td>
-                      <td className="border-border border-r px-2 py-1.5">{item.text}</td>
-                      <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
-                        {item.status}
-                      </td>
-                      <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
-                        {item.confidence}
-                      </td>
-                      <td className="border-border px-2 py-1.5 text-center font-mono tabular-nums">
-                        {item.sourceEvidenceIds.length}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="border-border w-full border-collapse border text-xs">
+                  <thead>
+                    <tr>
+                      {['Area', 'Requirement', 'Status', 'Confidence', 'Sources'].map((label) => (
+                        <th
+                          key={label}
+                          scope="col"
+                          className="border-border text-muted-foreground border-r border-b px-2 py-1.5 text-left font-sans font-medium last:border-r-0"
+                        >
+                          {label}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {detail.requirements.map((item) => (
+                      <tr key={item.id}>
+                        <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
+                          {item.area}
+                        </td>
+                        <td className="border-border border-r px-2 py-1.5">{item.text}</td>
+                        <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
+                          {item.status}
+                        </td>
+                        <td className="border-border border-r px-2 py-1.5 font-mono text-xs uppercase">
+                          {item.confidence}
+                        </td>
+                        <td className="border-border px-2 py-1.5 text-center font-mono tabular-nums">
+                          {item.sourceEvidenceIds.length}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </ConsolePanel>
+        ) : null}
 
-          {openQuestions.length > 0 ? (
-            <ConsolePanel
-              title="open.questions"
-              count={String(openQuestions.length)}
-              accent="bg-amber-300"
-              className="lg:flex-none"
-            >
+        {section === 'output' ? (
+          <ConsolePanel
+            title="open.questions"
+            count={String(openQuestions.length)}
+            accent="bg-amber-300"
+            className="lg:col-span-5"
+            headerRight={
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                disabled={running || detail.requirements.length === 0}
+                onClick={() =>
+                  void run(async () => {
+                    await gaps.mutateAsync({ id: detail.blueprint.id })
+                    setSection('output')
+                  })
+                }
+              >
+                {gaps.isPending ? <Spinner className="size-3.5" /> : <MessageSquareIcon />}
+                Find gaps
+              </Button>
+            }
+          >
+            {openQuestions.length === 0 ? (
+              <EmptyState
+                title="Nothing Open"
+                hint="Map requirements and find gaps. Questions will show up here."
+              />
+            ) : (
               <div className="space-y-3 p-3">
                 {openQuestions.map((question) => (
                   <div key={question.id} className="space-y-1.5">
@@ -356,47 +370,66 @@ export default function Blueprint() {
                   </div>
                 ))}
               </div>
-            </ConsolePanel>
-          ) : null}
+            )}
+          </ConsolePanel>
+        ) : null}
 
+        {section === 'output' ? (
           <ConsolePanel
             title="proposal.draft"
             count={detail.draft ? 'md' : '—'}
             accent="bg-violet-400"
-            className="lg:min-h-0 lg:flex-1"
+            className="lg:col-span-7"
             headerRight={
-              detail.draft ? (
-                <ButtonGroup>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
-                    onClick={() => setEditing((current) => !current)}
-                  >
-                    {editing ? 'Done' : 'Edit'}
-                  </Button>
-                  {editing ? (
+              <ButtonGroup>
+                <Button
+                  type="button"
+                  size="xs"
+                  disabled={running || detail.requirements.length === 0}
+                  onClick={() =>
+                    void run(async () => {
+                      await draftIt.mutateAsync({ id: detail.blueprint.id })
+                      setDraft(null)
+                      setSection('output')
+                    })
+                  }
+                >
+                  {draftIt.isPending ? <Spinner className="size-3.5" /> : <WandSparklesIcon />}
+                  Draft proposal
+                </Button>
+                {detail.draft ? (
+                  <>
                     <Button
                       type="button"
+                      variant="outline"
                       size="xs"
-                      disabled={save.isPending || draftText.trim().length === 0}
-                      onClick={() =>
-                        void run(async () => {
-                          await save.mutateAsync({
-                            blueprintId: detail.blueprint.id,
-                            draft: draftText
-                          })
-                          setDraft(null)
-                          setEditing(false)
-                        })
-                      }
+                      onClick={() => setEditing((current) => !current)}
                     >
-                      {save.isPending ? <Spinner className="size-3.5" /> : <SaveIcon />}
-                      Save
+                      {editing ? 'Done' : 'Edit'}
                     </Button>
-                  ) : null}
-                </ButtonGroup>
-              ) : null
+                    {editing ? (
+                      <Button
+                        type="button"
+                        size="xs"
+                        disabled={save.isPending || draftText.trim().length === 0}
+                        onClick={() =>
+                          void run(async () => {
+                            await save.mutateAsync({
+                              blueprintId: detail.blueprint.id,
+                              draft: draftText
+                            })
+                            setDraft(null)
+                            setEditing(false)
+                          })
+                        }
+                      >
+                        {save.isPending ? <Spinner className="size-3.5" /> : <SaveIcon />}
+                        Save
+                      </Button>
+                    ) : null}
+                  </>
+                ) : null}
+              </ButtonGroup>
             }
           >
             {detail.draft ? (
@@ -432,8 +465,10 @@ export default function Blueprint() {
               />
             )}
           </ConsolePanel>
-        </div>
+        ) : null}
       </div>
+
+      <PendingNavigationGuard when={running} />
 
       <ConfirmDialog
         title="Delete blueprint?"

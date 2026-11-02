@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PlusIcon } from 'lucide-react'
 import { Link, useLoaderData, useNavigate } from 'react-router'
 
@@ -12,6 +12,7 @@ import type { BlueprintsLoaderData } from '../lib/loaders'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
+import PendingNavigationGuard from '../components/pending-navigation-guard'
 import { useBlueprints, useCreateBlueprint } from '../lib/blueprint'
 import { useShellAlertStore } from '../stores/alert'
 
@@ -23,7 +24,16 @@ export default function Blueprints() {
   const showAlert = useShellAlertStore((state) => state.showAlert)
   const [title, setTitle] = useState('')
   const [client, setClient] = useState('')
+  const mounted = useRef(true)
   const items = blueprints.data?.items ?? []
+
+  useEffect(() => {
+    mounted.current = true
+
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   async function submit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
@@ -36,10 +46,14 @@ export default function Blueprints() {
         client: client.trim() || null
       })
 
+      if (!mounted.current) return
+
       setTitle('')
       setClient('')
       navigate(`/blueprints/${detail.blueprint.id}`)
     } catch {
+      if (!mounted.current) return
+
       showAlert({
         title: ERRORS.saveFailedTitle,
         description: ERRORS.blueprintCreateFailed,
@@ -120,6 +134,8 @@ export default function Blueprints() {
           )}
         </ConsolePanel>
       </div>
+
+      <PendingNavigationGuard when={create.isPending} />
     </div>
   )
 }
