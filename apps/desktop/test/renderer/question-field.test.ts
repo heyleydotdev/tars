@@ -48,4 +48,9 @@ describe('QuestionField', () => {
 
     expect(html).toContain('Choose an answer')
   })
+
+  it('falls back to text when a select has no options', () => {
+    expect(render({ kind: 'select', options: null })).toContain('type="text"')
+    expect(render({ kind: 'select', options: [] })).toContain('type="text"')
+  })
 })

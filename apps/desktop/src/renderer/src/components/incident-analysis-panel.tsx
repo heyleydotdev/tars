@@ -151,7 +151,9 @@ export default function IncidentAnalysisPanel({
               key={question.id}
               question={question}
               value={answers[question.id] ?? ''}
-              pending={answerQuestion.isPending}
+              pending={
+                answerQuestion.isPending && answerQuestion.variables.questionId === question.id
+              }
               placeholder="Answer with the fact only you know…"
               size="xs"
               onChange={(value) => setAnswers((current) => ({ ...current, [question.id]: value }))}

@@ -42,6 +42,7 @@ export default function QuestionField({
       <div className="flex items-start gap-2">
         {question.kind === 'long' ? (
           <Textarea
+            aria-label={question.text}
             value={value}
             onChange={(event) => onChange(event.target.value)}
             placeholder={placeholder}
@@ -54,7 +55,7 @@ export default function QuestionField({
               if (typeof next === 'string') onChange(next)
             }}
           >
-            <SelectTrigger className="w-full text-xs/6">
+            <SelectTrigger aria-label={question.text} className="w-full text-xs/6">
               <SelectValue>{(current: string) => current || 'Choose an answer…'}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -67,6 +68,7 @@ export default function QuestionField({
           </Select>
         ) : (
           <Input
+            aria-label={question.text}
             type={question.kind === 'date' ? 'date' : 'text'}
             value={value}
             onChange={(event) => onChange(event.target.value)}

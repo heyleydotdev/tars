@@ -464,7 +464,7 @@ export default function Blueprint() {
                       key={question.id}
                       question={question}
                       value={answers[question.id] ?? ''}
-                      pending={answer.isPending}
+                      pending={answer.isPending && answer.variables.questionId === question.id}
                       onChange={(value) =>
                         setAnswers((current) => ({ ...current, [question.id]: value }))
                       }
