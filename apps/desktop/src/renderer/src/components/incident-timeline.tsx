@@ -14,6 +14,7 @@ import {
 } from '@tars/ui/components/context-menu'
 import { cn } from '@tars/ui/lib/utils'
 
+import { logAction } from '../lib/activity'
 import { INCIDENT_CONFIDENCE_TONES } from '../lib/badge-tones'
 import { useUpdateIncidentEvent } from '../lib/incident'
 import ConsoleDayHeader from './console-day-header'
@@ -169,7 +170,13 @@ export default function IncidentTimeline({
         onSave={(occurredAt) => {
           if (!editingTime) return
 
-          update.mutate({ eventId: editingTime.id, occurredAt })
+          update.mutate(
+            { eventId: editingTime.id, occurredAt },
+            {
+              onSuccess: () =>
+                logAction('incident.time.fixed', editingTime.id, editingTime.description)
+            }
+          )
           setEditingTime(null)
         }}
       />

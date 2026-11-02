@@ -26,6 +26,7 @@ import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
 import IncidentDemoButton from '../components/incident-demo-button'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
+import { logAction } from '../lib/activity'
 import { INCIDENT_STATUS_TONES } from '../lib/badge-tones'
 import { groupByDay } from '../lib/group-by-day'
 import { useCreateIncident, useDeleteIncident, useIncidents } from '../lib/incident'
@@ -107,6 +108,7 @@ export default function Incidents() {
 
     try {
       await remove.mutateAsync({ incidentId: deleting.id })
+      logAction('incident.deleted', deleting.id, deleting.title)
       setDeleting(null)
     } catch {
       setDeleting(null)

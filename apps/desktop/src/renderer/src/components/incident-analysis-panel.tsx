@@ -11,6 +11,7 @@ import { Spinner } from '@tars/ui/components/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tars/ui/components/tabs'
 import { Textarea } from '@tars/ui/components/textarea'
 
+import { logAction } from '../lib/activity'
 import { INCIDENT_CONFIDENCE_TONES } from '../lib/badge-tones'
 import { useDebouncedSave } from '../lib/debounced-save'
 import {
@@ -128,6 +129,7 @@ export default function IncidentAnalysisPanel({
 
     try {
       await answerQuestion.mutateAsync({ questionId, answer })
+      logAction('incident.answered', questionId, 'Question answered', answer.slice(0, 80))
     } catch {
       showAlert({
         title: ERRORS.saveFailedTitle,
@@ -139,13 +141,16 @@ export default function IncidentAnalysisPanel({
 
     setAnswers((current) => ({ ...current, [questionId]: '' }))
 
-    await rebuild.mutateAsync({ incidentId }).catch(() => {
-      showAlert({
-        title: ERRORS.saveFailedTitle,
-        description: ERRORS.incidentMergeFailed,
-        variant: 'destructive'
+    await rebuild
+      .mutateAsync({ incidentId })
+      .then(() => logAction('incident.timeline.rebuilt', incidentId, 'Timeline rebuilt'))
+      .catch(() => {
+        showAlert({
+          title: ERRORS.saveFailedTitle,
+          description: ERRORS.incidentMergeFailed,
+          variant: 'destructive'
+        })
       })
-    })
   }
 
   const supporting = analysis
@@ -165,7 +170,15 @@ export default function IncidentAnalysisPanel({
             type="button"
             size="xs"
             disabled={findRootCause.isPending || detail.events.length === 0}
-            onClick={() => findRootCause.mutate({ incidentId })}
+            onClick={() =>
+              findRootCause.mutate(
+                { incidentId },
+                {
+                  onSuccess: () =>
+                    logAction('incident.rootcause', incidentId, detail.incident.title)
+                }
+              )
+            }
           >
             {findRootCause.isPending ? <Spinner className="size-3.5" /> : <SparklesIcon />}
             Find root cause

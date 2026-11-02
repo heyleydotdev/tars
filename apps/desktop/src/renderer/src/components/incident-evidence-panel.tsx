@@ -37,6 +37,7 @@ import { Textarea } from '@tars/ui/components/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
 import { cn } from '@tars/ui/lib/utils'
 
+import { logAction } from '../lib/activity'
 import { EVIDENCE_KIND_TONES } from '../lib/badge-tones'
 import { fileSrc } from '../lib/files'
 import {
@@ -181,6 +182,12 @@ export default function IncidentEvidencePanel({
 
     try {
       await add.mutateAsync({ incidentId, kind, content: value })
+      logAction(
+        'incident.evidence.added',
+        crypto.randomUUID(),
+        `${kind} evidence`,
+        value.slice(0, 80)
+      )
       setContent('')
       await refreshTimeline()
     } catch {
@@ -207,6 +214,7 @@ export default function IncidentEvidencePanel({
           incidentId,
           image: dataUrlToBlob(photo.dataUrl)
         })
+        logAction('incident.evidence.added', crypto.randomUUID(), 'screenshot evidence', file.name)
       }
 
       await refreshTimeline()
@@ -273,6 +281,12 @@ export default function IncidentEvidencePanel({
         }
 
         await add.mutateAsync({ incidentId, kind: 'voice', content: transcript })
+        logAction(
+          'incident.evidence.added',
+          crypto.randomUUID(),
+          'voice evidence',
+          transcript.slice(0, 80)
+        )
         await refreshTimeline()
       } catch (error) {
         console.error('Voice note failed', error)
@@ -294,6 +308,7 @@ export default function IncidentEvidencePanel({
 
     try {
       await remove.mutateAsync({ evidenceId: removing.id })
+      logAction('incident.evidence.removed', removing.id, `${removing.kind} evidence`)
       setRemoving(null)
     } catch {
       setRemoving(null)
