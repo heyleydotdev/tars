@@ -112,7 +112,7 @@ export default function MeasureAnnotationSettings({ objectCount }: { objectCount
           <label htmlFor="measure-frame-font" className="text-muted-foreground">
             Label size
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex w-24 items-center gap-2">
             <Slider
               id="measure-frame-font"
               aria-label="Label size"
@@ -120,7 +120,7 @@ export default function MeasureAnnotationSettings({ objectCount }: { objectCount
               max={MAX_FRAME_FONT_SIZE}
               step={1}
               value={[fontSize]}
-              className="w-24"
+              className="w-full"
               onValueChange={(value) =>
                 setFontSize(Array.isArray(value) ? (value[0] ?? fontSize) : value)
               }
