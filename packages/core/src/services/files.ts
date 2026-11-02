@@ -4,6 +4,11 @@ export type FileObject = {
 }
 
 export type FileBucket = {
+  put: (
+    key: string,
+    value: ArrayBuffer,
+    options?: { httpMetadata?: { contentType?: string } }
+  ) => Promise<unknown>
   get: (key: string) => Promise<FileObject | null>
   delete: (key: string | Array<string>) => Promise<void>
 }

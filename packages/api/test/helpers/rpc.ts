@@ -53,7 +53,6 @@ export async function createTestDb(): Promise<ApiDatabase> {
 }
 
 export type TestFiles = FileBucket & {
-  put: (key: string, bytes: Uint8Array, contentType: string) => void
   has: (key: string) => boolean
 }
 
@@ -61,11 +60,13 @@ export function createTestFiles(): TestFiles {
   const objects = new Map<string, { bytes: ArrayBuffer; contentType: string }>()
 
   return {
-    put: (key, bytes, contentType) => {
-      const buffer = new ArrayBuffer(bytes.byteLength)
+    put: async (key, value, options) => {
+      objects.set(key, {
+        bytes: value,
+        contentType: options?.httpMetadata?.contentType ?? 'application/octet-stream'
+      })
 
-      new Uint8Array(buffer).set(bytes)
-      objects.set(key, { bytes: buffer, contentType })
+      return null
     },
     has: (key) => objects.has(key),
     get: async (key) => {
