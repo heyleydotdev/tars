@@ -33,21 +33,12 @@ const DEMO_EVIDENCE: Array<{ kind: 'log' | 'text'; content: string }> = [
   {
     kind: 'text',
     content:
-      'Deploy note: checkout-api v2.41.0 shipped at 14:30. Changes: payment retry handling, cart cache keys. No config or flag changes in this release.'
+      'Deploy note: checkout-api v2.41.0 shipped at 14:30. It replaced the cart cache key (cart:v2 -> cart:v3) and adjusted payment retries. No feature flags and no config changes went out with it.'
   },
   {
     kind: 'log',
     content:
-      '[14:30:02] deploy checkout-api v2.41.0 finished (rollout 100%)\n[14:30:05] health checks passing\n[14:32:07] checkout-api GET /cart 502 upstream connect error\n[14:32:11] checkout-api GET /cart 502 upstream connect error (x14)'
-  },
-  {
-    kind: 'log',
-    content:
-      '[14:36:11] checkout-api p99 latency 4.8s (baseline 180ms)\n[14:36:14] upstream timeout after 3000ms\n[14:40:26] rollback checkout-api to v2.40.3 started\n[14:44:02] rollback complete; p99 still 3.1s'
-  },
-  {
-    kind: 'log',
-    content: '[14:47:10] p99 back to 190ms with no deploy or restart'
+      '[14:30:02] deploy checkout-api v2.41.0 finished, rollout 100%\n[14:32:07] GET /cart 502 upstream connect error (x14) from payment-gateway\n[14:36:11] p99 latency 4.8s, baseline 180ms\n[14:40:26] rollback to v2.40.3 started\n[14:44:02] rollback complete, errors stop\n[14:47:10] p99 back to 190ms with no further change'
   }
 ]
 
@@ -78,7 +69,7 @@ async function svgToPng(svg: string, width: number, height: number): Promise<str
 export async function seedIncidentDemo(
   onProgress?: (progress: { done: number; total: number; incidentId: string }) => void
 ): Promise<string> {
-  const created = await orpc.incident.create.call({ title: 'Checkout latency spike' })
+  const created = await orpc.incident.create.call({ title: 'Checkout errors after deploy' })
   const incidentId = created.incident.id
 
   void orpc.journal.logActivity
