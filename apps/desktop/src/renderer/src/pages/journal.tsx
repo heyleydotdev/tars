@@ -23,7 +23,6 @@ import JournalFeed from '../components/journal-feed'
 import JournalStats from '../components/journal-stats'
 import ReminderEditDialog from '../components/reminder-edit-dialog'
 import TodoEditDialog from '../components/todo-edit-dialog'
-import { logAction } from '../lib/activity'
 import {
   useDeleteJournalEntry,
   useDeleteReminder,
@@ -210,10 +209,32 @@ export default function Journal() {
         await deleteJournal.mutateAsync({ id: deleteTarget.id })
       } else if (deleteTarget.kind === 'todo') {
         await deleteTodo.mutateAsync({ id: deleteTarget.id })
-        logAction('task.deleted', deleteTarget.id, deleteSubject)
+        logActivity.mutate({
+          events: [
+            {
+              type: 'action',
+              action: 'task.deleted',
+              entityId: deleteTarget.id,
+              title: deleteSubject,
+              detail: null,
+              occurredAt: new Date().toISOString()
+            }
+          ]
+        })
       } else {
         await deleteReminder.mutateAsync({ id: deleteTarget.id })
-        logAction('reminder.deleted', deleteTarget.id, deleteSubject)
+        logActivity.mutate({
+          events: [
+            {
+              type: 'action',
+              action: 'reminder.deleted',
+              entityId: deleteTarget.id,
+              title: deleteSubject,
+              detail: null,
+              occurredAt: new Date().toISOString()
+            }
+          ]
+        })
       }
 
       setDeleteTarget(null)
@@ -298,7 +319,18 @@ export default function Journal() {
                     {
                       onSuccess: () => {
                         if (done) {
-                          logAction('reminder.done', id, reminder?.title ?? 'Reminder')
+                          logActivity.mutate({
+                            events: [
+                              {
+                                type: 'action',
+                                action: 'reminder.done',
+                                entityId: id,
+                                title: reminder?.title ?? 'Reminder',
+                                detail: null,
+                                occurredAt: new Date().toISOString()
+                              }
+                            ]
+                          })
 
                           return
                         }

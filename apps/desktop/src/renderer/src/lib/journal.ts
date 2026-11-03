@@ -1,6 +1,9 @@
+import type { Query, QueryKey } from '@tanstack/react-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type {
+  ActivityEventOutput,
+  JournalActivityPageOutput,
   JournalPageOutput,
   LogActivityInput,
   RecordDoneInput,
@@ -12,6 +15,8 @@ import type {
   UpdateTodoInput
 } from '@tars/core/schemas/journal'
 import type { DeleteRecordInput, DeleteRecordOutput } from '@tars/core/schemas/records'
+import { JOURNAL_ITEM_LIMIT } from '@tars/core/constants'
+import { activityContent, activityId, activityTags, activityTitle } from '@tars/core/utils/journal'
 
 import { orpc } from './orpc'
 
@@ -25,6 +30,16 @@ function invalidateJournal(queryClient: ReturnType<typeof useQueryClient>): void
       return Array.isArray(path) && path[0] === 'journal'
     }
   })
+}
+
+function isActivityQuery(query: Query): boolean {
+  const path = query.queryKey[0]
+
+  return Array.isArray(path) && path[0] === 'journal' && path[1] === 'activity'
+}
+
+function invalidateActivity(queryClient: ReturnType<typeof useQueryClient>): void {
+  void queryClient.invalidateQueries({ predicate: isActivityQuery })
 }
 
 function useDoneMutation(options: {
@@ -75,7 +90,59 @@ export function useLogActivity() {
 
   return useMutation({
     mutationFn: (input: LogActivityInput) => orpc.journal.logActivity.call(input),
-    onSuccess: () => invalidateJournal(queryClient)
+    onMutate: (input) => {
+      const snapshots = new Map<QueryKey, JournalActivityPageOutput | undefined>()
+      const entries = input.events.map((event) => {
+        const value = event as ActivityEventOutput
+
+        return {
+          id: activityId(value),
+          title: activityTitle(value),
+          content: activityContent(value),
+          mood: null,
+          tags: activityTags(value),
+          occurredAt: value.occurredAt
+        }
+      })
+
+      for (const query of queryClient.getQueryCache().findAll({ predicate: isActivityQuery })) {
+        const range = (query.queryKey[1] as { input?: { from?: string; to?: string } }).input
+
+        if (!range?.from || !range.to) continue
+
+        const from = Date.parse(range.from)
+        const to = Date.parse(range.to)
+        const matches = entries.filter((entry) => {
+          const at = Date.parse(entry.occurredAt)
+
+          return at >= from && at <= to
+        })
+
+        if (matches.length === 0) continue
+
+        snapshots.set(query.queryKey, query.state.data as JournalActivityPageOutput | undefined)
+
+        queryClient.setQueryData<JournalActivityPageOutput>(query.queryKey, (page) => {
+          if (!page) return page
+
+          const byId = new Map([...matches, ...page.items].map((item) => [item.id, item]))
+
+          return {
+            items: [...byId.values()]
+              .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt))
+              .slice(0, JOURNAL_ITEM_LIMIT)
+          }
+        })
+      }
+
+      return { snapshots }
+    },
+    onError: (_error, _input, result) => {
+      for (const [key, data] of result?.snapshots ?? []) {
+        queryClient.setQueryData(key, data)
+      }
+    },
+    onSuccess: () => invalidateActivity(queryClient)
   })
 }
 
@@ -84,7 +151,7 @@ export function useRemoveTaskActivity() {
 
   return useMutation({
     mutationFn: (input: RemoveTaskActivityInput) => orpc.journal.removeTaskActivity.call(input),
-    onSuccess: () => invalidateJournal(queryClient)
+    onSuccess: () => invalidateActivity(queryClient)
   })
 }
 
@@ -94,7 +161,7 @@ export function useRemoveReminderActivity() {
   return useMutation({
     mutationFn: (input: RemoveReminderActivityInput) =>
       orpc.journal.removeReminderActivity.call(input),
-    onSuccess: () => invalidateJournal(queryClient)
+    onSuccess: () => invalidateActivity(queryClient)
   })
 }
 
