@@ -28,6 +28,7 @@ import Register from './pages/register'
 import Settings from './pages/settings'
 import Stats from './pages/stats'
 import UiReview from './pages/ui-review'
+import Usage from './pages/usage'
 
 export function createAppRouter(queryClient: QueryClient) {
   return createHashRouter([
@@ -84,6 +85,7 @@ export function createAppRouter(queryClient: QueryClient) {
                       loader: blueprintLoader(queryClient)
                     },
                     { path: '/ui-review', element: <UiReview /> },
+                    { path: '/usage', element: <Usage /> },
                     {
                       path: '/incidents',
                       element: <Incidents />,

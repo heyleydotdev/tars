@@ -3,6 +3,7 @@ import {
   BotIcon,
   ChartNoAxesColumnIcon,
   DraftingCompassIcon,
+  GaugeIcon,
   LogOutIcon,
   NotebookPenIcon,
   RulerIcon,
@@ -92,6 +93,7 @@ const destinations = navigation.flatMap((group) => group.items)
 
 function activeDestination(pathname: string): string {
   if (pathname === '/settings') return 'Settings'
+  if (pathname === '/usage') return 'Usage'
 
   const exact = destinations.find((item) => item.to === pathname)
 
@@ -189,6 +191,15 @@ function AppSidebar({
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    onSelect('/usage')
+                    if (isMobile) setOpenMobile(false)
+                  }}
+                >
+                  <GaugeIcon />
+                  Usage
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     onSelect('/settings')

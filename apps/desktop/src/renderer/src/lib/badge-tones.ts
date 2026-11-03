@@ -79,3 +79,12 @@ export const EVIDENCE_KIND_TONES: Record<IncidentEvidenceOutput['kind'], string>
   voice: 'capitalize bg-amber-400/15 text-amber-300',
   answer: 'capitalize bg-emerald-400/15 text-emerald-300'
 }
+
+export const USAGE_FEATURE_TONES: Record<string, string> = {
+  blueprint: 'bg-sky-400/15 text-sky-300',
+  incident: 'bg-amber-400/15 text-amber-300',
+  ui: 'bg-violet-400/15 text-violet-300',
+  chat: 'bg-emerald-400/15 text-emerald-300',
+  measure: 'bg-violet-400/15 text-violet-300',
+  voice: 'bg-teal-400/15 text-teal-300'
+}
