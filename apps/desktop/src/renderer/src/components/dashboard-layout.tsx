@@ -1,18 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  BotIcon,
-  ChartNoAxesColumnIcon,
-  DraftingCompassIcon,
-  GaugeIcon,
-  LogOutIcon,
-  NotebookPenIcon,
-  RulerIcon,
-  ScanEyeIcon,
-  SearchIcon,
-  SettingsIcon,
-  SirenIcon,
-  WalletIcon
-} from 'lucide-react'
+import { GaugeIcon, LogOutIcon, SearchIcon, SettingsIcon } from 'lucide-react'
 import { Outlet, useLocation, useNavigate, useNavigation, useOutletContext } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -48,46 +35,17 @@ import {
 import { TooltipProvider } from '@tars/ui/components/tooltip'
 
 import { signOut } from '../lib/auth'
+import { navigation } from '../lib/navigation'
 import { useShellAlertStore } from '../stores/alert'
 import { useUser } from '../stores/auth'
 import { useDeskChatStore } from '../stores/desk-chat'
 import { useSidebarStore } from '../stores/sidebar'
 import { useVoiceStore } from '../stores/voice'
+import CommandMenu from './command-menu'
 import ConfirmDialog from './confirm-dialog'
 import DeskChatPanel from './desk-chat-panel'
 import LoadingScreen from './loading-screen'
 import ShellAlert from './shell-alert'
-
-type NavItem = {
-  title: string
-  to: string
-  icon: typeof BotIcon
-}
-
-const navigation: Array<{ label: string; items: Array<NavItem> }> = [
-  {
-    label: 'Notebook',
-    items: [
-      { title: 'Desk', to: '/', icon: BotIcon },
-      { title: 'Journal', to: '/journal', icon: NotebookPenIcon },
-      { title: 'Expenses', to: '/expenses', icon: WalletIcon },
-      { title: 'Stats', to: '/stats', icon: ChartNoAxesColumnIcon }
-    ]
-  },
-  {
-    label: 'Developer Kit',
-    items: [
-      { title: 'Blueprints', to: '/blueprints', icon: DraftingCompassIcon },
-      { title: 'UI Review', to: '/ui-review', icon: ScanEyeIcon },
-      { title: 'Incidents', to: '/incidents', icon: SirenIcon },
-      {
-        title: 'Measure',
-        to: '/measure',
-        icon: RulerIcon
-      }
-    ]
-  }
-]
 
 const destinations = navigation.flatMap((group) => group.items)
 
@@ -129,98 +87,122 @@ function AppSidebar({
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const user = useUser()
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent): void {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
-    <Sidebar collapsible="icon" className="relative h-full">
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="text-muted-foreground" variant="outline">
-                  <SearchIcon />
-                  <span>Search</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        {navigation.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+    <>
+      <CommandMenu open={searchOpen} onOpenChange={setSearchOpen} />
+      <Sidebar collapsible="icon" className="relative h-full">
+        <SidebarContent>
+          <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => {
-                  const Icon = item.icon
-                  const active = pathname === item.to || pathname.startsWith(`${item.to}/`)
-
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        isActive={active}
-                        tooltip={item.title}
-                        onClick={() => {
-                          onSelect(item.to)
-                          if (isMobile) setOpenMobile(false)
-                        }}
-                      >
-                        <Icon />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    className="text-muted-foreground"
+                    variant="outline"
+                    onClick={() => setSearchOpen(true)}
+                  >
+                    <SearchIcon />
+                    <span>Search</span>
+                    <span className="text-muted-foreground ml-auto font-mono text-xs tracking-widest">
+                      ⌘K
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ))}
-      </SidebarContent>
-      <SidebarFooter className="border-sidebar-border border-t">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-                <UserIdentity name={user.name} email={user.email} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start" className="min-w-56">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel className="p-0 font-normal">
-                    <div className="flex items-center gap-2 px-1 py-1.5">
-                      <UserIdentity name={user.name} email={user.email} />
-                    </div>
-                  </DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    onSelect('/usage')
-                    if (isMobile) setOpenMobile(false)
-                  }}
-                >
-                  <GaugeIcon />
-                  Usage
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    onSelect('/settings')
-                    if (isMobile) setOpenMobile(false)
-                  }}
-                >
-                  <SettingsIcon />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onSignOut}>
-                  <LogOutIcon />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+          {navigation.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    const active = pathname === item.to || pathname.startsWith(`${item.to}/`)
+
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          isActive={active}
+                          tooltip={item.title}
+                          onClick={() => {
+                            onSelect(item.to)
+                            if (isMobile) setOpenMobile(false)
+                          }}
+                        >
+                          <Icon />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
+        <SidebarFooter className="border-sidebar-border border-t">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
+                  <UserIdentity name={user.name} email={user.email} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="start" className="min-w-56">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="p-0 font-normal">
+                      <div className="flex items-center gap-2 px-1 py-1.5">
+                        <UserIdentity name={user.name} email={user.email} />
+                      </div>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      onSelect('/usage')
+                      if (isMobile) setOpenMobile(false)
+                    }}
+                  >
+                    <GaugeIcon />
+                    Usage
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      onSelect('/settings')
+                      if (isMobile) setOpenMobile(false)
+                    }}
+                  >
+                    <SettingsIcon />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onSignOut}>
+                    <LogOutIcon />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    </>
   )
 }
 
