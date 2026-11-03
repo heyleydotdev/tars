@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow
 } from '@tars/ui/components/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tars/ui/components/tabs'
+import { TabsContent } from '@tars/ui/components/tabs'
 import { Textarea } from '@tars/ui/components/textarea'
 import { cn } from '@tars/ui/lib/utils'
 
@@ -50,6 +50,7 @@ import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
+import PanelTabs from '../components/panel-tabs'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
 import QuestionField from '../components/question-field'
 import { logAction } from '../lib/activity'
@@ -566,24 +567,14 @@ export default function Blueprint() {
               }
             >
               {detail.draft ? (
-                <Tabs defaultValue="preview" className="flex min-h-0 flex-1 flex-col gap-0">
-                  <TabsList
-                    variant="line"
-                    className="border-border h-8 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0"
-                  >
-                    {[
-                      { value: 'edit', label: 'Edit' },
-                      { value: 'preview', label: 'Preview' }
-                    ].map((tab) => (
-                      <TabsTrigger
-                        key={tab.value}
-                        value={tab.value}
-                        className="after:bg-foreground flex-none rounded-none border-r px-3 text-xs tracking-wide"
-                      >
-                        {tab.label}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
+                <PanelTabs
+                  defaultValue="preview"
+                  className="min-h-0 flex-1"
+                  items={[
+                    { value: 'edit', label: 'Edit' },
+                    { value: 'preview', label: 'Preview' }
+                  ]}
+                >
                   <TabsContent value="edit" className="p-3">
                     <Textarea
                       value={draftText}
@@ -595,7 +586,7 @@ export default function Blueprint() {
                   <TabsContent value="preview" className="p-3">
                     <Markdown>{previewText}</Markdown>
                   </TabsContent>
-                </Tabs>
+                </PanelTabs>
               ) : (
                 <EmptyState
                   title="No Draft Yet"

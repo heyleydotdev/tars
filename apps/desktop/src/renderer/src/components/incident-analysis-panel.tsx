@@ -8,7 +8,7 @@ import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
 import { Markdown } from '@tars/ui/components/markdown'
 import { Spinner } from '@tars/ui/components/spinner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tars/ui/components/tabs'
+import { TabsContent } from '@tars/ui/components/tabs'
 import { Textarea } from '@tars/ui/components/textarea'
 
 import { logAction } from '../lib/activity'
@@ -23,6 +23,7 @@ import {
 } from '../lib/incident'
 import { useLogActivity } from '../lib/journal'
 import { useShellAlertStore } from '../stores/alert'
+import PanelTabs from './panel-tabs'
 import QuestionField from './question-field'
 
 function outcomeLabel(outcome: 'proposed' | 'inconclusive'): string {
@@ -297,24 +298,13 @@ export default function IncidentAnalysisPanel({
               Approve
             </Button>
           </div>
-          <Tabs defaultValue="preview" className="flex flex-col gap-0">
-            <TabsList
-              variant="line"
-              className="border-border h-8 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0"
-            >
-              {[
-                { value: 'edit', label: 'Edit' },
-                { value: 'preview', label: 'Preview' }
-              ].map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="after:bg-foreground flex-none rounded-none border-r px-3 text-xs tracking-wide"
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <PanelTabs
+            defaultValue="preview"
+            items={[
+              { value: 'edit', label: 'Edit' },
+              { value: 'preview', label: 'Preview' }
+            ]}
+          >
             <TabsContent value="edit" className="pt-2">
               <Textarea
                 value={postmortem}
@@ -326,7 +316,7 @@ export default function IncidentAnalysisPanel({
             <TabsContent value="preview" className="pt-2">
               <Markdown>{postmortem}</Markdown>
             </TabsContent>
-          </Tabs>
+          </PanelTabs>
         </section>
       ) : null}
     </div>
