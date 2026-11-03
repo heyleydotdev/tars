@@ -19,6 +19,7 @@ import {
 } from '@tars/ui/components/table'
 
 import { useMessageThinking } from '../lib/chat'
+import LoadingScreen from './loading-screen'
 
 function PhaseCard({ phase }: { phase: ChatPhaseOutput }) {
   return (
@@ -73,7 +74,7 @@ export default function MessageDebugDialog(props: {
         </DialogHeader>
         <div className="-mx-4 flex max-h-[50vh] flex-col gap-2 overflow-y-auto px-4">
           {thinking.isPending ? (
-            <p className="text-muted-foreground text-xs">Loading…</p>
+            <LoadingScreen />
           ) : thinking.isError ? (
             <p className="text-destructive text-xs">// failed to load debug data</p>
           ) : thinking.data.length ? (

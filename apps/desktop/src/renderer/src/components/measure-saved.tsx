@@ -12,6 +12,7 @@ import { cn } from '@tars/ui/lib/utils'
 
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
+import LoadingScreen from '../components/loading-screen'
 import MeasurePreview from '../components/measure-preview'
 import { logAction } from '../lib/activity'
 import { fileSrc } from '../lib/files'
@@ -164,10 +165,7 @@ export default function MeasureSaved({ onOpen }: { onOpen: () => void }) {
           className="lg:col-span-7"
         >
           {saved.isPending ? (
-            <div className="text-muted-foreground flex items-center gap-2 p-4 text-xs">
-              <Spinner className="size-3.5" />
-              Loading saved measurements…
-            </div>
+            <LoadingScreen />
           ) : saved.isError ? (
             <p className="text-destructive p-4 text-xs">{ERRORS.historyLoadFailed}</p>
           ) : measures.length === 0 ? (

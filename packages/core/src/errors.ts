@@ -60,6 +60,7 @@ export const ERRORS = {
   exportFailed: 'Could not export the measurement. Try again.',
   exportFailedTitle: 'Export failed',
   blueprintExportFailed: 'Could not export the diagram. Try again.',
+  usageLoadFailed: 'Could not load usage. Try again.',
   usageLimitReached: 'Free usage limit reached. Ask the host to raise the limit.',
   blueprintHierarchyFailed: 'Could not build the hierarchy. Try again.',
   blueprintFlowFailed: 'Could not build the flow. Try again.',

@@ -1,15 +1,16 @@
 import { useState } from 'react'
 
 import type { UsageEventOutput } from '@tars/core/schemas/usage'
+import { ERRORS } from '@tars/core/errors'
 import { formatUsdMicros, toDateKey } from '@tars/core/utils/format'
 import { Badge } from '@tars/ui/components/badge'
-import { Spinner } from '@tars/ui/components/spinner'
 import { Table, TableBody, TableCell, TableRow } from '@tars/ui/components/table'
 
 import ConsoleDayHeader from '../components/console-day-header'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
+import LoadingScreen from '../components/loading-screen'
 import UsageEventDialog from '../components/usage-event-dialog'
 import { USAGE_FEATURE_TONES } from '../lib/badge-tones'
 import { groupByDay } from '../lib/group-by-day'
@@ -34,12 +35,9 @@ export default function Usage() {
       <ConsoleHeader title="usage" />
 
       {usage.isPending ? (
-        <div className="text-muted-foreground flex items-center gap-2 p-4 text-xs">
-          <Spinner className="size-3.5" />
-          Loading usage…
-        </div>
+        <LoadingScreen />
       ) : !data ? (
-        <p className="text-destructive p-4 text-xs">Could not load usage. Try again.</p>
+        <p className="text-destructive p-4 text-xs">{ERRORS.usageLoadFailed}</p>
       ) : (
         <div className="bg-border grid flex-1 grid-cols-1 gap-px lg:min-h-0 lg:grid-cols-12">
           <ConsolePanel
