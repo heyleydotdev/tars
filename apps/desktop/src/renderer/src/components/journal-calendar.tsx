@@ -30,11 +30,17 @@ export default function JournalCalendar({
   const selectedKey = toDateKey(selected)
   const todayKey = toDateKey(new Date())
   const reminderKeys = useMemo(
-    () => new Set(reminders.map((reminder) => toDateKey(reminder.remindAt))),
+    () =>
+      new Set(
+        reminders
+          .filter((reminder) => reminder.status === 'pending')
+          .map((reminder) => toDateKey(reminder.remindAt))
+      ),
     [reminders]
   )
   const todoKeys = useMemo(
-    () => new Set(todos.flatMap((todo) => (todo.dueAt ? [toDateKey(todo.dueAt)] : []))),
+    () =>
+      new Set(todos.flatMap((todo) => (todo.dueAt && !todo.done ? [toDateKey(todo.dueAt)] : []))),
     [todos]
   )
 
