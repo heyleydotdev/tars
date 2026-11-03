@@ -6,7 +6,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import type { Auth } from '@tars/auth/server'
 import type { FileBucket } from '@tars/core/services/files'
 import type { Database as ApiDatabase } from '@tars/db/client'
-import { FREE_TIER_MICROS } from '@tars/core/constants'
+import { DEFAULT_USAGE_CAP_MICROS } from '@tars/core/constants'
 import { user } from '@tars/db/schema'
 import * as schema from '@tars/db/schema'
 
@@ -127,7 +127,7 @@ export async function callRpcRaw(
         auth: { api: { getSession: async () => session } } as unknown as Auth,
         metaAiApiKey: '',
         fileSecret: 'file-secret-file-secret-file-secret-32',
-        usageLimitMicros: FREE_TIER_MICROS,
+        usageLimitMicros: DEFAULT_USAGE_CAP_MICROS,
         files
       }
     }

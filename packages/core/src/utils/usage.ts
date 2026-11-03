@@ -1,5 +1,5 @@
 import {
-  FREE_TIER_MICROS,
+  DEFAULT_USAGE_CAP_MICROS,
   META_CHAT_PRICE_INPUT_MICROS_PER_MILLION,
   META_CHAT_PRICE_OUTPUT_MICROS_PER_MILLION,
   META_SAM_MODEL,
@@ -19,5 +19,5 @@ export function usageCostMicros(model: string, inputTokens: number, outputTokens
 export function usageLimitMicros(value: string | undefined): number {
   const usd = Number(value)
 
-  return Number.isFinite(usd) && usd >= 0 ? Math.round(usd * 1_000_000) : FREE_TIER_MICROS
+  return Number.isFinite(usd) && usd >= 0 ? Math.round(usd * 1_000_000) : DEFAULT_USAGE_CAP_MICROS
 }

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { UsageSummaryOutput } from '@tars/core/schemas/usage'
 import type { Database } from '@tars/db/client'
-import { FREE_TIER_MICROS } from '@tars/core/constants'
+import { DEFAULT_USAGE_CAP_MICROS } from '@tars/core/constants'
 import { usageEvent } from '@tars/db/schema'
 
 import { callRpc, createTestDb, TEST_USER_ID } from '../helpers/rpc'
@@ -53,7 +53,7 @@ describe('usage.summary', () => {
 
     expect(response.status).toBe(200)
     expect(summary.spentMicros).toBe(170_000)
-    expect(summary.remainingMicros).toBe(FREE_TIER_MICROS - 170_000)
+    expect(summary.remainingMicros).toBe(DEFAULT_USAGE_CAP_MICROS - 170_000)
     expect(summary.calls).toBe(3)
     expect(summary.models).toEqual([{ model: 'muse-spark-1.3', calls: 3, costMicros: 170_000 }])
     expect(summary.events).toHaveLength(3)
@@ -68,7 +68,7 @@ describe('usage.summary', () => {
       model: 'muse-spark-1.3',
       inputTokens: 1,
       outputTokens: 1,
-      costMicros: FREE_TIER_MICROS + 1
+      costMicros: DEFAULT_USAGE_CAP_MICROS + 1
     })
 
     const response = await callRpc(db, 'usage/summary')

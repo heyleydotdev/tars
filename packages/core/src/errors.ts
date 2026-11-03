@@ -61,7 +61,7 @@ export const ERRORS = {
   exportFailedTitle: 'Export failed',
   blueprintExportFailed: 'Could not export the diagram. Try again.',
   usageLoadFailed: 'Could not load usage. Try again.',
-  usageLimitReached: 'Free usage limit reached. Ask the host to raise the limit.',
+  usageLimitReached: 'Usage cap reached. Ask the host to raise the cap.',
   blueprintHierarchyFailed: 'Could not build the hierarchy. Try again.',
   blueprintFlowFailed: 'Could not build the flow. Try again.',
   copyFailedTitle: 'Copy failed',

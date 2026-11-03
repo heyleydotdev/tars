@@ -9,7 +9,7 @@ export const META_SAM_MODEL = 'sam-3.1'
 export const META_CHAT_MAX_TOKENS = 6_000
 export const META_LONG_OUTPUT_TOKENS = 16_000
 // Default when the server's USAGE_LIMIT_USD env var is missing.
-export const FREE_TIER_MICROS = 100_000_000
+export const DEFAULT_USAGE_CAP_MICROS = 100_000_000
 export const META_CHAT_PRICE_INPUT_MICROS_PER_MILLION = 150_000
 export const META_CHAT_PRICE_OUTPUT_MICROS_PER_MILLION = 600_000
 export const META_SAM_PRICE_MICROS = 1_000

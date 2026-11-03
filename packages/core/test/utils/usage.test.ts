@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { FREE_TIER_MICROS } from '../../src/constants'
+import { DEFAULT_USAGE_CAP_MICROS } from '../../src/constants'
 import { usageCostMicros, usageLimitMicros } from '../../src/utils/usage'
 
 describe('usageCostMicros', () => {
@@ -21,8 +21,8 @@ describe('usageLimitMicros', () => {
   })
 
   it('falls back when the value is missing or invalid', () => {
-    expect(usageLimitMicros(undefined)).toBe(FREE_TIER_MICROS)
-    expect(usageLimitMicros('nope')).toBe(FREE_TIER_MICROS)
-    expect(usageLimitMicros('-1')).toBe(FREE_TIER_MICROS)
+    expect(usageLimitMicros(undefined)).toBe(DEFAULT_USAGE_CAP_MICROS)
+    expect(usageLimitMicros('nope')).toBe(DEFAULT_USAGE_CAP_MICROS)
+    expect(usageLimitMicros('-1')).toBe(DEFAULT_USAGE_CAP_MICROS)
   })
 })

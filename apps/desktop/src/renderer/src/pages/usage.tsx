@@ -53,7 +53,7 @@ export default function Usage() {
                   {formatUsdMicros(data.spentMicros)}
                 </p>
                 <p className="text-muted-foreground text-xs">
-                  of {formatUsdMicros(data.limitMicros)} free
+                  of {formatUsdMicros(data.limitMicros)} cap
                 </p>
               </div>
               <Table className="border-border border">
