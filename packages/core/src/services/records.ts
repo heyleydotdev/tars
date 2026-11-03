@@ -10,7 +10,7 @@ import type {
   TodoSelect
 } from '@tars/db/schema'
 import { expense, journalEntry, reminder, todo } from '@tars/db/schema'
-import { and, eq, inArray } from '@tars/db/sql'
+import { and, desc, eq, inArray, isNull } from '@tars/db/sql'
 
 import type {
   DeskContextRecord,
@@ -21,6 +21,7 @@ import type {
   SavedRecordOutput,
   TodoRecordOutput
 } from '../schemas/chat'
+import { DESK_MANUAL_RECORD_LIMIT } from '../constants'
 import { normalizeExpenseCategory, resolveExpenseTitle } from '../utils/expense'
 import { formatZonedIso, parseDate } from '../utils/format'
 
@@ -176,15 +177,15 @@ export function groupRecordsByMessage(tables: RecordTables): Map<string, Array<S
   }
 
   for (const record of tables.todos) {
-    add(record.messageId, savedTodo(record))
+    if (record.messageId) add(record.messageId, savedTodo(record))
   }
 
   for (const record of tables.reminders) {
-    add(record.messageId, savedReminder(record))
+    if (record.messageId) add(record.messageId, savedReminder(record))
   }
 
   for (const record of tables.expenses) {
-    add(record.messageId, savedExpense(record))
+    if (record.messageId) add(record.messageId, savedExpense(record))
   }
 
   for (const record of tables.journals) {
@@ -200,31 +201,62 @@ export async function loadDeskContextRecords(
   messageIds: Array<string>,
   timezone?: string
 ): Promise<Array<DeskContextRecord>> {
-  if (messageIds.length === 0) {
-    return []
-  }
-
   const [todos, reminders, expenses, journals] = await Promise.all([
+    messageIds.length > 0
+      ? db
+          .select()
+          .from(todo)
+          .where(and(eq(todo.userId, userId), inArray(todo.messageId, messageIds)))
+      : [],
+    messageIds.length > 0
+      ? db
+          .select()
+          .from(reminder)
+          .where(and(eq(reminder.userId, userId), inArray(reminder.messageId, messageIds)))
+      : [],
+    messageIds.length > 0
+      ? db
+          .select()
+          .from(expense)
+          .where(and(eq(expense.userId, userId), inArray(expense.messageId, messageIds)))
+      : [],
+    messageIds.length > 0
+      ? db
+          .select()
+          .from(journalEntry)
+          .where(and(eq(journalEntry.userId, userId), inArray(journalEntry.messageId, messageIds)))
+      : []
+  ])
+
+  const [manualTodos, manualReminders, manualExpenses, manualJournals] = await Promise.all([
     db
       .select()
       .from(todo)
-      .where(and(eq(todo.userId, userId), inArray(todo.messageId, messageIds))),
+      .where(and(eq(todo.userId, userId), isNull(todo.messageId)))
+      .orderBy(desc(todo.createdAt))
+      .limit(DESK_MANUAL_RECORD_LIMIT),
     db
       .select()
       .from(reminder)
-      .where(and(eq(reminder.userId, userId), inArray(reminder.messageId, messageIds))),
+      .where(and(eq(reminder.userId, userId), isNull(reminder.messageId)))
+      .orderBy(desc(reminder.createdAt))
+      .limit(DESK_MANUAL_RECORD_LIMIT),
     db
       .select()
       .from(expense)
-      .where(and(eq(expense.userId, userId), inArray(expense.messageId, messageIds))),
+      .where(and(eq(expense.userId, userId), isNull(expense.messageId)))
+      .orderBy(desc(expense.createdAt))
+      .limit(DESK_MANUAL_RECORD_LIMIT),
     db
       .select()
       .from(journalEntry)
-      .where(and(eq(journalEntry.userId, userId), inArray(journalEntry.messageId, messageIds)))
+      .where(and(eq(journalEntry.userId, userId), isNull(journalEntry.messageId)))
+      .orderBy(desc(journalEntry.createdAt))
+      .limit(DESK_MANUAL_RECORD_LIMIT)
   ])
 
   return [
-    ...todos.map((record): DeskContextRecord => ({
+    ...[...todos, ...manualTodos].map((record): DeskContextRecord => ({
       type: 'todo',
       id: record.id,
       title: record.title,
@@ -232,14 +264,14 @@ export async function loadDeskContextRecords(
       notes: record.notes,
       dueAt: record.dueAt?.toISOString() ?? null
     })),
-    ...reminders.map((record): DeskContextRecord => ({
+    ...[...reminders, ...manualReminders].map((record): DeskContextRecord => ({
       type: 'reminder',
       id: record.id,
       title: record.title,
       remindAt: record.remindAt.toISOString(),
       notes: record.notes
     })),
-    ...expenses.map((record): DeskContextRecord => ({
+    ...[...expenses, ...manualExpenses].map((record): DeskContextRecord => ({
       type: 'expense',
       id: record.id,
       title: resolveExpenseTitle(record.title, record.description),
@@ -251,7 +283,7 @@ export async function loadDeskContextRecords(
       savedAt: formatZonedIso(record.createdAt, timezone).value,
       minutesAgo: Math.max(0, Math.round((Date.now() - record.createdAt.getTime()) / 60_000))
     })),
-    ...journals.map((record): DeskContextRecord => ({
+    ...[...journals, ...manualJournals].map((record): DeskContextRecord => ({
       type: 'journal',
       id: record.id,
       title: record.title,

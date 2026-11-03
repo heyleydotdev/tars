@@ -17,6 +17,8 @@ export const META_ASR_PRICE_MICROS = 100
 export const CHAT_MESSAGE_MAX_LENGTH = 4_000
 export const DESK_HISTORY_MESSAGES = 20
 export const DESK_HISTORY_CHARS = 6_000
+// Records added by hand have no message, so they are loaded separately and capped.
+export const DESK_MANUAL_RECORD_LIMIT = 10
 export const MEASURE_PROMPT_LIMIT = 5
 export const MEASURE_BATCH_LIMIT = 50
 export const MEASURE_BATCH_GAP_MS = 1_000

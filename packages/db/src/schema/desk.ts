@@ -15,9 +15,8 @@ export const todo = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    messageId: text('message_id')
-      .notNull()
-      .references(() => chatMessage.id, { onDelete: 'cascade' }),
+    // Manual tasks and reminders have no source chat message.
+    messageId: text('message_id').references(() => chatMessage.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     notes: text('notes'),
     dueAt: integer('due_at', { mode: 'timestamp_ms' }),
@@ -41,9 +40,7 @@ export const reminder = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    messageId: text('message_id')
-      .notNull()
-      .references(() => chatMessage.id, { onDelete: 'cascade' }),
+    messageId: text('message_id').references(() => chatMessage.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     remindAt: integer('remind_at', { mode: 'timestamp_ms' }).notNull(),
     notes: text('notes'),
@@ -65,9 +62,8 @@ export const expense = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    messageId: text('message_id')
-      .notNull()
-      .references(() => chatMessage.id, { onDelete: 'cascade' }),
+    // Manual expenses have no source chat message.
+    messageId: text('message_id').references(() => chatMessage.id, { onDelete: 'cascade' }),
     title: text('title'),
     description: text('description').notNull(),
     amountCents: integer('amount_cents').notNull(),
