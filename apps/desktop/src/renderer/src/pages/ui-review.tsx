@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react'
-import { ImagePlusIcon, ScanEyeIcon, SparklesIcon, Trash2Icon } from 'lucide-react'
+import { ImagePlusIcon, Maximize2Icon, ScanEyeIcon, SparklesIcon, Trash2Icon } from 'lucide-react'
 
 import type { UiReviewSummaryOutput } from '@tars/core/schemas/ui-review'
-import { UI_REVIEW_VARIANT_LIMIT } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { formatTime } from '@tars/core/utils/format'
 import { Badge } from '@tars/ui/components/badge'
@@ -13,7 +12,21 @@ import {
   ContextMenuItem,
   ContextMenuTrigger
 } from '@tars/ui/components/context-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@tars/ui/components/dialog'
 import { Input } from '@tars/ui/components/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@tars/ui/components/select'
 import { Spinner } from '@tars/ui/components/spinner'
 import { TabsContent } from '@tars/ui/components/tabs'
 import { cn } from '@tars/ui/lib/utils'
@@ -30,6 +43,7 @@ import { logAction } from '../lib/activity'
 import { SEVERITY_BADGE_TONES, UI_REVIEW_STATUS_TONES } from '../lib/badge-tones'
 import { fileSrc } from '../lib/files'
 import { dataUrlToBlob, prepareMeasureImage } from '../lib/measure'
+import { previewDocument } from '../lib/ui-preview'
 import {
   useCreateUiReview,
   useDeleteUiReview,
@@ -55,11 +69,14 @@ export default function UiReview() {
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState<UiReviewSummaryOutput | null>(null)
   const [viewing, setViewing] = useState<ViewerImage | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [variantId, setVariantId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const detail = useUiReview(activeId)
   const data = detail.data ?? null
   const items = reviews.data?.items ?? []
   const latest = data?.variants.at(-1) ?? null
+  const activeVariant = data?.variants.find((variant) => variant.id === variantId) ?? latest
   const busy = uploading || create.isPending || explain.isPending || generate.isPending
 
   function report(error: unknown): void {
@@ -212,11 +229,7 @@ export default function UiReview() {
               onValueChange={setSection}
               items={[
                 { value: 'findings', label: 'Findings', count: data.findings.length },
-                {
-                  value: 'redesign',
-                  label: 'Redesign',
-                  count: `${data.variants.length}/${UI_REVIEW_VARIANT_LIMIT}`
-                }
+                { value: 'redesign', label: 'Redesign' }
               ]}
             >
               <TabsContent value="findings" keepMounted className="flex flex-1 flex-col lg:min-h-0">
@@ -332,12 +345,7 @@ export default function UiReview() {
                 </ConsolePanel>
               </TabsContent>
               <TabsContent value="redesign" keepMounted className="flex flex-1 flex-col lg:min-h-0">
-                <ConsolePanel
-                  title="ui.redesign"
-                  count={`${data.variants.length}/${UI_REVIEW_VARIANT_LIMIT}`}
-                  accent="bg-violet-400"
-                  className="flex-1"
-                >
+                <ConsolePanel title="ui.redesign" accent="bg-violet-400" className="flex-1">
                   <div className="space-y-3 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Input
@@ -352,7 +360,6 @@ export default function UiReview() {
                         size="sm"
                         disabled={
                           busy ||
-                          data.variants.length >= UI_REVIEW_VARIANT_LIMIT ||
                           data.review.status !== 'explained' ||
                           !data.findings.some((finding) => finding.included)
                         }
@@ -369,6 +376,7 @@ export default function UiReview() {
                                 data.review.title ?? 'UI review'
                               )
                               setInstruction('')
+                              setVariantId(null)
                             })
                             .catch(report)
                         }
@@ -376,95 +384,73 @@ export default function UiReview() {
                         {generate.isPending ? <Spinner className="size-3.5" /> : <SparklesIcon />}
                         Generate
                       </Button>
+                      {activeVariant?.code ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setExpanded(true)}
+                        >
+                          <Maximize2Icon />
+                          Expand
+                        </Button>
+                      ) : null}
                     </div>
 
-                    {latest ? (
+                    {activeVariant ? (
                       <>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-xs uppercase">Concept</span>
+                          <Select
+                            value={activeVariant.id}
+                            onValueChange={(value) => {
+                              if (typeof value === 'string') setVariantId(value)
+                            }}
+                          >
+                            <SelectTrigger className="h-7 w-40 text-xs">
+                              <SelectValue>
+                                {(value: string) => {
+                                  const index = data.variants.findIndex(
+                                    (variant) => variant.id === value
+                                  )
+
+                                  return index >= 0 ? `Concept ${index + 1}` : 'Concept'
+                                }}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {data.variants.map((variant, index) => (
+                                <SelectItem key={variant.id} value={variant.id}>
+                                  Concept {index + 1}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
                           <figure className="space-y-1">
-                            <button
-                              type="button"
-                              aria-label="Enlarge original screen"
-                              className="block w-full cursor-zoom-in"
-                              onClick={() =>
-                                setViewing({
-                                  src: fileSrc(data.screenshotUrl),
-                                  title: 'Original screen'
-                                })
-                              }
-                            >
-                              <img
-                                src={fileSrc(data.screenshotUrl)}
-                                alt="Original screen"
-                                className="border-border h-40 w-full border object-contain"
+                            {activeVariant.code ? (
+                              <iframe
+                                title="AI-generated redesign"
+                                sandbox=""
+                                srcDoc={previewDocument(activeVariant.code)}
+                                className="border-border h-128 w-full border bg-white"
                               />
-                            </button>
-                            <figcaption className="text-muted-foreground text-xs">
-                              Original
-                            </figcaption>
-                          </figure>
-                          <figure className="space-y-1">
-                            <button
-                              type="button"
-                              aria-label="Enlarge generated redesign"
-                              className="block w-full cursor-zoom-in"
-                              onClick={() =>
-                                setViewing({
-                                  src: fileSrc(latest.imageUrl),
-                                  title: 'AI-generated concept',
-                                  description: 'AI-generated concept, not a working UI.'
-                                })
-                              }
-                            >
-                              <img
-                                src={fileSrc(latest.imageUrl)}
-                                alt="Generated redesign concept"
-                                className="border-border h-40 w-full border object-contain"
-                              />
-                            </button>
+                            ) : null}
                             <figcaption className="text-muted-foreground font-mono text-xs uppercase">
                               AI concept
                             </figcaption>
                           </figure>
                         </div>
-                        <p className="text-muted-foreground text-xs/6">
-                          AI-generated concept, not a working UI. Use it as a visual direction, not
-                          a spec.
-                        </p>
                         <div>
                           <p className="text-muted-foreground text-xs uppercase">Addressed</p>
-                          <p className="text-xs/6">{latest.findings.join(' · ')}</p>
-                          {latest.instruction ? (
+                          <p className="text-xs/6">{activeVariant.findings.join(' · ')}</p>
+                          {activeVariant.instruction ? (
                             <p className="text-muted-foreground text-xs/6">
-                              Style: {latest.instruction}
+                              Style: {activeVariant.instruction}
                             </p>
                           ) : null}
-                        </div>
-                        <div className="flex gap-2 overflow-x-auto">
-                          {data.variants.map((variant, index) => (
-                            <button
-                              key={variant.id}
-                              type="button"
-                              aria-label={`Enlarge redesign ${index + 1}`}
-                              className={cn(
-                                'size-16 shrink-0 cursor-zoom-in border',
-                                variant.id === latest.id ? 'border-emerald-400/60' : 'border-border'
-                              )}
-                              onClick={() =>
-                                setViewing({
-                                  src: fileSrc(variant.imageUrl),
-                                  title: 'AI-generated concept',
-                                  description: 'AI-generated concept, not a working UI.'
-                                })
-                              }
-                            >
-                              <img
-                                src={fileSrc(variant.imageUrl)}
-                                alt="Redesign variant"
-                                className="h-full w-full object-cover"
-                              />
-                            </button>
-                          ))}
                         </div>
                       </>
                     ) : (
@@ -480,6 +466,26 @@ export default function UiReview() {
           )}
         </div>
       </div>
+
+      <Dialog open={expanded} onOpenChange={setExpanded}>
+        <DialogContent
+          className="h-[88vh] w-[92vw] max-w-none! gap-0 p-0 sm:max-w-none!"
+          showCloseButton
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>AI redesign</DialogTitle>
+            <DialogDescription>Full-size preview of the generated design.</DialogDescription>
+          </DialogHeader>
+          {activeVariant?.code ? (
+            <iframe
+              title="AI-generated redesign, full size"
+              sandbox=""
+              srcDoc={previewDocument(activeVariant.code)}
+              className="size-full border-0 bg-white"
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <ImageViewer image={viewing} onClose={() => setViewing(null)} />
 

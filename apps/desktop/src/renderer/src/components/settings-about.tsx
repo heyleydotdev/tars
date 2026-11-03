@@ -1,9 +1,4 @@
-import {
-  META_ASR_MODEL,
-  META_CHAT_MODEL,
-  META_IMAGE_MODEL,
-  META_SAM_MODEL
-} from '@tars/core/constants'
+import { META_ASR_MODEL, META_CHAT_MODEL, META_SAM_MODEL } from '@tars/core/constants'
 import {
   Table,
   TableBody,
@@ -70,13 +65,7 @@ export default function SettingsAbout({ appInfo }: { appInfo: AppInfo | null }) 
             </TableRow>
             <TableRow>
               <TableCell className="bg-background whitespace-normal">
-                UI review findings and redesign prompts
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell className="bg-background font-mono text-xs">{META_IMAGE_MODEL}</TableCell>
-              <TableCell className="bg-background whitespace-normal">
-                UI redesign concepts
+                UI review findings and HTML redesigns
               </TableCell>
             </TableRow>
             <TableRow>
