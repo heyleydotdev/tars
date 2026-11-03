@@ -27,7 +27,7 @@
 - Workers APIs and limits change often. Retrieve current docs before KV, R2, D1, Durable Objects, Queues, Vectorize, AI, or Agents work: https://developers.cloudflare.com/workers/ (docs MCP: https://docs.mcp.cloudflare.com/mcp).
 - Quotas live under `/platform/limits/`; product references under `/kv/`, `/r2/`, `/d1/`, `/durable-objects/`, `/queues/`, `/vectorize/`, `/workers-ai/`, `/agents/`.
 - Local dev `bunx wrangler dev --env-file ../../.env`, deploy `bun run deploy` in `apps/server` (applies remote D1 migrations first); run `bun run typegen` after `wrangler.jsonc` changes and commit `worker-configuration.d.ts`.
-- Required secrets are declared in `wrangler.jsonc` `secrets.required` — the source of truth for `Env` types; values come from the root `.env` locally and `wrangler secret put` when deployed.
+- Required secrets are declared in `wrangler.jsonc` `secrets.required` - the source of truth for `Env` types; values come from the root `.env` locally and `wrangler secret put` when deployed.
 - The Worker is a Hono app (`apps/server/src/index.ts`): trusted-origin CORS, better-auth at `/api/auth/*`, oRPC at `/api/rpc/*` plus WebSocket at `/api/ws` (raw `WebSocketPair`, `@orpc/server/websocket`; Electron main is the client). Schema is drizzle-managed: run `bun run generate` from the root (auth writes `packages/db/src/auth-schema.ts`, then drizzle-kit emits migrations), applied to D1 with apps/server's `migrate:local` / `migrate:remote`.
 - Declare oRPC errors in `packages/api/src/errors.ts` with `error()`, give them a default message, attach them with `.errors({ CODE: Error })`, and throw them with `errors.CODE(...)`. Override the message at the throw site when the context needs it. Do not throw `new ORPCError` from route handlers.
 - While `wrangler dev` runs, the Local Explorer API inspects local state: `/cdn-cgi/local/explorer/api/local/workers`, `.../storage/kv/namespaces`, `.../d1/database`, `.../r2/buckets`, plus `POST .../local/observability/query` for read-only SQL over `spans` and `logs`.
@@ -95,7 +95,7 @@
 - `chat.send` streams `phase` events around extract/repair; the renderer shows them with `PhaseProgress` (Trace).
 - Renderer routes live in `src/renderer/src/routes.tsx` (`createHashRouter`); Electron serves `file://`, so React Router framework/SPA history routing is unavailable.
 - Global state lives in `src/renderer/src/stores/*` (Zustand); select multiple fields with `useShallow`.
-- `stores/auth.ts` holds only the session; auth actions live in `src/renderer/src/lib/auth.ts`. Protected pages call `useUser()`, which reads the session from the `RequireAuth` outlet context — no null checks in pages.
+- `stores/auth.ts` holds only the session; auth actions live in `src/renderer/src/lib/auth.ts`. Protected pages call `useUser()`, which reads the session from the `RequireAuth` outlet context - no null checks in pages.
 - Preload exposes top-level bridges (`getSession`, `signIn`, `signUp`); `window.api` is window controls only.
 - IPC payloads use `@tars/core` schema types (`LoginInput`/`RegisterInput`) instead of re-validating in main.
 - Inline one-off parameter and prop types in the signature; no type alias unless reused.
