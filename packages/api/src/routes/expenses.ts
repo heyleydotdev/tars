@@ -1,7 +1,7 @@
 import type { ExpenseListOutput } from '@tars/core/schemas/expenses'
 import type { ExpenseSelect } from '@tars/db/schema'
 import { EXPENSE_ITEM_LIMIT } from '@tars/core/constants'
-import { updateExpenseSchema } from '@tars/core/schemas/expenses'
+import { createExpenseSchema, updateExpenseSchema } from '@tars/core/schemas/expenses'
 import { deleteRecordSchema } from '@tars/core/schemas/records'
 import { normalizeExpenseCategory, resolveExpenseTitle } from '@tars/core/utils/expense'
 import { expense } from '@tars/db/schema'
@@ -48,6 +48,26 @@ export const expensesRouter = {
 
     return { items: rows.map(expenseItem) }
   }),
+
+  create: protectedProcedure
+    .input(createExpenseSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const id = crypto.randomUUID()
+
+      await context.db.insert(expense).values({
+        id,
+        userId: context.session.user.id,
+        messageId: null,
+        title: input.title,
+        description: input.description,
+        amountCents: Math.round(input.amount * 100),
+        currency: input.currency,
+        category: input.category,
+        occurredAt: new Date(input.occurredAt)
+      })
+
+      return { id }
+    }),
 
   update: protectedProcedure
     .errors({ NOT_FOUND: NotFoundError })

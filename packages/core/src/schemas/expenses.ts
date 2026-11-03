@@ -23,7 +23,7 @@ export const updateExpenseSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1, ERRORS.expenseTitleRequired),
   description: z.string().trim(),
-  amount: z.number().positive(ERRORS.amountPositive),
+  amount: z.number({ error: ERRORS.amountPositive }).positive(ERRORS.amountPositive),
   currency: z
     .string()
     .trim()
@@ -32,9 +32,13 @@ export const updateExpenseSchema = z.object({
   occurredAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid })
 })
 
+export const createExpenseSchema = updateExpenseSchema.omit({ id: true })
+
 export type ExpenseItemInput = z.input<typeof expenseItemSchema>
 export type ExpenseItemOutput = z.output<typeof expenseItemSchema>
 export type ExpenseListInput = z.input<typeof expenseListSchema>
 export type ExpenseListOutput = z.output<typeof expenseListSchema>
+export type CreateExpenseInput = z.input<typeof createExpenseSchema>
+export type CreateExpenseOutput = z.output<typeof createExpenseSchema>
 export type UpdateExpenseInput = z.input<typeof updateExpenseSchema>
 export type UpdateExpenseOutput = z.output<typeof updateExpenseSchema>

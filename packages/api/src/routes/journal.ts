@@ -7,6 +7,9 @@ import type {
 import type { JournalEntrySelect, ReminderSelect, TodoSelect } from '@tars/db/schema'
 import { JOURNAL_ITEM_LIMIT } from '@tars/core/constants'
 import {
+  createJournalSchema,
+  createReminderSchema,
+  createTodoSchema,
   journalActivitySchema,
   logActivitySchema,
   recordDoneSchema,
@@ -257,6 +260,57 @@ export const journalRouter = {
             eq(journalEntry.userId, context.session.user.id)
           )
         )
+    }),
+
+  createEntry: protectedProcedure
+    .input(createJournalSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const id = crypto.randomUUID()
+
+      await context.db.insert(journalEntry).values({
+        id,
+        userId: context.session.user.id,
+        messageId: null,
+        title: input.title,
+        content: input.content,
+        mood: input.mood,
+        tags: JSON.stringify(input.tags),
+        occurredAt: new Date(input.occurredAt)
+      })
+
+      return { id }
+    }),
+
+  createTodo: protectedProcedure
+    .input(createTodoSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const id = crypto.randomUUID()
+
+      await context.db.insert(todo).values({
+        id,
+        userId: context.session.user.id,
+        messageId: null,
+        title: input.title,
+        dueAt: parseDate(input.dueAt)
+      })
+
+      return { id }
+    }),
+
+  createReminder: protectedProcedure
+    .input(createReminderSchema)
+    .handler(async ({ input, context }): Promise<{ id: string }> => {
+      const id = crypto.randomUUID()
+
+      await context.db.insert(reminder).values({
+        id,
+        userId: context.session.user.id,
+        messageId: null,
+        title: input.title,
+        remindAt: new Date(input.remindAt)
+      })
+
+      return { id }
     }),
 
   updateEntry: protectedProcedure

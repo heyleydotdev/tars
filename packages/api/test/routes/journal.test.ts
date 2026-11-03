@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { JournalPageOutput } from '@tars/core/schemas/journal'
 import type { Database } from '@tars/db/client'
-import { journalEntry } from '@tars/db/schema'
+import { journalEntry, reminder, todo } from '@tars/db/schema'
 
 import { callRpc, createTestDb, TEST_USER_ID } from '../helpers/rpc'
 
@@ -170,5 +170,105 @@ describe('journal.removeTaskActivity', () => {
       'activity-task-todo-1-2026-10-31',
       'activity-task-todo-2-2026-11-01'
     ])
+  })
+})
+
+describe('journal.createEntry', () => {
+  it('writes a note with no source message', async () => {
+    const response = await callRpc(db, 'journal/createEntry', {
+      title: 'Manual note',
+      content: 'Wrote this by hand',
+      mood: 'calm',
+      tags: ['work', 'work'],
+      occurredAt: at(1, 12)
+    })
+
+    expect(response.status).toBe(200)
+
+    const rows = await db.select().from(journalEntry)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      userId: TEST_USER_ID,
+      messageId: null,
+      title: 'Manual note',
+      content: 'Wrote this by hand',
+      mood: 'calm',
+      tags: '["work","work"]'
+    })
+    expect(rows[0]?.occurredAt.toISOString()).toBe(at(1, 12))
+    expect(rows[0]?.id).toBe((response.body as { json: { id: string } }).json.id)
+  })
+
+  it('rejects a note without content', async () => {
+    const response = await callRpc(db, 'journal/createEntry', {
+      title: null,
+      content: '   ',
+      mood: null,
+      tags: [],
+      occurredAt: at(1, 12)
+    })
+
+    expect(response.status).toBe(400)
+    expect(await db.select().from(journalEntry)).toHaveLength(0)
+  })
+})
+
+describe('journal.createTodo', () => {
+  it('creates an open task without a source message', async () => {
+    const response = await callRpc(db, 'journal/createTodo', {
+      title: 'Water plants',
+      dueAt: at(1, 18)
+    })
+
+    expect(response.status).toBe(200)
+
+    const rows = await db.select().from(todo)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      userId: TEST_USER_ID,
+      messageId: null,
+      title: 'Water plants',
+      status: 'open'
+    })
+    expect(rows[0]?.dueAt?.toISOString()).toBe(at(1, 18))
+  })
+
+  it('accepts a task without a due date', async () => {
+    await callRpc(db, 'journal/createTodo', { title: 'Someday', dueAt: null })
+
+    const [row] = await db.select().from(todo)
+
+    expect(row?.dueAt).toBeNull()
+  })
+})
+
+describe('journal.createReminder', () => {
+  it('creates a pending reminder', async () => {
+    const response = await callRpc(db, 'journal/createReminder', {
+      title: 'Call the bank',
+      remindAt: at(1, 9)
+    })
+
+    expect(response.status).toBe(200)
+
+    const rows = await db.select().from(reminder)
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      userId: TEST_USER_ID,
+      messageId: null,
+      title: 'Call the bank',
+      status: 'pending'
+    })
+    expect(rows[0]?.remindAt.toISOString()).toBe(at(1, 9))
+  })
+
+  it('rejects a missing time', async () => {
+    const response = await callRpc(db, 'journal/createReminder', { title: 'Later' })
+
+    expect(response.status).toBe(400)
+    expect(await db.select().from(reminder)).toHaveLength(0)
   })
 })

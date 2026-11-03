@@ -54,6 +54,10 @@ export const updateJournalSchema = z.object({
   occurredAt: z.iso.datetime({ offset: true, error: ERRORS.dateInvalid })
 })
 
+export const createJournalSchema = updateJournalSchema.omit({ id: true })
+export const createTodoSchema = updateTodoSchema.omit({ id: true })
+export const createReminderSchema = updateReminderSchema.omit({ id: true })
+
 export const recordDoneSchema = z.object({
   id: z.string().min(1),
   done: z.boolean()
@@ -180,6 +184,12 @@ export type UpdateTodoInput = z.input<typeof updateTodoSchema>
 export type UpdateTodoOutput = z.output<typeof updateTodoSchema>
 export type UpdateReminderInput = z.input<typeof updateReminderSchema>
 export type UpdateReminderOutput = z.output<typeof updateReminderSchema>
+export type CreateTodoInput = z.input<typeof createTodoSchema>
+export type CreateTodoOutput = z.output<typeof createTodoSchema>
+export type CreateReminderInput = z.input<typeof createReminderSchema>
+export type CreateReminderOutput = z.output<typeof createReminderSchema>
+export type CreateJournalInput = z.input<typeof createJournalSchema>
+export type CreateJournalOutput = z.output<typeof createJournalSchema>
 export type UpdateJournalInput = z.input<typeof updateJournalSchema>
 export type UpdateJournalOutput = z.output<typeof updateJournalSchema>
 export type RecordDoneInput = z.input<typeof recordDoneSchema>
