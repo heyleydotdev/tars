@@ -5,6 +5,7 @@ import type {
   LogActivityInput,
   RecordDoneInput,
   RecordDoneOutput,
+  RemoveReminderActivityInput,
   RemoveTaskActivityInput,
   UpdateJournalInput,
   UpdateReminderInput,
@@ -83,6 +84,16 @@ export function useRemoveTaskActivity() {
 
   return useMutation({
     mutationFn: (input: RemoveTaskActivityInput) => orpc.journal.removeTaskActivity.call(input),
+    onSuccess: () => invalidateJournal(queryClient)
+  })
+}
+
+export function useRemoveReminderActivity() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: RemoveReminderActivityInput) =>
+      orpc.journal.removeReminderActivity.call(input),
     onSuccess: () => invalidateJournal(queryClient)
   })
 }

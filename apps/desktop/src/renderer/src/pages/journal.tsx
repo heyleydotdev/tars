@@ -32,6 +32,7 @@ import {
   useJournalActivity,
   useJournalNotes,
   useLogActivity,
+  useRemoveReminderActivity,
   useRemoveTaskActivity,
   useSetReminderDone,
   useSetTodoDone
@@ -71,6 +72,7 @@ export default function Journal() {
   const notes = useJournalNotes(dayRange.from, dayRange.to)
   const logActivity = useLogActivity()
   const removeTaskActivity = useRemoveTaskActivity()
+  const removeReminderActivity = useRemoveReminderActivity()
   const setTodoDone = useSetTodoDone()
   const setReminderDone = useSetReminderDone()
   const deleteJournal = useDeleteJournalEntry()
@@ -294,12 +296,15 @@ export default function Journal() {
                   setReminderDone.mutate(
                     { id, done },
                     {
-                      onSuccess: () =>
-                        logAction(
-                          done ? 'reminder.done' : 'reminder.dismissed',
-                          id,
-                          reminder?.title ?? 'Reminder'
-                        )
+                      onSuccess: () => {
+                        if (done) {
+                          logAction('reminder.done', id, reminder?.title ?? 'Reminder')
+
+                          return
+                        }
+
+                        removeReminderActivity.mutate({ reminderId: id })
+                      }
                     }
                   )
                 }}
