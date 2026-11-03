@@ -29,6 +29,7 @@ Output:
 Fidelity:
 - Reproduce the screenshot's layout, spacing, hierarchy, colors, and visible copy as closely as you can, using the screen summary and findings below as context for what the original looked like.
 - Apply only the listed fixes. Each fix below includes a redesign hint, translate that hint into actual CSS/layout changes, not just a comment.
+- Mark each component you changed for a fix with data-fix="<short label from that fix>" and data-fix-why="<one sentence under 60 characters explaining the fix>". Tag a component once: put the attribute on its outermost changed element and never nest a tagged element inside another tagged element. Add the attributes only to changed components, never to untouched ones.
 - Do not introduce changes beyond the listed fixes, even if you notice other things you'd improve.
 
 Layout and assets:

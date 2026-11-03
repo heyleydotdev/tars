@@ -36,7 +36,8 @@ import {
   SelectValue
 } from '@tars/ui/components/select'
 import { Spinner } from '@tars/ui/components/spinner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tars/ui/components/tabs'
+import { Switch } from '@tars/ui/components/switch'
+import { TabsContent } from '@tars/ui/components/tabs'
 import { useHighlightedCode } from '@tars/ui/hooks/use-highlighted-code'
 import { cn } from '@tars/ui/lib/utils'
 
@@ -47,6 +48,8 @@ import ConsolePanel from '../components/console-panel'
 import ConsoleTabs from '../components/console-tabs'
 import EmptyState from '../components/empty-state'
 import ImageViewer from '../components/image-viewer'
+import LoadingScreen from '../components/loading-screen'
+import PanelTabs from '../components/panel-tabs'
 import PendingNavigationGuard from '../components/pending-navigation-guard'
 import { logAction } from '../lib/activity'
 import { SEVERITY_BADGE_TONES, UI_REVIEW_STATUS_TONES } from '../lib/badge-tones'
@@ -97,6 +100,7 @@ export default function UiReview() {
   const [deleting, setDeleting] = useState<UiReviewSummaryOutput | null>(null)
   const [viewing, setViewing] = useState<ViewerImage | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [showFixes, setShowFixes] = useState(false)
   const [variantId, setVariantId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const detail = useUiReview(activeId)
@@ -104,6 +108,8 @@ export default function UiReview() {
   const items = reviews.data?.items ?? []
   const latest = data?.variants.at(-1) ?? null
   const activeVariant = data?.variants.find((variant) => variant.id === variantId) ?? latest
+  const hasFixes = activeVariant?.code?.includes('data-fix') ?? false
+  const showFixedAreas = showFixes && hasFixes
   const busy = uploading || create.isPending || explain.isPending || generate.isPending
 
   function report(error: unknown): void {
@@ -168,10 +174,7 @@ export default function UiReview() {
           className="lg:col-span-3"
         >
           {reviews.isPending ? (
-            <div className="text-muted-foreground flex items-center gap-2 p-4 text-xs">
-              <Spinner className="size-3.5" />
-              Loading…
-            </div>
+            <LoadingScreen />
           ) : items.length === 0 ? (
             <EmptyState
               title="No Reviews"
@@ -384,7 +387,6 @@ export default function UiReview() {
                       />
                       <Button
                         type="button"
-                        size="sm"
                         disabled={
                           busy ||
                           data.review.status !== 'explained' ||
@@ -411,23 +413,11 @@ export default function UiReview() {
                         {generate.isPending ? <Spinner className="size-3.5" /> : <SparklesIcon />}
                         Generate
                       </Button>
-                      {activeVariant?.code ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setExpanded(true)}
-                        >
-                          <Maximize2Icon />
-                          Expand
-                        </Button>
-                      ) : null}
                     </div>
 
                     {activeVariant ? (
                       <>
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground text-xs uppercase">Concept</span>
+                        <div className="flex items-center justify-end gap-2">
                           <Select
                             value={activeVariant.id}
                             onValueChange={(value) => {
@@ -453,26 +443,24 @@ export default function UiReview() {
                               ))}
                             </SelectContent>
                           </Select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setExpanded(true)}
+                          >
+                            <Maximize2Icon />
+                            Expand
+                          </Button>
                         </div>
 
-                        <Tabs defaultValue="preview" className="flex flex-col gap-0">
-                          <TabsList
-                            variant="line"
-                            className="border-border h-8 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0"
-                          >
-                            {[
-                              { value: 'preview', label: 'Preview' },
-                              { value: 'code', label: 'Code' }
-                            ].map((tab) => (
-                              <TabsTrigger
-                                key={tab.value}
-                                value={tab.value}
-                                className="after:bg-foreground flex-none rounded-none border-r px-3 text-xs tracking-wide last:border-r-0"
-                              >
-                                {tab.label}
-                              </TabsTrigger>
-                            ))}
-                          </TabsList>
+                        <PanelTabs
+                          defaultValue="preview"
+                          items={[
+                            { value: 'preview', label: 'Preview' },
+                            { value: 'code', label: 'Code' }
+                          ]}
+                        >
                           <TabsContent value="preview" className="pt-2">
                             <figure className="space-y-1">
                               {activeVariant.code ? (
@@ -493,7 +481,7 @@ export default function UiReview() {
                           <TabsContent value="code" className="pt-2">
                             <RedesignCode code={activeVariant.code ?? ''} />
                           </TabsContent>
-                        </Tabs>
+                        </PanelTabs>
                         <div>
                           <p className="text-muted-foreground text-xs uppercase">Addressed</p>
                           <p className="text-xs/6">{activeVariant.findings.join(' · ')}</p>
@@ -520,18 +508,32 @@ export default function UiReview() {
 
       <Dialog open={expanded} onOpenChange={setExpanded}>
         <DialogContent
-          className="h-[88vh] w-[92vw] max-w-none! gap-0 p-0 sm:max-w-none!"
+          className="h-[88vh] w-[92vw] max-w-none! grid-rows-[auto_minmax(0,1fr)] gap-0 p-0 sm:max-w-none!"
           showCloseButton
         >
           <DialogHeader className="sr-only">
             <DialogTitle>AI redesign</DialogTitle>
             <DialogDescription>Full-size preview of the generated design.</DialogDescription>
           </DialogHeader>
+          <div className="border-border flex items-center gap-2 border-b px-3 py-2 pr-10">
+            <Switch
+              id="redesign-show-fixes"
+              checked={showFixedAreas}
+              disabled={!hasFixes}
+              onCheckedChange={setShowFixes}
+            />
+            <label htmlFor="redesign-show-fixes" className="text-xs">
+              Show fixed areas
+            </label>
+            {hasFixes ? null : (
+              <span className="text-muted-foreground text-xs">Not tagged in this design</span>
+            )}
+          </div>
           {activeVariant?.code ? (
             <iframe
               title="AI-generated redesign, full size"
               sandbox=""
-              srcDoc={previewDocument(activeVariant.code)}
+              srcDoc={previewDocument(activeVariant.code, showFixedAreas)}
               className="size-full border-0 bg-white"
             />
           ) : null}
