@@ -10,9 +10,16 @@
 
 Tars is an Electron desktop app with a React renderer, a Hono API on Cloudflare Workers, D1 for
 data, R2 for images. You type or talk; the app extracts tasks, reminders, expenses and journal
-entries, then keeps them editable. The same workspace handles the less personal work: measuring
-objects in photos, reconstructing incidents from evidence, turning client notes into a blueprint,
-and critiquing a screenshot into a redesigned page.
+entries, then keeps them editable. A developer kit handles the less personal work: measuring objects
+in photos against a reference card, with export to PNG, ZIP or CSV; rebuilding an incident from its
+evidence; turning client notes into a blueprint; and turning a screenshot into a working HTML
+redesign.
+
+Built for the **Meta Global AI Developer Hackathon, October 27 to November 4, 2026**. The first
+commit, `44b1e3a`, is dated 2026-10-27, so the whole history is work done during the event.
+
+Every AI feature needs a `META_AI_API` key. Without one the app still runs and the notebook screens
+work; the AI actions return an error until a key is set.
 
 ## What it does
 
@@ -66,6 +73,16 @@ shows tokens and cost per call against the configured limit.
   validation and guardrails on the server - for example, an incident root cause with no surviving
   evidence links is forced to `inconclusive`.
 
+## Models
+
+Everything goes through the Meta model API at `https://api.meta.ai/v1`, keyed with `META_AI_API`.
+
+| Feature                                                   | Model                       |
+| --------------------------------------------------------- | --------------------------- |
+| Desk chat and summaries, Blueprints, Incidents, UI Review | `muse-spark-1.3`            |
+| Measure object detection                                  | `sam-3.1`                   |
+| Voice notes                                               | `muse-voice-transcribe-1.0` |
+
 ## Getting started
 
 This is the whole path from a fresh clone to a running, populated app. Everything runs on your
@@ -114,8 +131,8 @@ openssl rand -base64 32   # paste into FILE_SIGNING_SECRET
 | `META_AI_API`          | Key for the Meta model endpoint: chat, blueprints, incidents, UI review, measure, voice. |
 
 > [!TIP]
-> Without `META_AI_API` the app still starts and Journal, Expenses, Stats, seed and wipe work - only
-> the AI actions return an error. Add the key when you have one.
+> Without `META_AI_API` the app still starts and Journal, Expenses, Stats, seed and wipe work; the
+> AI actions return an error. Add the key to use them.
 
 ### 4. Create the local database
 
