@@ -23,6 +23,10 @@ export const InternalServerError = error('INTERNAL_SERVER_ERROR', {
   message: ERRORS.tryAgain
 })
 
+export const UsageLimitError = error('LIMIT_EXCEEDED', {
+  message: ERRORS.usageLimitReached
+})
+
 export const TranscriptionFailedError = error('TRANSCRIPTION_FAILED', {
   message: ERRORS.transcriptionUnavailable
 })

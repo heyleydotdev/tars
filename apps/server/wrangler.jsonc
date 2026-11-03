@@ -31,7 +31,8 @@
   },
   "upload_source_maps": true,
   "vars": {
-    "BETTER_AUTH_TRUSTED_ORIGINS": "http://localhost:3000,com.tars.desktop:/"
+    "BETTER_AUTH_TRUSTED_ORIGINS": "http://localhost:3000,com.tars.desktop:/",
+    "USAGE_LIMIT_USD": "100"
   },
   "secrets": {
     "required": ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "META_AI_API", "FILE_SIGNING_SECRET"]

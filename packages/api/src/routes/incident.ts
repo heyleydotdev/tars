@@ -74,7 +74,7 @@ import {
 } from '@tars/db/schema'
 import { and, asc, desc, eq, inArray, sql } from '@tars/db/sql'
 
-import { openAiMiddleware, protectedProcedure } from '../context'
+import { aiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, NotFoundError } from '../errors'
 import { runStructured, runText } from '../lib/structured'
 
@@ -488,7 +488,7 @@ export const incidentRouter = {
       BAD_GATEWAY: GatewayError
     })
     .input(addIncidentEvidenceSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('incident'))
     .handler(async ({ input, context, errors }): Promise<IncidentDetailOutput> => {
       const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
       const evidenceId = input.evidenceId ?? crypto.randomUUID()
@@ -679,7 +679,7 @@ export const incidentRouter = {
   rebuildTimeline: protectedProcedure
     .errors({ NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(incidentPromptSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('incident'))
     .handler(async ({ input, context }): Promise<IncidentDetailOutput> => {
       const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
 
@@ -722,7 +722,7 @@ export const incidentRouter = {
   findRootCause: protectedProcedure
     .errors({ NOT_FOUND: NotFoundError, BAD_REQUEST: BadRequestError, BAD_GATEWAY: GatewayError })
     .input(incidentPromptSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('incident'))
     .handler(async ({ input, context, errors }): Promise<IncidentDetailOutput> => {
       const owner = await loadIncident(context.db, context.session.user.id, input.incidentId)
       const eventRows = await context.db

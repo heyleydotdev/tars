@@ -17,7 +17,7 @@ import { sleep } from '@tars/core/utils/time'
 import { measureReference } from '@tars/db/schema'
 import { and, asc, eq, isNull, or } from '@tars/db/sql'
 
-import { openAiMiddleware, protectedProcedure } from '../context'
+import { aiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, InternalServerError, RateLimitedError } from '../errors'
 import { measureHistoryRouter } from './measure-history'
 import { measureSavedRouter } from './measure-saved'
@@ -168,7 +168,7 @@ export const measureRouter = {
       RATE_LIMITED: RateLimitedError
     })
     .input(measureRequestSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('measure'))
     .handler(async ({ input, context, errors }): Promise<MeasureResultOutput> => {
       const [reference] = await context.db
         .select(referenceColumns)

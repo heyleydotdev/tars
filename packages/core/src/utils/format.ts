@@ -132,6 +132,17 @@ export function formatDuration(durationMs: number): string {
   return durationMs >= 1000 ? `${(durationMs / 1000).toFixed(1)}s` : `${durationMs}ms`
 }
 
+const usdMicrosFormat = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 4
+})
+
+export function formatUsdMicros(micros: number): string {
+  return usdMicrosFormat.format(micros / 1_000_000)
+}
+
 export function formatCurrency(amountCents: number, currency: string): string {
   let format = amountFormats.get(currency)
 

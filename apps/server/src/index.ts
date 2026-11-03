@@ -7,6 +7,7 @@ import { requestId } from 'hono/request-id'
 import { rpcHandler, rpcWebSocketHandler } from '@tars/api/server'
 import { createAuth } from '@tars/auth/server'
 import { ERRORS } from '@tars/core/errors'
+import { usageLimitMicros } from '@tars/core/utils/usage'
 import { createDb } from '@tars/db/client'
 
 import type { AppEnv } from './env'
@@ -75,7 +76,8 @@ app.get('/api/ws', (c) => {
       auth: c.get('auth'),
       metaAiApiKey: c.env.META_AI_API,
       fileSecret: c.env.FILE_SIGNING_SECRET,
-      files: c.env.FILES
+      files: c.env.FILES,
+      usageLimitMicros: usageLimitMicros(c.env.USAGE_LIMIT_USD)
     }
   })
 
@@ -90,7 +92,8 @@ app.use('/api/rpc/*', async (c, next) => {
       auth: c.get('auth'),
       metaAiApiKey: c.env.META_AI_API,
       fileSecret: c.env.FILE_SIGNING_SECRET,
-      files: c.env.FILES
+      files: c.env.FILES,
+      usageLimitMicros: usageLimitMicros(c.env.USAGE_LIMIT_USD)
     }
   })
 

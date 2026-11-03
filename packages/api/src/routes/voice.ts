@@ -1,17 +1,18 @@
 import { decodeBase64url } from '@orpc/server/helpers'
 
-import { META_ASR_MODEL, VOICE_WAKE_PHRASES } from '@tars/core/constants'
+import { META_ASR_MODEL, META_ASR_PRICE_MICROS, VOICE_WAKE_PHRASES } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
 import { transcribeSchema } from '@tars/core/schemas/chat'
+import { usageEvent } from '@tars/db/schema'
 
-import { openAiMiddleware, protectedProcedure } from '../context'
+import { aiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, TranscriptionFailedError } from '../errors'
 
 export const voiceRouter = {
   transcribe: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, TRANSCRIPTION_FAILED: TranscriptionFailedError })
     .input(transcribeSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('voice'))
     .handler(async ({ input, context, errors }) => {
       const audio = decodeBase64url(input.audio)
 
@@ -47,6 +48,20 @@ export const voiceRouter = {
         })
       } catch {
         throw errors.TRANSCRIPTION_FAILED()
+      }
+
+      try {
+        await context.db.insert(usageEvent).values({
+          id: crypto.randomUUID(),
+          userId: context.session.user.id,
+          feature: 'voice',
+          model: META_ASR_MODEL,
+          inputTokens: 0,
+          outputTokens: 0,
+          costMicros: META_ASR_PRICE_MICROS
+        })
+      } catch (error) {
+        console.error('usage record failed', error)
       }
 
       return { text: data.transcript?.trim() ?? '' }

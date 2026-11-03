@@ -6,6 +6,7 @@ import { incidentRouter } from './routes/incident'
 import { journalRouter } from './routes/journal'
 import { measureRouter } from './routes/measure'
 import { uiReviewRouter } from './routes/ui-review'
+import { usageRouter } from './routes/usage'
 import { voiceRouter } from './routes/voice'
 
 export const router = base.router({
@@ -16,6 +17,7 @@ export const router = base.router({
   journal: journalRouter,
   measure: measureRouter,
   uiReview: uiReviewRouter,
+  usage: usageRouter,
   voice: voiceRouter
 })
 

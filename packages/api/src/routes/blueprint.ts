@@ -60,7 +60,7 @@ import {
 } from '@tars/db/schema'
 import { and, asc, desc, eq, inArray, sql } from '@tars/db/sql'
 
-import { openAiMiddleware, protectedProcedure } from '../context'
+import { aiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, NotFoundError } from '../errors'
 import { runStructured, runText } from '../lib/structured'
 
@@ -407,7 +407,7 @@ export const blueprintRouter = {
   hierarchy: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(blueprintIdSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('blueprint'))
     .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
       const owner = await loadBlueprint(context.db, context.session.user.id, input.id)
       const requirements = await requirementInputs(context.db, owner.id)
@@ -447,7 +447,7 @@ export const blueprintRouter = {
   flow: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(blueprintIdSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('blueprint'))
     .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
       const owner = await loadBlueprint(context.db, context.session.user.id, input.id)
       const requirements = await requirementInputs(context.db, owner.id)
@@ -487,7 +487,7 @@ export const blueprintRouter = {
   extract: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(blueprintIdSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('blueprint'))
     .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
       const owner = await loadBlueprint(context.db, context.session.user.id, input.id)
       const evidenceRows = await context.db
@@ -591,7 +591,7 @@ export const blueprintRouter = {
   findGaps: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(blueprintIdSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('blueprint'))
     .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
       const owner = await loadBlueprint(context.db, context.session.user.id, input.id)
       const requirements = await requirementInputs(context.db, owner.id)
@@ -725,7 +725,7 @@ export const blueprintRouter = {
   draft: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(blueprintIdSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('blueprint'))
     .handler(async ({ input, context, errors }): Promise<BlueprintDetailOutput> => {
       const owner = await loadBlueprint(context.db, context.session.user.id, input.id)
       const requirements = await requirementInputs(context.db, owner.id)

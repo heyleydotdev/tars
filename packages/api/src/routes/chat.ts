@@ -56,7 +56,7 @@ import {
 } from '@tars/db/schema'
 import { and, asc, desc, eq, inArray } from '@tars/db/sql'
 
-import { openAiMiddleware, protectedProcedure } from '../context'
+import { aiMiddleware, protectedProcedure } from '../context'
 import { ChatFailedError, NotFoundError, SummaryFailedError } from '../errors'
 
 type DeskPhase = ChatPhaseOutput['phase']
@@ -254,7 +254,7 @@ export const chatRouter = {
     .errors({ CHAT_FAILED: ChatFailedError })
     .input(sendChatMessageSchema)
     .output(asyncIteratorObject(chatEventSchema))
-    .use(openAiMiddleware)
+    .use(aiMiddleware('chat'))
     .handler(async function* ({ input, context, signal, errors }) {
       const userId = context.session.user.id
       const chatId = await resolveChatId(context.db, userId)
@@ -419,7 +419,7 @@ export const chatRouter = {
     .errors({ SUMMARY_FAILED: SummaryFailedError })
     .input(summarizeChatSchema)
     .output(asyncIteratorObject(chatEventSchema))
-    .use(openAiMiddleware)
+    .use(aiMiddleware('chat'))
     .handler(async function* ({ input, context, signal, errors }) {
       const userId = context.session.user.id
       const chatId = await resolveChatId(context.db, userId)

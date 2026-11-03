@@ -26,7 +26,7 @@ import { uiFinding, uiReview, uiVariant } from '@tars/db/schema'
 import { and, asc, desc, eq, sql } from '@tars/db/sql'
 
 import type { ModelInput } from '../lib/structured'
-import { openAiMiddleware, protectedProcedure } from '../context'
+import { aiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, NotFoundError } from '../errors'
 import { runStructured } from '../lib/structured'
 
@@ -249,7 +249,7 @@ export const uiReviewRouter = {
   explain: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(uiReviewIdSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('ui'))
     .handler(async ({ input, context, errors }): Promise<UiReviewDetailOutput> => {
       const row = await loadReview(context.db, context.session.user.id, input.reviewId)
       const object = await context.files.get(row.imageKey)
@@ -313,7 +313,7 @@ export const uiReviewRouter = {
   generate: protectedProcedure
     .errors({ BAD_REQUEST: BadRequestError, NOT_FOUND: NotFoundError, BAD_GATEWAY: GatewayError })
     .input(generateUiRedesignSchema)
-    .use(openAiMiddleware)
+    .use(aiMiddleware('ui'))
     .handler(async ({ input, context, errors }): Promise<UiReviewDetailOutput> => {
       const row = await loadReview(context.db, context.session.user.id, input.reviewId)
       const [countRow] = await context.db
