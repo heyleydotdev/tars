@@ -10,7 +10,15 @@ export function parseUiExplain(text: string): Parsed<UiExplainOutput> {
 
 export function sanitizeUiCode(value: string): string {
   const fenced = value.match(/```(?:html)?\s*([\s\S]*?)```/i)
-  const code = (fenced?.[1] ?? value).trim()
+  let code = (fenced?.[1] ?? value).trim()
+
+  const start = code.search(/<!doctype html|<html[\s>]/i)
+
+  if (start > 0) code = code.slice(start)
+
+  const end = code.toLowerCase().lastIndexOf('</html>')
+
+  if (end >= 0) code = code.slice(0, end + '</html>'.length)
 
   return code
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')

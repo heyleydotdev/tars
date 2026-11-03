@@ -330,10 +330,14 @@ export const uiReviewRouter = {
         code = sanitizeUiCode(raw)
       } catch (error) {
         console.error('ui redesign code failed', error)
+
+        if ((error as { code?: string }).code === 'LIMIT_EXCEEDED') throw error
+
         throw new GatewayError({ message: ERRORS.uiRedesignFailed })
       }
 
-      if (!code || !/<\/html>\s*$/i.test(code)) {
+      if (!code) {
+        console.error('ui redesign returned empty code')
         throw new GatewayError({ message: ERRORS.uiRedesignFailed })
       }
 

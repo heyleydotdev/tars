@@ -21,14 +21,31 @@ Rules:
 
 const CODE_PROMPT = `Rebuild the attached UI screenshot as a working HTML and CSS page, applying the requested design fixes.
 
-Rules:
-- Return one complete HTML document. No markdown fences, no prose outside the document.
-- Inline all CSS in a single <style> tag. No external fonts, stylesheets, scripts, or images.
-- Reproduce the screenshot's layout, spacing, hierarchy, colors, and visible copy as closely as you can. Use system font stacks and CSS only.
-- Apply each requested fix. Do not introduce unrelated changes.
-- Keep the page self-contained and sized to the viewport: body { margin: 0 } and a full-width layout.
-- No <script>, no event handler attributes, no forms that submit.
-- Generic placeholder content only; never invent brands, real people, or real data.`
+Output:
+- Return one complete HTML document, starting with <!DOCTYPE html>. No markdown fences, no prose outside the document.
+- Include <meta charset="utf-8"> and <meta name="viewport" content="width=device-width, initial-scale=1">.
+- Inline all CSS in a single <style> tag. No external fonts, stylesheets, scripts, or images. Use system font stacks only (e.g. -apple-system, Segoe UI, Roboto, sans-serif).
+
+Fidelity:
+- Reproduce the screenshot's layout, spacing, hierarchy, colors, and visible copy as closely as you can, using the screen summary and findings below as context for what the original looked like.
+- Apply only the listed fixes. Each fix below includes a redesign hint, translate that hint into actual CSS/layout changes, not just a comment.
+- Do not introduce changes beyond the listed fixes, even if you notice other things you'd improve.
+
+Layout and assets:
+- Use flexbox or CSS grid for layout, not absolute positioning, so the page reflows sensibly.
+- box-sizing: border-box on all elements. body { margin: 0 }, full-width layout sized to the viewport, no fixed pixel-width containers wider than the viewport.
+- Never recreate photos, illustrations, or screenshots. Where the original shows an image, render a simple neutral placeholder block (e.g. a muted <div> with a fixed aspect ratio) in the same position. Draw interface icons as inline SVG with no external references: viewBox="0 0 24 24", fill="none", stroke="currentColor", stroke-width 1.5 to 2, round caps and joins, aria-hidden="true". Use familiar Lucide-style shapes for search, menu, bell, user, chevron, check, plus, and similar, and size them with CSS width and height. Prefer SVG over Unicode glyphs or CSS shapes for icons; never invent complex illustrations. For the placeholder block, use a plain muted rectangle only. No <img> tags, no external assets, no icon fonts, and never a broken image.
+- No <script> tags, no inline event handler attributes (onclick, onchange, etc.), no <form> with an action or submit behavior. If a fix seems to require interactivity, express it visually only (e.g. a styled toggle in its "on" state) rather than making it functional.
+
+Content:
+- Generic placeholder content only. Never invent brands, real people, logos, or real data. Keep text short, matching the original's approximate text length, don't pad with filler sentences.
+
+Context:
+Screen summary: {{summary}}
+Platform: {{platform}}
+Fixes to apply:
+{{fixesList}}
+{{styleInstruction}}`
 
 type Finding = {
   label: string
@@ -52,7 +69,11 @@ export function buildUiCodePrompt(options: {
   const findings = options.findings
     .map((finding) => `- [${finding.severity}] ${finding.label}: ${finding.redesignHint}`)
     .join('\n')
-  const instruction = options.instruction ? `\nStyle request: ${options.instruction}` : ''
+  const instruction = options.instruction ? `Style request: ${options.instruction}` : ''
 
-  return `${CODE_PROMPT}\n\nPlatform: ${platform}\nScreen summary:\n${summary}\n\nFixes to apply:\n${findings || 'None.'}${instruction}`
+  return CODE_PROMPT.replace('{{summary}}', () => summary)
+    .replace('{{platform}}', () => platform)
+    .replace('{{fixesList}}', () => findings || 'None.')
+    .replace('{{styleInstruction}}', () => instruction)
+    .trim()
 }
