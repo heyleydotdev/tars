@@ -121,7 +121,6 @@ export const actionActivityActionSchema = z.enum([
   'task.deleted',
   'reminder.updated',
   'reminder.done',
-  'reminder.dismissed',
   'reminder.deleted',
   'expense.updated',
   'expense.deleted'
@@ -150,6 +149,10 @@ export const logActivitySchema = z.object({
 
 export const removeTaskActivitySchema = z.object({
   todoId: z.string().min(1)
+})
+
+export const removeReminderActivitySchema = z.object({
+  reminderId: z.string().min(1)
 })
 
 export const journalNotesPageSchema = z.object({
@@ -197,6 +200,8 @@ export type LogActivityInput = z.input<typeof logActivitySchema>
 export type LogActivityOutput = z.output<typeof logActivitySchema>
 export type RemoveTaskActivityInput = z.input<typeof removeTaskActivitySchema>
 export type RemoveTaskActivityOutput = z.output<typeof removeTaskActivitySchema>
+export type RemoveReminderActivityInput = z.input<typeof removeReminderActivitySchema>
+export type RemoveReminderActivityOutput = z.output<typeof removeReminderActivitySchema>
 export type JournalActivityInput = z.input<typeof journalActivitySchema>
 export type JournalActivityOutput = z.output<typeof journalActivitySchema>
 export type JournalActivityPageInput = z.input<typeof journalActivityPageSchema>

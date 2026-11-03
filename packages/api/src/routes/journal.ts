@@ -10,6 +10,7 @@ import {
   journalActivitySchema,
   logActivitySchema,
   recordDoneSchema,
+  removeReminderActivitySchema,
   removeTaskActivitySchema,
   updateJournalSchema,
   updateReminderSchema,
@@ -243,6 +244,19 @@ export const journalRouter = {
       if (latest) {
         await context.db.delete(journalEntry).where(eq(journalEntry.id, latest.id))
       }
+    }),
+
+  removeReminderActivity: protectedProcedure
+    .input(removeReminderActivitySchema)
+    .handler(async ({ input, context }): Promise<void> => {
+      await context.db
+        .delete(journalEntry)
+        .where(
+          and(
+            eq(journalEntry.id, `activity-reminder-done-${input.reminderId}`),
+            eq(journalEntry.userId, context.session.user.id)
+          )
+        )
     }),
 
   updateEntry: protectedProcedure

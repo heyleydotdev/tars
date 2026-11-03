@@ -29,7 +29,6 @@ const ACTION_TITLES: Record<ActionActivityAction, string> = {
   'task.deleted': 'Task deleted',
   'reminder.updated': 'Reminder updated',
   'reminder.done': 'Reminder done',
-  'reminder.dismissed': 'Reminder dismissed',
   'reminder.deleted': 'Reminder deleted',
   'expense.updated': 'Expense updated',
   'expense.deleted': 'Expense deleted'

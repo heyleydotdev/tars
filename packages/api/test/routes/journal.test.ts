@@ -105,6 +105,37 @@ describe('journal.logActivity', () => {
   })
 })
 
+describe('journal.removeReminderActivity', () => {
+  it('deletes only the reminder done row', async () => {
+    await db.insert(journalEntry).values([
+      {
+        id: 'activity-reminder-done-reminder-1',
+        userId: TEST_USER_ID,
+        content: 'Standup',
+        tags: '["activity","reminder"]',
+        occurredAt: new Date(at(1, 9))
+      },
+      {
+        id: 'activity-reminder-done-reminder-2',
+        userId: TEST_USER_ID,
+        content: 'Retro',
+        tags: '["activity","reminder"]',
+        occurredAt: new Date(at(1, 10))
+      }
+    ])
+
+    const response = await callRpc(db, 'journal/removeReminderActivity', {
+      reminderId: 'reminder-1'
+    })
+
+    expect(response.status).toBe(200)
+
+    const rows = await db.select({ id: journalEntry.id }).from(journalEntry)
+
+    expect(rows.map((row) => row.id)).toEqual(['activity-reminder-done-reminder-2'])
+  })
+})
+
 describe('journal.removeTaskActivity', () => {
   it('deletes the latest row for that todo only', async () => {
     await db.insert(journalEntry).values([
