@@ -19,19 +19,16 @@ Rules:
 - No invented product names, brands, data, or metrics.
 - No markdown, no prose outside the JSON object.`
 
-const REDESIGN_PROMPT = `Write one image-generation prompt for a redesigned UI concept.
+const CODE_PROMPT = `Rebuild the attached UI screenshot as a working HTML and CSS page, applying the requested design fixes.
 
 Rules:
-- Open with the platform and screen type only (e.g. "Settings page for a mobile app,"). Never open with a device or browser frame.
-- Describe layout, spacing, visual hierarchy, contrast, and the primary call to action, using the redesign hints as the concrete instructions to draw.
-- Specify a clean, modern, contemporary product UI style with generous whitespace, crisp typography, and subtle depth.
-- Show the screen edge to edge and fill the canvas. No browser chrome, no device frame, no laptop or phone outline.
-- Not a photograph, not a 3D render.
-- Any on-screen text must be minimal and generic (short labels, placeholder word count), never full sentences or real copy — image models render long text as garbled artifacts, so keep text elements short and sparse.
-- Address only the selected findings and the optional style instruction. Don't introduce unrelated changes.
-- Keep branding neutral: no logos, no real people, no readable brand names, no real data.
-- End with a short palette/typography cue (e.g. "muted blue and white palette, generous whitespace, sans-serif type") so repeated generations stay visually consistent.
-- Return a single prompt under 600 characters. No preamble, no quotes.`
+- Return one complete HTML document. No markdown fences, no prose outside the document.
+- Inline all CSS in a single <style> tag. No external fonts, stylesheets, scripts, or images.
+- Reproduce the screenshot's layout, spacing, hierarchy, colors, and visible copy as closely as you can. Use system font stacks and CSS only.
+- Apply each requested fix. Do not introduce unrelated changes.
+- Keep the page self-contained and sized to the viewport: body { margin: 0 } and a full-width layout.
+- No <script>, no event handler attributes, no forms that submit.
+- Generic placeholder content only; never invent brands, real people, or real data.`
 
 type Finding = {
   label: string
@@ -44,7 +41,7 @@ export function buildUiExplainPrompt(): string {
   return EXPLAIN_PROMPT
 }
 
-export function buildUiRedesignPrompt(options: {
+export function buildUiCodePrompt(options: {
   summary: string | null
   platform: string | null
   findings: Array<Finding>
@@ -57,5 +54,5 @@ export function buildUiRedesignPrompt(options: {
     .join('\n')
   const instruction = options.instruction ? `\nStyle request: ${options.instruction}` : ''
 
-  return `${REDESIGN_PROMPT}\n\nPlatform: ${platform}\nScreen summary:\n${summary}\n\nRedesign instructions to draw:\n${findings || 'None.'}${instruction}`
+  return `${CODE_PROMPT}\n\nPlatform: ${platform}\nScreen summary:\n${summary}\n\nFixes to apply:\n${findings || 'None.'}${instruction}`
 }

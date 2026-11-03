@@ -17,7 +17,7 @@ export const uiVariantSchema = z.object({
   prompt: z.string().min(1),
   instruction: z.string().nullable(),
   findings: z.array(z.string()),
-  imageUrl: z.string().min(1),
+  code: z.string().nullable(),
   createdAt: z.string()
 })
 

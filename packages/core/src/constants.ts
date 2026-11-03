@@ -6,7 +6,6 @@ export const META_ASR_MODEL = 'muse-voice-transcribe-1.0'
 export const META_MODEL_API_URL = 'https://api.meta.ai/v1'
 export const META_CHAT_MODEL = 'muse-spark-1.3'
 export const META_SAM_MODEL = 'sam-3.1'
-export const META_IMAGE_MODEL = 'muse-image-1.0'
 export const META_CHAT_MAX_TOKENS = 6_000
 // Default when the server's USAGE_LIMIT_USD env var is missing.
 export const FREE_TIER_MICROS = 100_000_000
@@ -32,7 +31,7 @@ export const BLUEPRINT_EVIDENCE_LIMIT = 12
 export const BLUEPRINT_REQUIREMENT_LIMIT = 40
 export const BLUEPRINT_QUESTION_LIMIT = 4
 export const UI_REVIEW_FINDING_LIMIT = 8
-export const UI_REVIEW_VARIANT_LIMIT = 4
+export const UI_REVIEW_CODE_LIMIT = 60_000
 export const JOURNAL_ITEM_LIMIT = 100
 export const EXPENSE_ITEM_LIMIT = 500
 

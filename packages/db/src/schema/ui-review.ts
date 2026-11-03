@@ -52,7 +52,7 @@ export const uiVariant = sqliteTable(
     reviewId: text('review_id')
       .notNull()
       .references(() => uiReview.id, { onDelete: 'cascade' }),
-    imageKey: text('image_key').notNull(),
+    code: text('code'),
     prompt: text('prompt').notNull(),
     instruction: text('instruction'),
     findings: text('findings', { mode: 'json' }).$type<Array<string>>().notNull(),

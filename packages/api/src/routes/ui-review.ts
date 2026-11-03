@@ -9,26 +9,25 @@ import type {
 import type { UiExplainOutput } from '@tars/core/schemas/ui-review-ai'
 import type { Database } from '@tars/db/client'
 import type { UiFindingSelect, UiReviewSelect, UiVariantSelect } from '@tars/db/schema'
-import { META_IMAGE_MODEL, UI_REVIEW_VARIANT_LIMIT } from '@tars/core/constants'
 import { ERRORS } from '@tars/core/errors'
-import { buildUiExplainPrompt, buildUiRedesignPrompt } from '@tars/core/prompts/ui-review'
+import { buildUiCodePrompt, buildUiExplainPrompt } from '@tars/core/prompts/ui-review'
 import {
   createUiReviewSchema,
   generateUiRedesignSchema,
   uiReviewIdSchema,
   updateUiFindingSchema
 } from '@tars/core/schemas/ui-review'
-import { uiExplainJsonSchema, uiPromptJsonSchema } from '@tars/core/schemas/ui-review-ai'
+import { uiExplainJsonSchema } from '@tars/core/schemas/ui-review-ai'
 import { signFileKey } from '@tars/core/services/files'
 import { fileKey, signedFilePath } from '@tars/core/utils/files'
-import { parseUiExplain, parseUiPrompt } from '@tars/core/utils/ui-review'
+import { parseUiExplain, sanitizeUiCode } from '@tars/core/utils/ui-review'
 import { uiFinding, uiReview, uiVariant } from '@tars/db/schema'
 import { and, asc, desc, eq, sql } from '@tars/db/sql'
 
 import type { ModelInput } from '../lib/structured'
 import { aiMiddleware, protectedProcedure } from '../context'
 import { BadRequestError, GatewayError, NotFoundError } from '../errors'
-import { runStructured } from '../lib/structured'
+import { runStructured, runText } from '../lib/structured'
 
 type ReviewContext = { db: Database; fileSecret: string }
 
@@ -67,7 +66,7 @@ async function serializeVariant(
     prompt: row.prompt,
     instruction: row.instruction,
     findings: row.findings,
-    imageUrl: await signedUrl(context.fileSecret, row.imageKey),
+    code: row.code,
     createdAt: row.createdAt.toISOString()
   }
 }
@@ -126,29 +125,6 @@ async function dataUrlFromObject(object: {
   return `data:${object.httpMetadata?.contentType ?? 'image/jpeg'};base64,${btoa(binary)}`
 }
 
-function decodeBase64(value: string): Uint8Array {
-  const binary = atob(value)
-  const bytes = new Uint8Array(binary.length)
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index)
-  }
-
-  return bytes
-}
-
-function imageInfo(bytes: Uint8Array): { extension: string; contentType: string } {
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
-    return { extension: 'webp', contentType: 'image/webp' }
-  }
-
-  if (bytes[0] === 0x89 && bytes[1] === 0x50) {
-    return { extension: 'png', contentType: 'image/png' }
-  }
-
-  return { extension: 'jpg', contentType: 'image/jpeg' }
-}
-
 export const uiReviewRouter = {
   list: protectedProcedure.handler(async ({ context }): Promise<UiReviewListOutput> => {
     const rows = await context.db
@@ -205,18 +181,11 @@ export const uiReviewRouter = {
     .input(uiReviewIdSchema)
     .handler(async ({ input, context }): Promise<void> => {
       const row = await loadReview(context.db, context.session.user.id, input.reviewId)
-      const variants = await context.db
-        .select({ imageKey: uiVariant.imageKey })
-        .from(uiVariant)
-        .where(eq(uiVariant.reviewId, row.id))
-
       await context.db.delete(uiReview).where(eq(uiReview.id, row.id))
 
-      await context.files
-        .delete([row.imageKey, ...variants.map((variant) => variant.imageKey)])
-        .catch((error: unknown) => {
-          console.error('ui review image cleanup failed', error)
-        })
+      await context.files.delete([row.imageKey]).catch((error: unknown) => {
+        console.error('ui review image cleanup failed', error)
+      })
     }),
 
   updateFinding: protectedProcedure
@@ -316,15 +285,6 @@ export const uiReviewRouter = {
     .use(aiMiddleware('ui'))
     .handler(async ({ input, context, errors }): Promise<UiReviewDetailOutput> => {
       const row = await loadReview(context.db, context.session.user.id, input.reviewId)
-      const [countRow] = await context.db
-        .select({ count: sql<number>`count(*)` })
-        .from(uiVariant)
-        .where(eq(uiVariant.reviewId, row.id))
-
-      if (Number(countRow?.count ?? 0) >= UI_REVIEW_VARIANT_LIMIT) {
-        throw errors.BAD_REQUEST({ message: ERRORS.uiVariantLimit })
-      }
-
       const findings = await context.db
         .select()
         .from(uiFinding)
@@ -335,13 +295,16 @@ export const uiReviewRouter = {
         throw errors.BAD_REQUEST({ message: ERRORS.uiFindingNone })
       }
 
-      let prompt: string
+      let code: string
 
       try {
-        const built = await runStructured(context.openAi, {
-          name: 'ui_redesign_prompt',
-          schema: uiPromptJsonSchema as Record<string, unknown>,
-          instructions: buildUiRedesignPrompt({
+        const object = await context.files.get(row.imageKey)
+
+        if (!object) throw errors.BAD_REQUEST({ message: ERRORS.uiScreenshotMissing })
+
+        const image = await dataUrlFromObject(object)
+        const raw = await runText(context.openAi, {
+          instructions: buildUiCodePrompt({
             summary: row.summary,
             platform: row.platform,
             findings: findings.map((finding) => ({
@@ -352,52 +315,33 @@ export const uiReviewRouter = {
             })),
             instruction: input.instruction
           }),
-          input: 'Write the image prompt.',
-          parse: parseUiPrompt
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [
+                { type: 'input_text', text: 'Rebuild this screen and apply the fixes.' },
+                { type: 'input_image', image_url: image, detail: 'auto' }
+              ]
+            }
+          ] satisfies ModelInput
         })
 
-        prompt = built.prompt
+        code = sanitizeUiCode(raw)
       } catch (error) {
-        console.error('ui redesign prompt failed', error)
+        console.error('ui redesign code failed', error)
         throw new GatewayError({ message: ERRORS.uiRedesignFailed })
       }
 
-      let bytes: Uint8Array
-
-      try {
-        const generated = await context.openAi.images.generate({
-          model: META_IMAGE_MODEL,
-          prompt,
-          n: 1,
-          size: '1024x1024'
-        })
-        const encoded = generated.data?.[0]?.b64_json
-
-        if (!encoded) throw new Error('no image data')
-
-        bytes = decodeBase64(encoded)
-      } catch (error) {
-        console.error('ui redesign image failed', error)
+      if (!code || !/<\/html>\s*$/i.test(code)) {
         throw new GatewayError({ message: ERRORS.uiRedesignFailed })
       }
 
-      const variantId = crypto.randomUUID()
-      const info = imageInfo(bytes)
-      const imageKey = fileKey(
-        'ui',
-        context.session.user.id,
-        row.id,
-        `${variantId}.${info.extension}`
-      )
-
-      await context.files.put(imageKey, bytes.buffer as ArrayBuffer, {
-        httpMetadata: { contentType: info.contentType }
-      })
       await context.db.insert(uiVariant).values({
-        id: variantId,
+        id: crypto.randomUUID(),
         reviewId: row.id,
-        imageKey,
-        prompt,
+        code,
+        prompt: 'html',
         instruction: input.instruction,
         findings: findings.map((finding) => finding.label)
       })

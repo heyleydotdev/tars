@@ -129,7 +129,6 @@ export const ERRORS = {
   uiScreenshotMissing: 'Upload a screenshot first.',
   uiExplainFailed: 'Could not review this screenshot. Try again.',
   uiRedesignFailed: 'Could not generate a redesign. Try again.',
-  uiVariantLimit: 'This screenshot already has four redesigns.',
   uiFindingNone: 'Keep at least one finding to redesign.',
   incidentAnalysisFailed: 'Could not analyze this incident. Try again.',
   incidentAnswerRequired: 'Answer the question first.',
