@@ -10,6 +10,7 @@ import {
   fromDateTimeLocalRequired,
   toDateTimeLocal
 } from '@tars/core/utils/format'
+import { parseTagList } from '@tars/core/utils/journal'
 import { Button } from '@tars/ui/components/button'
 import {
   Dialog,
@@ -37,17 +38,6 @@ const journalFormSchema = z.object({
     .min(1, ERRORS.dateInvalid)
     .refine((value) => fromDateTimeLocal(value) !== null, ERRORS.dateInvalid)
 })
-
-function parseTags(value: string): Array<string> {
-  return [
-    ...new Set(
-      value
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean)
-    )
-  ]
-}
 
 export default function JournalEditDialog({
   entry,
@@ -78,7 +68,7 @@ export default function JournalEditDialog({
           title: value.title.trim() || null,
           content: value.content.trim(),
           mood: value.mood.trim() || null,
-          tags: parseTags(value.tags),
+          tags: parseTagList(value.tags),
           occurredAt: fromDateTimeLocalRequired(value.occurredAt)
         })
         onOpenChange(false)

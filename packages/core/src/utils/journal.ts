@@ -95,6 +95,17 @@ export function activityIncidentId(activityEntryId: string): string | null {
   return activityEntryId.slice('activity-incident-'.length).replace(/-(opened|approved)$/, '')
 }
 
+export function parseTagList(value: string): Array<string> {
+  return [
+    ...new Set(
+      value
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    )
+  ]
+}
+
 export type ActivityKind =
   'task' | 'incident' | 'measure' | 'reminder' | 'expense' | 'blueprint' | 'ui' | 'activity'
 
