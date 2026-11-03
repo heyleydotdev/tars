@@ -47,6 +47,8 @@
 | Generate schema      | `bun run generate`                              |
 | Apply local D1       | `cd apps/server && bun run migrate:local`       |
 | Package desktop      | `cd apps/desktop && bun run build:win`          |
+| Seed demo data       | `bun run seed`                                  |
+| Wipe demo data       | `bun run wipe`                                  |
 | Add shadcn component | `cd packages/ui && bunx shadcn add <component>` |
 
 ## Verify Before Reporting

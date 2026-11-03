@@ -40,7 +40,11 @@
     "format:write:root": "bun fmt --no-script \"*.md\" \"*.json\" \".vscode/*.json\"",
     "generate": "bun run --filter=@tars/auth generate && bun run --filter=@tars/db generate",
     "lint": "turbo run lint",
+    "seed": "bun apps/server/scripts/seed.ts",
+    "seed:remote": "bun apps/server/scripts/seed.ts --remote",
     "typecheck": "turbo run typecheck",
+    "wipe": "bun apps/server/scripts/wipe.ts",
+    "wipe:remote": "bun apps/server/scripts/wipe.ts --remote",
     "test": "turbo run test"
   },
   "devDependencies": {

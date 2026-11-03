@@ -43,6 +43,18 @@
     },
     "test": {
       "cache": false
+    },
+    "seed": {
+      "cache": false
+    },
+    "seed:remote": {
+      "cache": false
+    },
+    "wipe": {
+      "cache": false
+    },
+    "wipe:remote": {
+      "cache": false
     }
   },
   "globalEnv": ["VITE_BETTER_AUTH_URL", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "META_AI_API"]

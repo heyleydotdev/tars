@@ -15,7 +15,11 @@
     "typecheck": "bun check -b --no-script",
     "format": "bun fmt --check --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore",
     "format:write": "bun fmt --no-script . --ignore-path ../../.gitignore --ignore-path .prettierignore",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed": "bun scripts/seed-account.ts",
+    "seed:remote": "bun scripts/seed-account.ts --remote",
+    "wipe": "wrangler d1 execute DB --local --file=scripts/wipe.sql",
+    "wipe:remote": "wrangler d1 execute DB --remote --file=scripts/wipe.sql"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261027.1",
