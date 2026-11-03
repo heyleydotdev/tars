@@ -343,7 +343,7 @@ export default function Blueprint() {
                                     <p
                                       className={cn(
                                         'text-muted-foreground text-xs/6 whitespace-pre-line',
-                                        open ? 'break-words' : 'line-clamp-3'
+                                        open ? 'wrap-break-word' : 'line-clamp-3'
                                       )}
                                     >
                                       {text}
