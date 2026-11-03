@@ -825,7 +825,7 @@ export const incidentRouter = {
               }),
               input: 'Draft the postmortem in markdown.'
             })
-          ).slice(0, 20_000)
+          ).slice(0, 64_000)
         }
 
         await context.db

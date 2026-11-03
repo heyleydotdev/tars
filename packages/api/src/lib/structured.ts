@@ -1,6 +1,10 @@
 import type OpenAI from 'openai'
 
-import { META_CHAT_MAX_TOKENS, META_CHAT_MODEL } from '@tars/core/constants'
+import {
+  META_CHAT_MAX_TOKENS,
+  META_CHAT_MODEL,
+  META_LONG_OUTPUT_TOKENS
+} from '@tars/core/constants'
 
 export type ParseResult<T> = { ok: true; result: T } | { ok: false; issues: string; output: string }
 
@@ -23,9 +27,14 @@ type ModelCall = {
   instructions: string
   input: ModelInput
   format?: { name: string; schema: Record<string, unknown> }
+  maxOutputTokens?: number
 }
 
-async function callModel(openAi: OpenAI, options: ModelCall): Promise<string> {
+type ModelResult = { text: string; incomplete: boolean }
+
+const CONTINUE_INSTRUCTIONS = `Your previous answer was cut off by the output limit. Continue the document from exactly where it stops. Return only the continuation: no repetition, no repeated heading, no commentary.`
+
+async function callModel(openAi: OpenAI, options: ModelCall): Promise<ModelResult> {
   const response = await openAi.responses.create(
     {
       model: META_CHAT_MODEL,
@@ -43,20 +52,54 @@ async function callModel(openAi: OpenAI, options: ModelCall): Promise<string> {
             }
           }
         : {}),
-      max_output_tokens: META_CHAT_MAX_TOKENS
+      max_output_tokens: options.maxOutputTokens ?? META_CHAT_MAX_TOKENS
     },
     { maxRetries: 2 }
   )
 
-  return response.output_text
+  const result = response as { output_text: string; status?: string }
+
+  return {
+    text: result.output_text,
+    incomplete: result.status === 'incomplete'
+  }
+}
+
+async function continueText(
+  openAi: OpenAI,
+  options: { instructions: string; input: ModelInput },
+  first: string,
+  maxOutputTokens: number
+): Promise<string> {
+  let text = first
+
+  for (let round = 0; round < 2; round += 1) {
+    const result = await callModel(openAi, {
+      instructions: `${options.instructions}\n\n${CONTINUE_INSTRUCTIONS}`,
+      input: `Continue this text exactly where it ends:\n\n${text.slice(-2_000)}`,
+      maxOutputTokens
+    })
+
+    text += result.text
+
+    if (!result.incomplete) return text.trim()
+  }
+
+  throw new Error('Model output was truncated')
 }
 
 export async function runText(
   openAi: OpenAI,
-  options: { instructions: string; input: ModelInput }
+  options: { instructions: string; input: ModelInput; maxOutputTokens?: number }
 ): Promise<string> {
+  const maxOutputTokens = options.maxOutputTokens ?? META_LONG_OUTPUT_TOKENS
+
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const text = (await callModel(openAi, options)).trim()
+    const result = await callModel(openAi, { ...options, maxOutputTokens })
+
+    if (result.incomplete) return continueText(openAi, options, result.text, maxOutputTokens)
+
+    const text = result.text.trim()
 
     if (text) return text
   }
@@ -75,15 +118,19 @@ export async function runStructured<T>(
     repair?: StructuredRepair
   }
 ): Promise<T> {
-  const call = (input: ModelInput): Promise<string> =>
+  const call = (input: ModelInput): Promise<ModelResult> =>
     callModel(openAi, {
       instructions: options.instructions,
       input,
-      format: { name: options.name, schema: options.schema }
+      format: { name: options.name, schema: options.schema },
+      maxOutputTokens: META_LONG_OUTPUT_TOKENS
     })
 
   const first = await call(options.input)
-  const parsed = options.parse(first)
+
+  if (first.incomplete) throw new Error('Model output was truncated')
+
+  const parsed = options.parse(first.text)
 
   if (parsed.ok) return parsed.result
 
@@ -95,7 +142,9 @@ export async function runStructured<T>(
       parsed.output
     )
   )
-  const retry = options.parse(repaired)
+  if (repaired.incomplete) throw new Error('Model output was truncated')
+
+  const retry = options.parse(repaired.text)
 
   if (retry.ok) return retry.result
 

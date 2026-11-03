@@ -7,6 +7,7 @@ export const META_MODEL_API_URL = 'https://api.meta.ai/v1'
 export const META_CHAT_MODEL = 'muse-spark-1.3'
 export const META_SAM_MODEL = 'sam-3.1'
 export const META_CHAT_MAX_TOKENS = 6_000
+export const META_LONG_OUTPUT_TOKENS = 16_000
 // Default when the server's USAGE_LIMIT_USD env var is missing.
 export const FREE_TIER_MICROS = 100_000_000
 export const META_CHAT_PRICE_INPUT_MICROS_PER_MILLION = 150_000

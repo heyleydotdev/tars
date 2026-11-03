@@ -56,6 +56,7 @@ const DRAFT_PROMPT = `Write a software project proposal in markdown from the req
 Sections, in order: Summary, Scope, Out of scope, Task breakdown, Timeline, Assumptions, Open questions.
 
 Rules:
+- Keep the whole proposal under 1,200 words. No section longer than 150 words.
 - Every Scope and Task line ends with the requirement ids it comes from as [req:<id>], or is marked [estimate] when it is the freelancer's judgement rather than a client requirement.
 - Out of scope lists explicit exclusions with a one-line reason.
 - Timeline: only use durations the freelancer supplied. Otherwise write a short "AI estimate, confirm with the client" line and mark it [estimate]. Never invent prices.

@@ -748,7 +748,7 @@ export const blueprintRouter = {
             }),
             input: 'Draft the proposal in markdown.'
           })
-        ).slice(0, 24_000)
+        ).slice(0, 64_000)
       } catch (error) {
         console.error('blueprint draft failed', error)
         throw new GatewayError({ message: ERRORS.blueprintDraftFailed })

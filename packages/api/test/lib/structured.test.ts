@@ -5,14 +5,20 @@ import { runStructured, runText } from '../../src/lib/structured'
 
 type Call = { instructions: string; input: unknown }
 
-function fakeOpenAi(responses: Array<string>) {
+type FakeResponse = string | { text: string; status: 'completed' | 'incomplete' }
+
+function fakeOpenAi(responses: Array<FakeResponse>) {
   const calls: Array<Call> = []
   const openAi = {
     responses: {
       create: async (body: Call) => {
         calls.push({ instructions: body.instructions, input: body.input })
 
-        return { output_text: responses[calls.length - 1] ?? '' }
+        const response = responses[calls.length - 1] ?? ''
+
+        return typeof response === 'string'
+          ? { output_text: response, status: 'completed' }
+          : { output_text: response.text, status: response.status }
       }
     }
   } as unknown as OpenAI
@@ -54,6 +60,12 @@ describe('runStructured', () => {
     expect(calls[1]?.instructions).toBe('base instructions')
   })
 
+  it('throws when the output is truncated', async () => {
+    const { openAi } = fakeOpenAi([{ text: '{"ok":', status: 'incomplete' }])
+
+    await expect(runStructured(openAi, base)).rejects.toThrow('truncated')
+  })
+
   it('throws when the repair also fails', async () => {
     const { openAi } = fakeOpenAi(['not json', 'still not json'])
 
@@ -62,6 +74,29 @@ describe('runStructured', () => {
 })
 
 describe('runText', () => {
+  it('continues a truncated answer', async () => {
+    const { openAi, calls } = fakeOpenAi([
+      { text: 'Part one.', status: 'incomplete' },
+      { text: ' Part two.', status: 'completed' }
+    ])
+
+    await expect(runText(openAi, { instructions: 'base', input: 'go' })).resolves.toBe(
+      'Part one. Part two.'
+    )
+    expect(calls).toHaveLength(2)
+  })
+
+  it('throws when continuation is still truncated', async () => {
+    const { openAi } = fakeOpenAi([
+      { text: 'one', status: 'incomplete' },
+      { text: 'two', status: 'incomplete' },
+      { text: 'three', status: 'incomplete' }
+    ])
+
+    await expect(runText(openAi, { instructions: 'base', input: 'go' })).rejects.toThrow(
+      'truncated'
+    )
+  })
   it('returns trimmed text', async () => {
     const { openAi } = fakeOpenAi(['  # Proposal  '])
 
