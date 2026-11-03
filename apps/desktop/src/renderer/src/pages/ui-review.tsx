@@ -7,6 +7,14 @@ import { formatTime } from '@tars/core/utils/format'
 import { Badge } from '@tars/ui/components/badge'
 import { Button } from '@tars/ui/components/button'
 import {
+  CodeBlock,
+  CodeBlockContent,
+  CodeBlockCopyButton,
+  CodeBlockHeader,
+  CodeBlockLine,
+  CodeBlockTitle
+} from '@tars/ui/components/code-block'
+import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -28,7 +36,8 @@ import {
   SelectValue
 } from '@tars/ui/components/select'
 import { Spinner } from '@tars/ui/components/spinner'
-import { TabsContent } from '@tars/ui/components/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tars/ui/components/tabs'
+import { useHighlightedCode } from '@tars/ui/hooks/use-highlighted-code'
 import { cn } from '@tars/ui/lib/utils'
 
 import type { ViewerImage } from '../components/image-viewer'
@@ -54,6 +63,24 @@ import {
   useUpdateUiFinding
 } from '../lib/ui-review'
 import { useShellAlertStore } from '../stores/alert'
+
+function RedesignCode({ code }: { code: string }) {
+  const lines = useHighlightedCode(code, 'html')
+
+  return (
+    <CodeBlock>
+      <CodeBlockHeader>
+        <CodeBlockTitle>index.html</CodeBlockTitle>
+        <CodeBlockCopyButton value={code} className="ml-auto" />
+      </CodeBlockHeader>
+      <CodeBlockContent wrap className="max-h-128">
+        {lines.map((line, index) => (
+          <CodeBlockLine key={index}>{line}</CodeBlockLine>
+        ))}
+      </CodeBlockContent>
+    </CodeBlock>
+  )
+}
 
 export default function UiReview() {
   const reviews = useUiReviews()
@@ -428,21 +455,45 @@ export default function UiReview() {
                           </Select>
                         </div>
 
-                        <div className="space-y-1">
-                          <figure className="space-y-1">
-                            {activeVariant.code ? (
-                              <iframe
-                                title="AI-generated redesign"
-                                sandbox=""
-                                srcDoc={previewDocument(activeVariant.code)}
-                                className="border-border h-128 w-full border bg-white"
-                              />
-                            ) : null}
-                            <figcaption className="text-muted-foreground font-mono text-xs uppercase">
-                              AI concept
-                            </figcaption>
-                          </figure>
-                        </div>
+                        <Tabs defaultValue="preview" className="flex flex-col gap-0">
+                          <TabsList
+                            variant="line"
+                            className="border-border h-8 w-full justify-start gap-0 rounded-none border-b bg-transparent p-0"
+                          >
+                            {[
+                              { value: 'preview', label: 'Preview' },
+                              { value: 'code', label: 'Code' }
+                            ].map((tab) => (
+                              <TabsTrigger
+                                key={tab.value}
+                                value={tab.value}
+                                className="after:bg-foreground flex-none rounded-none border-r px-3 text-xs tracking-wide last:border-r-0"
+                              >
+                                {tab.label}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                          <TabsContent value="preview" className="pt-2">
+                            <figure className="space-y-1">
+                              {activeVariant.code ? (
+                                <div className="border-border bg-background border p-1">
+                                  <iframe
+                                    title="AI-generated redesign"
+                                    sandbox=""
+                                    srcDoc={previewDocument(activeVariant.code)}
+                                    className="h-128 w-full bg-white"
+                                  />
+                                </div>
+                              ) : null}
+                              <figcaption className="text-muted-foreground font-mono text-xs uppercase">
+                                AI concept
+                              </figcaption>
+                            </figure>
+                          </TabsContent>
+                          <TabsContent value="code" className="pt-2">
+                            <RedesignCode code={activeVariant.code ?? ''} />
+                          </TabsContent>
+                        </Tabs>
                         <div>
                           <p className="text-muted-foreground text-xs uppercase">Addressed</p>
                           <p className="text-xs/6">{activeVariant.findings.join(' · ')}</p>
