@@ -1,4 +1,5 @@
 import { EyeIcon, EyeOffIcon, SlidersHorizontalIcon } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 
 import { MEASURE_UNITS } from '@tars/core/constants'
 import { Button } from '@tars/ui/components/button'
@@ -75,7 +76,20 @@ export default function MeasureAnnotationSettings({ objectCount }: { objectCount
     setStyle,
     setLabelPosition,
     setFontSize
-  } = useMeasureAnnotations()
+  } = useMeasureAnnotations(
+    useShallow((state) => ({
+      reference: state.reference,
+      objects: state.objects,
+      style: state.style,
+      labelPosition: state.labelPosition,
+      fontSize: state.fontSize,
+      setReference: state.setReference,
+      setObject: state.setObject,
+      setStyle: state.setStyle,
+      setLabelPosition: state.setLabelPosition,
+      setFontSize: state.setFontSize
+    }))
+  )
   const unit = useMeasurePreferences((state) => state.unit)
   const includeDetails = useMeasurePreferences((state) => state.includeDetails)
   const setUnit = useMeasurePreferences((state) => state.setUnit)
