@@ -32,6 +32,7 @@ export default function Expenses() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [currency, setCurrency] = useState<string | null>(null)
+  const [creatingExpense, setCreatingExpense] = useState(false)
   const [editingExpense, setEditingExpense] = useState<ExpenseItemOutput | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ExpenseItemOutput | null>(null)
   const deleteExpense = useDeleteExpense()
@@ -147,6 +148,7 @@ export default function Expenses() {
     <>
       <div className="flex min-h-full flex-col lg:h-full lg:min-h-0 lg:overflow-hidden">
         <ExpensesStats
+          onCreate={() => setCreatingExpense(true)}
           period={selectedDay ? 'day' : 'month'}
           total={formatCurrency(totalCents, activeCurrency)}
           entries={entries}
@@ -209,6 +211,16 @@ export default function Expenses() {
           </div>
         </div>
       </div>
+
+      {creatingExpense ? (
+        <ExpenseEditDialog
+          expense={null}
+          open
+          onOpenChange={(open) => {
+            if (!open) setCreatingExpense(false)
+          }}
+        />
+      ) : null}
 
       {editingExpense ? (
         <ExpenseEditDialog

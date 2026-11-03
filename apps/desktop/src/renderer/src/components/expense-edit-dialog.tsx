@@ -34,13 +34,13 @@ import { Spinner } from '@tars/ui/components/spinner'
 import { Textarea } from '@tars/ui/components/textarea'
 
 import { logAction } from '../lib/activity'
-import { useUpdateExpense } from '../lib/expenses'
+import { useCreateExpense, useUpdateExpense } from '../lib/expenses'
 import { FormError } from './form-error'
 
 const expenseFormSchema = z.object({
   title: z.string().trim().min(1, ERRORS.expenseTitleRequired),
   description: z.string(),
-  amount: z.number().positive(ERRORS.amountPositive),
+  amount: z.number({ error: ERRORS.amountPositive }).positive(ERRORS.amountPositive),
   currency: z
     .string()
     .trim()
@@ -57,36 +57,43 @@ export default function ExpenseEditDialog({
   open,
   onOpenChange
 }: {
-  expense: ExpenseItemOutput
+  expense: ExpenseItemOutput | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
   const [formError, setFormError] = useState<string | null>(null)
+  const createExpense = useCreateExpense()
   const updateExpense = useUpdateExpense()
   const form = useForm({
     defaultValues: {
-      title: expense.title,
-      description: expense.description,
-      amount: expense.amountCents / 100,
-      currency: expense.currency,
-      category: expense.category,
-      occurredAt: toDateTimeLocal(expense.occurredAt)
+      title: expense?.title ?? '',
+      description: expense?.description ?? '',
+      amount: expense ? expense.amountCents / 100 : Number.NaN,
+      currency: expense?.currency ?? 'USD',
+      category: expense?.category ?? 'other',
+      occurredAt: toDateTimeLocal(expense?.occurredAt ?? new Date().toISOString())
     },
     validators: { onSubmit: expenseFormSchema },
     onSubmit: async ({ value }) => {
       setFormError(null)
 
       try {
-        await updateExpense.mutateAsync({
-          id: expense.id,
+        const input = {
           title: value.title.trim(),
           description: value.description.trim(),
           amount: value.amount,
           currency: value.currency.toUpperCase(),
           category: value.category,
           occurredAt: fromDateTimeLocalRequired(value.occurredAt)
-        })
-        logAction('expense.updated', expense.id, value.title.trim())
+        }
+
+        if (expense) {
+          await updateExpense.mutateAsync({ id: expense.id, ...input })
+          logAction('expense.updated', expense.id, value.title.trim())
+        } else {
+          await createExpense.mutateAsync(input)
+        }
+
         onOpenChange(false)
       } catch (error) {
         setFormError(error instanceof ORPCError ? error.message : ERRORS.saveFailed)
@@ -98,8 +105,10 @@ export default function ExpenseEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Edit expense</DialogTitle>
-          <DialogDescription>Update the expense and save your changes.</DialogDescription>
+          <DialogTitle>{expense ? 'Edit expense' : 'New expense'}</DialogTitle>
+          <DialogDescription>
+            {expense ? 'Update the expense and save your changes.' : 'Record a purchase by hand.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form
@@ -254,7 +263,7 @@ export default function ExpenseEditDialog({
               selector={(state) => state.isSubmitting}
               children={(isSubmitting) => (
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? <Spinner /> : 'Save expense'}
+                  {isSubmitting ? <Spinner /> : expense ? 'Save expense' : 'Add expense'}
                 </Button>
               )}
             />

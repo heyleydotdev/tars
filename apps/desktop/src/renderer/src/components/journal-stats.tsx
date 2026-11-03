@@ -1,4 +1,9 @@
+import { PlusIcon } from 'lucide-react'
+
 import { toDateKey } from '@tars/core/utils/format'
+import { Button } from '@tars/ui/components/button'
+import { ButtonGroup } from '@tars/ui/components/button-group'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
 
 import { STAT_COLORS } from '../lib/stats-tones'
 import ConsoleHeader from './console-header'
@@ -6,11 +11,13 @@ import ConsoleStat from './console-stat'
 import DeskChatButton from './desk-chat-button'
 
 export default function JournalStats({
+  onCreate,
   notes,
   openTasks,
   doneTasks,
   reminders
 }: {
+  onCreate: () => void
   notes: number
   openTasks: number
   doneTasks: number
@@ -24,7 +31,25 @@ export default function JournalStats({
           <span className="text-muted-foreground font-mono tabular-nums">
             {toDateKey(new Date())}
           </span>
-          <DeskChatButton />
+          <ButtonGroup>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="New note, task or reminder"
+                    onClick={onCreate}
+                  />
+                }
+              >
+                <PlusIcon />
+              </TooltipTrigger>
+              <TooltipContent side="bottom">New record</TooltipContent>
+            </Tooltip>
+            <DeskChatButton />
+          </ButtonGroup>
         </>
       }
     >

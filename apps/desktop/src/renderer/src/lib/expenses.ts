@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type {
+  CreateExpenseInput,
   ExpenseItemOutput,
   ExpenseListOutput,
   UpdateExpenseInput
@@ -35,6 +36,15 @@ const expensesKey = orpc.expenses.list.queryKey()
 
 export function useExpenses(initialData?: ExpenseListOutput) {
   return useQuery({ ...orpc.expenses.list.queryOptions(), initialData })
+}
+
+export function useCreateExpense() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateExpenseInput) => orpc.expenses.create.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: expensesKey })
+  })
 }
 
 export function useUpdateExpense() {

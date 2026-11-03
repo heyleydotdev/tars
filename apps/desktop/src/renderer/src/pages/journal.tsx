@@ -18,6 +18,7 @@ import ConfirmDialog from '../components/confirm-dialog'
 import ConsolePanel from '../components/console-panel'
 import JournalAgenda from '../components/journal-agenda'
 import JournalCalendar from '../components/journal-calendar'
+import JournalCreateDialog from '../components/journal-create-dialog'
 import JournalEditDialog from '../components/journal-edit-dialog'
 import JournalFeed from '../components/journal-feed'
 import JournalStats from '../components/journal-stats'
@@ -48,6 +49,7 @@ export default function Journal() {
   const [selected, setSelected] = useState(() => new Date())
   const [filter, setFilter] = useState<JournalFeedMode>('all')
   const taskQueue = useRef(new Map<string, Promise<void>>())
+  const [creatingRecord, setCreatingRecord] = useState(false)
   const [editingJournal, setEditingJournal] = useState<JournalItemOutput | null>(null)
   const [editingTodo, setEditingTodo] = useState<TodoItemOutput | null>(null)
   const [editingReminder, setEditingReminder] = useState<ReminderItemOutput | null>(null)
@@ -89,6 +91,14 @@ export default function Journal() {
       : filter === 'activities'
         ? activities.length
         : dayNotes.length + activities.length
+  const defaultAt = useMemo(() => {
+    const date = new Date(selected)
+    const now = new Date()
+
+    date.setHours(now.getHours(), now.getMinutes(), 0, 0)
+
+    return date.toISOString()
+  }, [selected])
   const { openTasks, doneTasks, pendingReminders, dayReminders, dayTodos } = useMemo(() => {
     const key = toDateKey(selected)
     const dayReminders: JournalPageOutput['reminders'] = []
@@ -251,6 +261,7 @@ export default function Journal() {
     <>
       <div className="flex min-h-full flex-col lg:h-full lg:min-h-0 lg:overflow-hidden">
         <JournalStats
+          onCreate={() => setCreatingRecord(true)}
           notes={journals.length}
           openTasks={openTasks}
           doneTasks={doneTasks}
@@ -350,6 +361,16 @@ export default function Journal() {
           </div>
         </div>
       </div>
+
+      {creatingRecord ? (
+        <JournalCreateDialog
+          defaultAt={defaultAt}
+          open
+          onOpenChange={(open) => {
+            if (!open) setCreatingRecord(false)
+          }}
+        />
+      ) : null}
 
       {editingJournal ? (
         <JournalEditDialog

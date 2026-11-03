@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type {
   ActivityEventOutput,
+  CreateJournalInput,
+  CreateReminderInput,
+  CreateTodoInput,
   JournalActivityPageOutput,
   JournalPageOutput,
   LogActivityInput,
@@ -165,12 +168,39 @@ export function useRemoveReminderActivity() {
   })
 }
 
+export function useCreateJournalEntry() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateJournalInput) => orpc.journal.createEntry.call(input),
+    onSuccess: () => invalidateJournal(queryClient)
+  })
+}
+
 export function useUpdateJournalEntry() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (input: UpdateJournalInput) => orpc.journal.updateEntry.call(input),
     onSuccess: () => invalidateJournal(queryClient)
+  })
+}
+
+export function useCreateTodo() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateTodoInput) => orpc.journal.createTodo.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
+  })
+}
+
+export function useCreateReminder() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateReminderInput) => orpc.journal.createReminder.call(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: journalKey })
   })
 }
 

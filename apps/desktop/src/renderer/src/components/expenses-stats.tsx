@@ -1,5 +1,9 @@
+import { PlusIcon } from 'lucide-react'
+
 import { capitalize } from '@tars/core/utils/string'
 import { Button } from '@tars/ui/components/button'
+import { ButtonGroup } from '@tars/ui/components/button-group'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@tars/ui/components/tooltip'
 
 import { categoryColor } from '../lib/expenses'
 import { STAT_COLORS } from '../lib/stats-tones'
@@ -8,6 +12,7 @@ import ConsoleStat from './console-stat'
 import DeskChatButton from './desk-chat-button'
 
 export default function ExpensesStats({
+  onCreate,
   period,
   total,
   entries,
@@ -17,6 +22,7 @@ export default function ExpensesStats({
   currencies,
   onCurrencyChange
 }: {
+  onCreate: () => void
   period: 'day' | 'month'
   total: string
   entries: number
@@ -52,7 +58,25 @@ export default function ExpensesStats({
           ) : (
             <span className="text-muted-foreground font-mono uppercase">{currency}</span>
           )}
-          <DeskChatButton />
+          <ButtonGroup>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="New expense"
+                    onClick={onCreate}
+                  />
+                }
+              >
+                <PlusIcon />
+              </TooltipTrigger>
+              <TooltipContent side="bottom">New expense</TooltipContent>
+            </Tooltip>
+            <DeskChatButton />
+          </ButtonGroup>
         </>
       }
     >
