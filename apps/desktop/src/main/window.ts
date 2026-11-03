@@ -71,7 +71,7 @@ export function createWindow(): BrowserWindow {
     autoHideMenuBar: true,
     frame: false,
     backgroundColor: WINDOW_BACKGROUND,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
