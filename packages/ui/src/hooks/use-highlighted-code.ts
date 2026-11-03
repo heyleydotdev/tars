@@ -32,7 +32,7 @@ export function useHighlightedCode(value: string, language: string) {
   const [done, setDone] = React.useState<{
     highlighter: typeof highlighter
     text: string
-    lines: React.ReactNode[]
+    lines: Array<React.ReactNode>
     state?: Parameters<NonNullable<typeof highlighter>['highlight']>[1]
   }>({ highlighter: null, text: '', lines: [] })
 
