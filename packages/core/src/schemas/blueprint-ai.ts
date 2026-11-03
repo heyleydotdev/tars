@@ -63,5 +63,7 @@ export type BlueprintExtractionInput = z.input<typeof blueprintExtractionSchema>
 export type BlueprintExtractionOutput = z.output<typeof blueprintExtractionSchema>
 export type BlueprintReadinessInput = z.input<typeof blueprintReadinessSchema>
 export type BlueprintReadinessOutput = z.output<typeof blueprintReadinessSchema>
+export type BlueprintQuestionDraftInput = z.input<typeof blueprintQuestionDraftSchema>
+export type BlueprintQuestionDraftOutput = z.output<typeof blueprintQuestionDraftSchema>
 export type BlueprintQuestionsInput = z.input<typeof blueprintQuestionsSchema>
 export type BlueprintQuestionsOutput = z.output<typeof blueprintQuestionsSchema>
