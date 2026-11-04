@@ -24,7 +24,6 @@ import ConsoleDayHeader from '../components/console-day-header'
 import ConsoleHeader from '../components/console-header'
 import ConsolePanel from '../components/console-panel'
 import EmptyState from '../components/empty-state'
-import PendingNavigationGuard from '../components/pending-navigation-guard'
 import { logAction } from '../lib/activity'
 import { BLUEPRINT_STATUS_TONES } from '../lib/badge-tones'
 import { useBlueprints, useCreateBlueprint, useDeleteBlueprint } from '../lib/blueprint'
@@ -228,8 +227,6 @@ export default function Blueprints() {
           )}
         </ConsolePanel>
       </div>
-
-      <PendingNavigationGuard when={create.isPending} />
 
       <ConfirmDialog
         title="Delete blueprint?"

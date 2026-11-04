@@ -251,7 +251,7 @@ export default function Incidents() {
         </ConsolePanel>
       </div>
 
-      <PendingNavigationGuard when={create.isPending || demoRunning} />
+      <PendingNavigationGuard when={demoRunning} />
 
       <ConfirmDialog
         title="Delete incident?"
